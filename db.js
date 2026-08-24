@@ -179,35 +179,9 @@ const Attendance = createModel('attendance');
 const BrandLogo = createModel('brand_logos');
 const Review = createModel('reviews');
 
-// Create Supabase storage bucket if not exists
-async function initStorageBucket() {
-    try {
-        const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-        if (listError) {
-            console.error('Error listing Supabase buckets:', listError.message);
-            return;
-        }
-        
-        const exists = buckets.some(b => b.name === 'dss-uploads');
-        if (!exists) {
-            const { error: createError } = await supabase.storage.createBucket('dss-uploads', {
-                public: true
-            });
-            if (createError) {
-                console.error('Error creating Supabase bucket:', createError.message);
-            } else {
-                console.log('Created Supabase storage bucket "dss-uploads" successfully.');
-            }
-        }
-    } catch (err) {
-        console.error('Error initializing storage bucket:', err);
-    }
-}
-
 // Seeding logic on server startup
 async function seedDatabase() {
     try {
-        await initStorageBucket();
         await seedPackages();
         await seedBrandLogos();
         await seedReviews();

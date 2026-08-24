@@ -3,8 +3,10 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const multerS3 = require('multer-s3');
 require('dotenv').config();
-const { Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review, supabase } = require('./db');
+const { Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -14,8 +16,46 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configure Multer memory storage
-const storage = multer.memoryStorage();
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure Cloudflare R2 S3 Client
+const useR2 = process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY;
+let s3;
+let storage;
+
+if (useR2) {
+    s3 = new S3Client({
+        region: 'auto',
+        endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        credentials: {
+            accessKeyId: process.env.R2_ACCESS_KEY_ID,
+            secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+        },
+    });
+
+    storage = multerS3({
+        s3: s3,
+        bucket: process.env.R2_BUCKET_NAME || 'dss-uploads',
+        key: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, uniqueSuffix + path.extname(file.originalname));
+        }
+    });
+} else {
+    storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, uploadDir);
+        },
+        filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, uniqueSuffix + path.extname(file.originalname));
+        }
+    });
+}
 
 const upload = multer({ 
     storage: storage,
@@ -31,45 +71,56 @@ const upload = multer({
     }
 });
 
-// Helper to upload file to Supabase Storage
-const uploadToSupabase = async (file) => {
+// Helper to construct public URL / relative path
+const getFileUrl = (file) => {
     if (!file) return null;
-    
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const fileName = uniqueSuffix + path.extname(file.originalname);
-
-    const { data, error } = await supabase.storage
-        .from('dss-uploads')
-        .upload(fileName, file.buffer, {
-            contentType: file.mimetype,
-            cacheControl: '3600',
-            upsert: false
-        });
-
-    if (error) {
-        throw new Error('Supabase storage upload failed: ' + error.message);
+    if (useR2) {
+        const publicUrl = process.env.R2_PUBLIC_URL || '';
+        const prefix = publicUrl.endsWith('/') ? publicUrl : publicUrl + '/';
+        return prefix + file.key;
     }
-
-    const supabaseUrl = process.env.SUPABASE_URL;
-    return `${supabaseUrl}/storage/v1/object/public/dss-uploads/${fileName}`;
+    return '/uploads/' + file.filename;
 };
 
-// Helper to delete file from Supabase Storage
-const deleteFromSupabase = async (fileUrl) => {
-    if (!fileUrl) return;
-    if (!fileUrl.includes('/storage/v1/object/public/dss-uploads/')) return;
+// Helper to delete file from local disk or R2 bucket
+const deleteFile = async (fileOrUrl) => {
+    if (!fileOrUrl) return;
 
-    const parts = fileUrl.split('/');
-    const fileName = parts[parts.length - 1];
+    let filename = typeof fileOrUrl === 'object' ? (fileOrUrl.key || fileOrUrl.filename) : null;
+    let localPath = typeof fileOrUrl === 'object' ? fileOrUrl.path : null;
 
-    const { error } = await supabase.storage
-        .from('dss-uploads')
-        .remove([fileName]);
+    if (typeof fileOrUrl === 'string') {
+        if (fileOrUrl.startsWith('http://') || fileOrUrl.startsWith('https://')) {
+            const parts = fileOrUrl.split('/');
+            filename = parts[parts.length - 1];
+        } else {
+            const parts = fileOrUrl.split('/');
+            filename = parts[parts.length - 1];
+            localPath = path.join(__dirname, 'public', 'uploads', filename);
+        }
+    }
 
-    if (error) {
-        console.error('Error deleting from Supabase storage:', error.message);
-    } else {
-        console.log('Deleted from Supabase storage:', fileName);
+    if (useR2 && filename) {
+        try {
+            await s3.send(new DeleteObjectCommand({
+                Bucket: process.env.R2_BUCKET_NAME || 'dss-uploads',
+                Key: filename
+            }));
+            console.log('Deleted from Cloudflare R2:', filename);
+        } catch (err) {
+            console.error('Error deleting from R2:', err);
+        }
+    }
+
+    if (localPath) {
+        try {
+            if (fs.existsSync(localPath)) {
+                fs.unlinkSync(localPath);
+                console.log('Deleted from local disk:', localPath);
+            }
+        } catch (err) {
+            console.error('Error deleting from local disk:', err);
+        }
     }
 };
 
@@ -229,13 +280,13 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
     const workFiles = req.files && req.files['workFiles'] ? req.files['workFiles'] : [];
     const thumbnailFile = req.files && req.files['thumbnailFile'] ? req.files['thumbnailFile'][0] : null;
 
-    let mediaPaths = [];
-    let thumbnailPath = null;
-
     try {
         const { title, category, description } = req.body;
         
         if (!title || !category || workFiles.length === 0) {
+            // Delete uploaded files if validation fails
+            for (const file of workFiles) { await deleteFile(file); }
+            if (thumbnailFile) { await deleteFile(thumbnailFile); }
             return res.status(400).json({ 
                 success: false, 
                 message: 'Title, category, and at least one media file are required.' 
@@ -245,20 +296,13 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
         // Validate auth header (token)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer dss-token-')) {
+            // Delete uploaded files if unauthorized
+            for (const file of workFiles) { await deleteFile(file); }
+            if (thumbnailFile) { await deleteFile(thumbnailFile); }
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
-        // Upload media files to Supabase Storage
-        for (const file of workFiles) {
-            const url = await uploadToSupabase(file);
-            if (url) mediaPaths.push(url);
-        }
-
-        // Upload thumbnail to Supabase Storage
-        if (thumbnailFile) {
-            thumbnailPath = await uploadToSupabase(thumbnailFile);
-        }
-
+        const mediaPaths = workFiles.map(file => getFileUrl(file));
         const mediaTypes = workFiles.map(file => file.mimetype.startsWith('video/') ? 'video' : 'image');
 
         const newProject = new Project({
@@ -270,7 +314,7 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
             fileType: mediaTypes[0],
             mediaPaths,
             mediaTypes,
-            thumbnailPath,
+            thumbnailPath: thumbnailFile ? getFileUrl(thumbnailFile) : null,
             createdAt: new Date()
         });
 
@@ -283,9 +327,8 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
         });
     } catch (error) {
         console.error('Upload error:', error);
-        // Clean up newly uploaded files on error
-        for (const url of mediaPaths) { await deleteFromSupabase(url); }
-        if (thumbnailPath) { await deleteFromSupabase(thumbnailPath); }
+        for (const file of workFiles) { await deleteFile(file); }
+        if (thumbnailFile) { await deleteFile(thumbnailFile); }
         return res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -294,9 +337,6 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
 app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
     const workFiles = req.files && req.files['workFiles'] ? req.files['workFiles'] : [];
     const thumbnailFile = req.files && req.files['thumbnailFile'] ? req.files['thumbnailFile'][0] : null;
-
-    let newMediaPaths = [];
-    let updatedThumbnailPath = null;
 
     try {
         const { id } = req.params;
@@ -314,31 +354,34 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
         // Validate auth header (token)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer dss-token-')) {
+            for (const file of workFiles) { await deleteFile(file); }
+            if (thumbnailFile) { await deleteFile(thumbnailFile); }
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
         const project = await Project.findOne({ id });
         if (!project) {
+            for (const file of workFiles) { await deleteFile(file); }
+            if (thumbnailFile) { await deleteFile(thumbnailFile); }
             return res.status(404).json({ success: false, message: 'Project not found.' });
         }
 
         if (keepMediaPaths.length === 0 && workFiles.length === 0) {
+            for (const file of workFiles) { await deleteFile(file); }
+            if (thumbnailFile) { await deleteFile(thumbnailFile); }
             return res.status(400).json({ success: false, message: 'At least one media file is required.' });
         }
 
-        // Delete removed files from Supabase Storage
+        // Delete removed files from disk/R2
         const currentMediaPaths = project.mediaPaths || [project.imagePath];
         const deletedMediaPaths = currentMediaPaths.filter(pathVal => !keepMediaPaths.includes(pathVal));
         
         for (const pathVal of deletedMediaPaths) {
-            await deleteFromSupabase(pathVal);
+            await deleteFile(pathVal);
         }
 
-        // Upload new media files to Supabase Storage
-        for (const file of workFiles) {
-            const url = await uploadToSupabase(file);
-            if (url) newMediaPaths.push(url);
-        }
+        // Compute new uploads
+        const newMediaPaths = workFiles.map(file => getFileUrl(file));
         const newMediaTypes = workFiles.map(file => file.mimetype.startsWith('video/') ? 'video' : 'image');
 
         const updatedMediaPaths = [];
@@ -361,12 +404,12 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
         });
 
         // Handle thumbnail replacement
-        updatedThumbnailPath = project.thumbnailPath;
+        let updatedThumbnailPath = project.thumbnailPath;
         if (thumbnailFile) {
             if (project.thumbnailPath) {
-                await deleteFromSupabase(project.thumbnailPath);
+                await deleteFile(project.thumbnailPath);
             }
-            updatedThumbnailPath = await uploadToSupabase(thumbnailFile);
+            updatedThumbnailPath = getFileUrl(thumbnailFile);
         }
 
         // Update project details
@@ -388,11 +431,8 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
         });
     } catch (error) {
         console.error('Update error:', error);
-        // Clean up newly uploaded files on error
-        for (const url of newMediaPaths) { await deleteFromSupabase(url); }
-        if (thumbnailFile && updatedThumbnailPath && updatedThumbnailPath !== project.thumbnailPath) {
-            await deleteFromSupabase(updatedThumbnailPath);
-        }
+        for (const file of workFiles) { await deleteFile(file); }
+        if (thumbnailFile) { await deleteFile(thumbnailFile); }
         return res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -413,18 +453,18 @@ app.delete('/api/projects/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Project not found.' });
         }
 
-        // Remove media files from Supabase Storage
+        // Remove media files
         if (project.mediaPaths && project.mediaPaths.length > 0) {
             for (const mediaPath of project.mediaPaths) {
-                await deleteFromSupabase(mediaPath);
+                await deleteFile(mediaPath);
             }
         } else if (project.imagePath) {
-            await deleteFromSupabase(project.imagePath);
+            await deleteFile(project.imagePath);
         }
 
-        // Remove thumbnail file from Supabase Storage if it exists
+        // Remove thumbnail file if it exists
         if (project.thumbnailPath) {
-            await deleteFromSupabase(project.thumbnailPath);
+            await deleteFile(project.thumbnailPath);
         }
 
         await Project.deleteOne({ id });
@@ -1266,18 +1306,17 @@ app.post('/api/brand-logos', upload.fields([{ name: 'darkLogoFile', maxCount: 1 
     const darkFile = req.files && req.files['darkLogoFile'] ? req.files['darkLogoFile'][0] : null;
     const lightFile = req.files && req.files['lightLogoFile'] ? req.files['lightLogoFile'][0] : null;
 
-    let darkImagePath = null;
-    let lightImagePath = null;
-
     try {
         const { name } = req.body;
         
         if (!darkFile || !lightFile) {
+            if (darkFile) await deleteFile(darkFile);
+            if (lightFile) await deleteFile(lightFile);
             return res.status(400).json({ success: false, message: 'Please upload both dark theme and light theme logo files.' });
         }
         
-        darkImagePath = await uploadToSupabase(darkFile);
-        lightImagePath = await uploadToSupabase(lightFile);
+        const darkImagePath = getFileUrl(darkFile);
+        const lightImagePath = getFileUrl(lightFile);
         
         const newLogo = new BrandLogo({
             id: 'logo-' + Date.now(),
@@ -1289,8 +1328,8 @@ app.post('/api/brand-logos', upload.fields([{ name: 'darkLogoFile', maxCount: 1 
         await newLogo.save();
         res.status(201).json({ success: true, logo: newLogo });
     } catch (error) {
-        if (darkImagePath) await deleteFromSupabase(darkImagePath);
-        if (lightImagePath) await deleteFromSupabase(lightImagePath);
+        if (darkFile) await deleteFile(darkFile);
+        if (lightFile) await deleteFile(lightFile);
         res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -1307,9 +1346,9 @@ app.delete('/api/brand-logos/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Logo not found.' });
         }
 
-        // Clean up Supabase storage files
-        await deleteFromSupabase(logo.darkImagePath);
-        await deleteFromSupabase(logo.lightImagePath);
+        // Clean up R2/local files
+        await deleteFile(logo.darkImagePath);
+        await deleteFile(logo.lightImagePath);
 
         await BrandLogo.deleteOne({ id });
         res.json({ success: true, message: 'Logo deleted successfully.' });
