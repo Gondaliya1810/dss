@@ -1,0 +1,37 @@
+[
+  {
+    "id": "client-1",
+    "name": "TransGlobe",
+    "email": "contact@transglobe.org"
+  },
+  {
+    "id": "client-2",
+    "name": "Satvik Namkeen",
+    "email": "satvik@namkeen.in"
+  },
+  {
+    "id": "client-3",
+    "name": "Kian's Cafe",
+    "email": "kian@kianscafe.com"
+  },
+  {
+    "id": "client-4",
+    "name": "Loan Campus",
+    "email": "support@loancampus.in"
+  },
+  {
+    "id": "client-5",
+    "name": "Global Haven",
+    "email": "info@globalhaven.com"
+  },
+  {
+    "id": "client-1786972921359",
+    "name": "Coca Cola",
+    "email": ""
+  },
+  {
+    "id": "client-1787323074322",
+    "name": "TG",
+    "email": ""
+  }
+]

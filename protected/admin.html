@@ -1,0 +1,2934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        if (localStorage.getItem('lightmode') === 'active') {
+            document.documentElement.classList.add('lightmode');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSS - Design Shaper Studio | Admin Dashboard</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+    
+    <!-- Chart.js CDN for Analytics Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Custom Admin styles for a premium dashboard look matching the theme */
+        #logoImg {
+            height: 50px !important;
+            width: auto !important;
+            max-width: 100% !important;
+            object-fit: contain !important;
+        }
+
+        .admin-wrapper {
+            min-height: 100vh;
+            padding: 80px 0;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Blur background when modals are shown */
+        .modal-backdrop.show {
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            background-color: rgba(0, 0, 0, 0.45) !important;
+        }
+
+        .admin-card {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform var(--anim-normal);
+        }
+
+        .admin-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-shadow);
+        }
+
+        .admin-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-white);
+            margin-bottom: 20px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        /* Sidebar Layout */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--bg-dark);
+            transition: background-color var(--anim-normal);
+            overflow-x: hidden;
+        }
+
+        .admin-sidebar {
+            width: 260px;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            left: 20px;
+            height: calc(100vh - 40px);
+            z-index: 1000;
+            transition: background-color 0.3s ease, border-color 0.3s ease, left var(--anim-normal), transform var(--anim-normal);
+            padding: 30px 20px;
+            box-shadow: var(--card-shadow);
+            overflow-y: auto;
+        }
+
+        /* Custom scrollbar for sidebar menu */
+        .admin-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        .admin-main {
+            flex: 1;
+            margin-left: 300px;
+            padding: 40px;
+            min-width: 0;
+            transition: margin-left var(--anim-normal);
+            overflow-x: hidden;
+        }
+
+        /* Sidebar logo and info */
+        .sidebar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .sidebar-brand img {
+            height: 40px;
+            margin-bottom: 15px;
+            object-fit: contain;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .profile-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .profile-info {
+            text-align: left;
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .profile-role {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Navigation Links */
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), background 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), color 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+            cursor: pointer;
+        }
+
+        .menu-link:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            transform: translateX(5px);
+        }
+
+        .lightmode .menu-link:hover {
+            background: rgba(0, 0, 0, 0.03);
+            color: var(--text-primary) !important;
+            transform: translateX(5px);
+        }
+
+        /* Custom Dropdown select for Task Status */
+        .status-select-dss {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+            width: 120px !important;
+            padding: 4px 8px !important;
+            cursor: pointer;
+            transition: border-color var(--anim-fast);
+        }
+
+        .status-select-dss:focus {
+            outline: none;
+            border-color: var(--accent-color) !important;
+        }
+
+        .status-select-dss option {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .menu-link.active {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(250, 157, 28, 0.35);
+            transform: translateX(5px);
+        }
+
+        .menu-link i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-badge {
+            margin-left: auto;
+            background: rgba(230, 57, 70, 0.2);
+            color: var(--error-color);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .menu-badge.hide {
+            display: none;
+        }
+
+        /* Footer actions in sidebar */
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        /* Top Header (Mobile only header) */
+        .mobile-header {
+            display: none;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* Drag & Drop zone */
+        .upload-dropzone {
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--anim-normal);
+            background: rgba(255, 255, 255, 0.01);
+            position: relative;
+        }
+
+        .upload-dropzone:hover, .upload-dropzone.dragover {
+            border-color: var(--accent-color);
+            background: rgba(250, 157, 28, 0.05);
+        }
+
+        .upload-dropzone i {
+            font-size: 40px;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            transition: transform var(--anim-normal);
+        }
+
+        .upload-dropzone:hover i {
+            transform: translateY(-5px);
+        }
+
+        .preview-container {
+            margin-top: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            position: relative;
+            max-height: 250px;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-container img, .preview-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .remove-preview-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(230, 57, 70, 0.9);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background var(--anim-fast);
+            z-index: 10;
+        }
+
+        .remove-preview-btn:hover {
+            background: var(--error-color);
+        }
+
+        /* Login Card specific */
+        .login-card {
+            max-width: 450px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Sliding Pill Tab Switcher */
+        .login-toggle-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 4px;
+            margin-bottom: 25px;
+        }
+        
+        .lightmode .login-toggle-container {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .login-toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary) !important;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 25px;
+            transition: all var(--anim-normal);
+            cursor: pointer;
+        }
+
+        .login-toggle-btn.active {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .password-toggle-btn {
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-secondary) !important;
+            cursor: pointer;
+            transition: color var(--anim-fast);
+        }
+        
+        .password-toggle-btn:hover {
+            color: var(--accent-color) !important;
+        }
+
+        /* Custom inputs */
+        .form-control-dss {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-white) !important;
+            padding: 12px 16px;
+            border-radius: 10px;
+            transition: all var(--anim-normal);
+        }
+        
+        .lightmode .form-control-dss {
+            background: rgba(0, 0, 0, 0.02);
+            color: var(--text-primary) !important;
+        }
+
+        .form-control-dss option {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+        }
+
+        /* Style native date picker calendar icon to be visible in both themes */
+        .form-control-dss::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+        .form-control-dss::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+        .lightmode .form-control-dss::-webkit-calendar-picker-indicator {
+            filter: invert(0);
+        }
+
+        .form-control-dss:focus {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(250, 157, 28, 0.15);
+            outline: none;
+        }
+
+        .input-group-text {
+            background: rgba(255, 255, 255, 0.03) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-secondary) !important;
+            transition: all var(--anim-normal);
+        }
+
+        .lightmode .input-group-text {
+            background: rgba(0, 0, 0, 0.02) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .btn-dss {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .btn-dss:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(250, 157, 28, 0.5);
+        }
+
+        .btn-dss:active {
+            transform: translateY(1px);
+        }
+
+        .btn-outline-dss {
+            background: transparent;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all var(--anim-normal);
+        }
+
+        .btn-outline-dss:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color) !important;
+            background: rgba(250, 157, 28, 0.05);
+        }
+
+        /* Stats Grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card-new {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-card-new:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-shadow);
+        }
+
+        .stat-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            background: rgba(250, 157, 28, 0.1);
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .stat-card-new:hover .stat-icon {
+            transform: scale(1.1);
+        }
+
+        .stat-card-new:nth-child(2) .stat-icon {
+            background: rgba(0, 184, 212, 0.1);
+            color: #00b8d4;
+        }
+
+        .stat-card-new:nth-child(3) .stat-icon {
+            background: rgba(250, 157, 28, 0.1);
+            color: var(--accent-color);
+        }
+
+        .stat-card-new:nth-child(4) .stat-icon {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success-color);
+        }
+
+        .stat-info-new {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-num {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        /* Grid Layout for Works (Manage Works) */
+        .works-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .work-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all var(--anim-normal);
+            position: relative;
+        }
+
+        .work-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-shadow);
+        }
+
+        .work-media {
+            height: 160px;
+            width: 100%;
+            overflow: hidden;
+            background: #000;
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .work-media img, .work-media video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--anim-slow);
+        }
+
+        .work-card:hover .work-media img {
+            transform: scale(1.1);
+        }
+
+        .work-info {
+            padding: 16px;
+        }
+
+        .work-title-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .work-desc-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 38px;
+        }
+
+        .work-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .work-delete-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(230, 57, 70, 0.1);
+            border: 1px solid rgba(230, 57, 70, 0.2);
+            color: var(--error-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--anim-fast);
+            cursor: pointer;
+        }
+
+        .work-delete-btn:hover {
+            background: var(--error-color);
+            color: white;
+        }
+
+        /* Project Table */
+        .project-table-container {
+            overflow-x: auto;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .project-table-container::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .project-table-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .project-table-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        .project-table-container::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-color);
+        }
+
+        /* Table styling enhancements */
+        .custom-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .custom-table tr {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            transition: all var(--anim-normal);
+        }
+
+        .lightmode .custom-table tr {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .custom-table tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+            transform: scale(1.002);
+        }
+
+        .lightmode .custom-table tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .custom-table th {
+            padding: 12px 18px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+        }
+
+        .custom-table td {
+            padding: 18px;
+            border: none;
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+
+        .custom-table td:first-child, .custom-table th:first-child {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .custom-table td:last-child, .custom-table th:last-child {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        .badge-dss {
+            background: rgba(250, 157, 28, 0.1);
+            color: var(--accent-color);
+            border: 1px solid rgba(250, 157, 28, 0.2);
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Lead Management Styling */
+        .lead-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all var(--anim-fast);
+        }
+
+        .status-pending {
+            background: rgba(250, 157, 28, 0.1);
+            color: var(--accent-color);
+            border-color: rgba(250, 157, 28, 0.2);
+        }
+
+        .status-contacted {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--success-color);
+            border-color: rgba(0, 230, 118, 0.2);
+        }
+
+        .status-spam {
+            background: rgba(230, 57, 70, 0.1);
+            color: var(--error-color);
+            border-color: rgba(230, 57, 70, 0.2);
+        }
+
+        .lead-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lead-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            background: transparent;
+            transition: all var(--anim-fast);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .lead-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background: rgba(250, 157, 28, 0.05);
+        }
+
+        .lead-btn.btn-whatsapp:hover {
+            border-color: #25d366;
+            color: #25d366;
+            background: rgba(37, 211, 102, 0.05);
+        }
+
+        .lead-btn.btn-delete:hover {
+            border-color: var(--error-color);
+            color: var(--error-color);
+            background: rgba(230, 57, 70, 0.05);
+        }
+
+        /* Toast container customization */
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+            pointer-events: none;
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .toast-notification.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast-notification.error {
+            border-left: 4px solid var(--error-color);
+        }
+
+        .toast-notification i {
+            font-size: 20px;
+        }
+
+        .toast-notification.success i {
+            color: var(--success-color);
+        }
+
+        .toast-notification.error i {
+            color: var(--error-color);
+        }
+
+        .toast-message {
+            color: var(--text-white);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* Modals */
+        .custom-modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.5);
+            color: var(--text-primary);
+        }
+
+        .custom-modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+        }
+
+        .custom-modal-body {
+            padding: 24px;
+        }
+
+        .custom-modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 16px 24px;
+        }
+
+        /* Limit mobile logo height */
+        #mobileLogo {
+            height: 30px !important;
+            width: auto !important;
+            object-fit: contain !important;
+        }
+
+        /* Media Queries for Sidebar layout */
+        @media (max-width: 991.98px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                width: 280px;
+                height: 100%;
+                border-radius: 0;
+                border-right: 1px solid var(--border-color);
+                border-top: none;
+                border-bottom: none;
+                border-left: none;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            .admin-sidebar.show {
+                transform: translateX(0);
+            }
+            .admin-main {
+                margin-left: 0;
+                padding: 100px 20px 40px 20px;
+            }
+            .mobile-header {
+                display: flex;
+            }
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .admin-main {
+                padding: 85px 12px 20px 12px !important;
+            }
+            .admin-card {
+                padding: 15px 12px !important;
+            }
+            .stat-card-new {
+                padding: 15px 12px !important;
+            }
+            .admin-title {
+                font-size: 20px !important;
+                margin-bottom: 15px !important;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+                gap: 12px !important;
+            }
+            .custom-table thead {
+                display: none;
+            }
+            .custom-table tr {
+                display: block;
+                margin-bottom: 15px;
+                padding: 10px;
+            }
+            .custom-table td {
+                font-size: 13px !important;
+                padding: 8px 10px !important;
+            }
+            .custom-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-secondary);
+                float: left;
+                text-transform: uppercase;
+                font-size: 11px;
+            }
+        }
+
+        /* Task tracker menu categories in sidebar */
+        .menu-category {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--accent-color);
+            padding: 15px 20px 5px 20px;
+            opacity: 0.8;
+        }
+
+        .lightmode .menu-category {
+            color: #ff5e3b;
+        }
+
+        .stat-card-new {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .stat-card-new:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-glow);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-info-new {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-num {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        /* Task Alert Badges */
+        .task-alert-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .task-alert-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .task-alert-item.alert-overdue {
+            border-left-color: #e63946;
+        }
+
+        .task-alert-item.alert-today {
+            border-left-color: #fa9d1c;
+        }
+
+        .task-alert-item.alert-soon {
+            border-left-color: #ffb703;
+        }
+
+        .task-alert-item.alert-ontrack {
+            border-left-color: #00e676;
+        }
+
+        /* Status & Priority Badges */
+        .badge-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: capitalize;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-status.status-pending {
+            background: rgba(250, 157, 28, 0.1);
+            color: #fa9d1c;
+        }
+
+        .badge-status.status-in_progress {
+            background: rgba(0, 187, 249, 0.1);
+            color: #00bbf9;
+        }
+
+        .badge-status.status-under_review {
+            background: rgba(155, 93, 229, 0.1);
+            color: #9b5de5;
+        }
+
+        .badge-status.status-completed {
+            background: rgba(0, 230, 118, 0.1);
+            color: #00e676;
+        }
+
+        .priority-text {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: capitalize;
+        }
+
+        .priority-high {
+            color: #e63946;
+        }
+
+        .priority-medium {
+            color: #ffb703;
+        }
+
+        .priority-low {
+            color: #00e676;
+        }
+
+        /* Calendar Styles */
+        .calendar-cell {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 105px;
+            transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+        }
+
+        .calendar-cell:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-cell.inactive-month {
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .calendar-cell.today-cell {
+            border: 2px solid var(--accent-color) !important;
+            box-shadow: 0 0 15px rgba(250, 157, 28, 0.25) !important;
+        }
+
+        .calendar-date-num {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* Hover Plus Icon button style */
+        .calendar-add-task-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .calendar-add-task-btn:hover {
+            color: var(--accent-color);
+            background: rgba(250, 157, 28, 0.1);
+        }
+        .calendar-cell:hover .calendar-add-task-btn {
+            opacity: 1;
+        }
+
+        .calendar-task-tag {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: #fff !important;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .calendar-task-tag:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Premium Action Buttons in Tables */
+        .btn-action-dss {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+            padding: 0;
+            outline: none;
+        }
+
+        .lightmode .btn-action-dss {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .btn-action-dss i {
+            font-size: 13px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-action-dss:hover i {
+            transform: scale(1.1);
+        }
+
+        /* View Button Hover */
+        .btn-action-view:hover {
+            background: rgba(0, 187, 249, 0.1) !important;
+            border-color: #00bbf9 !important;
+            color: #00bbf9 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 187, 249, 0.15);
+        }
+
+        /* Edit/Update Button Hover */
+        .btn-action-edit:hover {
+            background: rgba(250, 157, 28, 0.1) !important;
+            border-color: var(--accent-color) !important;
+            color: var(--accent-color) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(250, 157, 28, 0.15);
+        }
+
+        /* Delete Button Hover */
+        .btn-action-delete:hover {
+            background: rgba(230, 57, 70, 0.1) !important;
+            border-color: #e63946 !important;
+            color: #e63946 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(230, 57, 70, 0.15);
+        }
+
+        /* Custom notifications style */
+        .notification-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s ease;
+        }
+
+        .notification-card:hover {
+            transform: scale(1.01);
+        }
+
+        .notification-icon-wrapper {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .notification-info {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .notification-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .notification-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* Light Mode Specific Overrides for Task Tracker */
+        .lightmode .task-alert-item {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .lightmode .task-alert-item:hover {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .lightmode .calendar-task-tag {
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        @media (min-width: 768px) {
+            .recent-filters-dss {
+                flex-wrap: nowrap !important;
+            }
+        }
+
+        /* Smooth Tab Transition Animations */
+        .tab-content {
+            animation: fadeInTab 0.35s cubic-bezier(0.165, 0.84, 0.44, 1);
+            will-change: opacity, transform;
+        }
+
+        @keyframes fadeInTab {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Optimization for Laptop Screens */
+        @media (min-width: 992px) and (max-width: 1400px), (min-width: 992px) and (max-height: 850px) {
+            .admin-sidebar {
+                padding: 20px 15px !important;
+                width: 240px !important;
+                top: 15px !important;
+                bottom: 15px !important;
+                left: 15px !important;
+                height: calc(100vh - 30px) !important;
+            }
+            .admin-main {
+                margin-left: 270px !important;
+                padding: 25px !important;
+            }
+            .sidebar-brand {
+                padding-bottom: 15px !important;
+                margin-bottom: 15px !important;
+            }
+            .sidebar-brand img {
+                height: 32px !important;
+                margin-bottom: 10px !important;
+            }
+            .admin-profile {
+                gap: 8px !important;
+            }
+            .profile-avatar {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 14px !important;
+            }
+            .menu-link {
+                padding: 8px 15px !important;
+                gap: 10px !important;
+                font-size: 13px !important;
+                border-radius: 8px !important;
+            }
+            .menu-link i {
+                font-size: 16px !important;
+                width: 18px !important;
+            }
+            .admin-card {
+                padding: 20px !important;
+                border-radius: 15px !important;
+            }
+            .stat-grid {
+                gap: 15px !important;
+                margin-bottom: 20px !important;
+            }
+            .stat-card-new {
+                padding: 15px !important;
+                gap: 12px !important;
+                border-radius: 12px !important;
+            }
+            .stat-num {
+                font-size: 20px !important;
+            }
+            .stat-title {
+                font-size: 11px !important;
+            }
+            .stat-icon {
+                width: 42px !important;
+                height: 42px !important;
+                font-size: 18px !important;
+                border-radius: 8px !important;
+            }
+            .custom-table td {
+                padding: 12px 14px !important;
+                font-size: 13px !important;
+            }
+            .custom-table th {
+                padding: 8px 14px !important;
+                font-size: 11px !important;
+            }
+            .admin-title {
+                font-size: 22px !important;
+            }
+            .form-control-dss {
+                padding: 8px 12px !important;
+                font-size: 13px !important;
+            }
+            .btn-dss, .btn-outline-dss {
+                padding: 8px 16px !important;
+                font-size: 13px !important;
+            }
+        /* Smooth, lag-free transitions for layout texts, icons, buttons and borders */
+        .admin-layout h1, .admin-layout h2, .admin-layout h3, .admin-layout h4, .admin-layout h5, .admin-layout h6, 
+        .admin-layout span, .admin-layout p, .admin-layout a, .admin-layout i, .admin-layout td, .admin-layout th,
+        .admin-layout select, .admin-layout input, .admin-layout button, .admin-layout div {
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"></div>
+
+    <!-- Background Glow Effect elements -->
+    <div id="cursor-glow"></div>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header" id="mobileHeader" style="display: none;">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Navigation Sidebar">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <img src="./image/logo-light.png" alt="DSS Logo" height="30" id="mobileLogo">
+        <button id="themeSwitchAdminMobile" class="themeswitch" aria-label="Toggle Theme">
+            <i id="themeIconAdminMobile" class="fas fa-moon"></i>
+        </button>
+    </header>
+
+    <!-- Admin Sidebar -->
+    <aside class="admin-sidebar" id="adminSidebar" style="display: none;">
+        <div class="sidebar-brand">
+            <img src="./image/logo-light.png" alt="DSS Logo" id="sidebarLogoImg">
+            <div class="admin-profile">
+                <div class="profile-avatar">A</div>
+                <div class="profile-info">
+                    <div class="profile-name">DSS Admin</div>
+                    <div class="profile-role">Portal Operator</div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="sidebar-menu">
+            <div class="menu-category">Work Management</div>
+            <li>
+                <div class="menu-link active" data-tab="overview" id="tabLinkOverview">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="assign-task" id="tabLinkAssignTask">
+                    <i class="fa-solid fa-circle-plus"></i>
+                    <span>Assign Task</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="all-tasks" id="tabLinkAllTasks">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>All Tasks</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="clients-mgmt" id="tabLinkClientsMgmt">
+                    <i class="fa-solid fa-address-book"></i>
+                    <span>Clients Directory</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="packages-mgmt" id="tabLinkPackagesMgmt">
+                    <i class="fa-solid fa-box-archive"></i>
+                    <span>Packages</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="calendar" id="tabLinkCalendar">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    <span>Calendar</span>
+                </div>
+            </li>
+            
+            <div class="menu-category">Staff Management</div>
+            <li>
+                <div class="menu-link" data-tab="staff-mgmt" id="tabLinkStaffMgmt">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>Staff Management</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="staff-attendance" id="tabLinkStaffAttendance">
+                    <i class="fa-solid fa-business-time"></i>
+                    <span>Attendance Logs</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="staff-report" id="tabLinkStaffReport">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Staff Wise Report</span>
+                </div>
+            </li>
+
+            <div class="menu-category">Portfolio & Inquiries</div>
+            <li>
+                <div class="menu-link" data-tab="projects" id="tabLinkProjects">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Work Files</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="leads" id="tabLinkLeads">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Inquiries</span>
+                    <span class="menu-badge hide" id="pendingLeadsBadge">0</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="brand-logos-mgmt" id="tabLinkBrandLogosMgmt">
+                    <i class="fa-solid fa-gem"></i>
+                    <span>Brand Logos</span>
+                </div>
+            </li>
+            <li>
+                <div class="menu-link" data-tab="reviews-mgmt" id="tabLinkReviewsMgmt">
+                    <i class="fa-solid fa-star"></i>
+                    <span>Client Reviews</span>
+                </div>
+            </li>
+            
+            <div class="menu-category">System</div>
+            <li>
+                <div class="menu-link" data-tab="notifications" id="tabLinkNotifications">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Notifications</span>
+                    <span class="menu-badge text-bg-danger" id="notificationCountBadge" style="display: none; padding: 2px 6px; font-size: 10px; border-radius: 50%;">0</span>
+                </div>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button id="themeSwitchAdmin" class="btn-outline-dss py-2 px-3 border-0 d-flex align-items-center gap-3 w-100" style="font-size: 14px; border-radius: 10px;">
+                <i id="themeIconAdmin" class="fas fa-moon" style="width: 20px;"></i>
+                <span id="themeTextAdmin">Dark Mode</span>
+            </button>
+            <a href="index.html" class="btn-outline-dss text-decoration-none py-2 px-3 w-100 d-flex align-items-center gap-3" style="font-size: 14px; border-radius: 10px;">
+                <i class="fa-solid fa-house" style="width: 20px;"></i> View Website
+            </a>
+            <button class="btn btn-dss py-2 px-3 w-100 d-flex align-items-center gap-3 justify-content-center" id="logoutBtn" style="font-size: 14px; border-radius: 10px;">
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Page Body Wrapper -->
+    <div class="admin-layout">
+        
+
+
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main class="admin-main" id="dashboardPanel" style="display: none;">
+            
+            <!-- DASHBOARD (OVERVIEW) TAB -->
+            <section id="tab-overview" class="tab-content">
+                <h2 class="admin-title">Dashboard Overview</h2>
+                
+                <!-- Stats Grid -->
+                <div class="stat-grid mb-4">
+                    <!-- Total Tasks -->
+                    <div class="stat-card-new stat-total">
+                        <div class="stat-icon" style="background: rgba(250, 157, 28, 0.1); color: #fa9d1c;"><i class="fa-solid fa-folder-open"></i></div>
+                        <div class="stat-info-new">
+                            <div class="stat-num" id="statTotalTasks">0</div>
+                            <div class="stat-title">Total Tasks</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">All Time</div>
+                        </div>
+                    </div>
+                    <!-- Pending Tasks -->
+                    <div class="stat-card-new stat-pending">
+                        <div class="stat-icon" style="background: rgba(0, 187, 249, 0.1); color: #00bbf9;"><i class="fa-solid fa-paper-plane"></i></div>
+                        <div class="stat-info-new">
+                            <div class="stat-num" id="statPendingTasks">0</div>
+                            <div class="stat-title">Pending Tasks</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Need Attention</div>
+                        </div>
+                    </div>
+                    <!-- Under Review -->
+                    <div class="stat-card-new stat-review">
+                        <div class="stat-icon" style="background: rgba(155, 93, 229, 0.1); color: #9b5de5;"><i class="fa-solid fa-list-check"></i></div>
+                        <div class="stat-info-new">
+                            <div class="stat-num" id="statReviewTasks">0</div>
+                            <div class="stat-title">Under Review</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Awaiting Review</div>
+                        </div>
+                    </div>
+                    <!-- Completed -->
+                    <div class="stat-card-new stat-completed">
+                        <div class="stat-icon" style="background: rgba(0, 230, 118, 0.1); color: #00e676;"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info-new">
+                            <div class="stat-num" id="statCompletedTasks">0</div>
+                            <div class="stat-title">Completed</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">This Month</div>
+                        </div>
+                    </div>
+                    <!-- Total Clients -->
+                    <div class="stat-card-new stat-clients">
+                        <div class="stat-icon" style="background: rgba(241, 91, 181, 0.1); color: #f15bb5;"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-info-new">
+                            <div class="stat-num" id="statTotalClients">0</div>
+                            <div class="stat-title">Total Clients</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Active</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Charts & Alert Panels -->
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-6">
+                        <div class="admin-card h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <h4 class="text-white fw-bold mb-4"><i class="fa-solid fa-chart-pie text-warning me-2"></i> Tasks by Status</h4>
+                                <div style="position: relative; height: 210px; display: flex; align-items: center; justify-content: center;">
+                                    <canvas id="tasksDoughnutChart" style="max-width: 190px; max-height: 190px;"></canvas>
+                                </div>
+                            </div>
+                            <!-- Custom Horizontal Legend -->
+                            <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 mb-2" style="font-family: var(--global-font);">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background-color: #fa9d1c; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                                    <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Pending</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background-color: #00bbf9; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                                    <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">In Progress</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background-color: #9b5de5; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                                    <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Under Review</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span style="background-color: #00e676; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                                    <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Completed</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right: Due This Week -->
+                    <div class="col-lg-6">
+                        <div class="admin-card h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-clock text-warning me-2"></i> Tasks Due This Week</h4>
+                                <button class="btn btn-outline-dss btn-sm px-3" onclick="switchTab('calendar')" style="font-size: 11px;">View Calendar</button>
+                            </div>
+                            <div id="tasksDueThisWeekContainer" class="d-flex flex-column gap-3 overflow-auto" style="max-height: 280px; padding-right: 5px;">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Section: Recent Tasks Table -->
+                <div class="admin-card">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-rectangle-list text-warning me-2"></i> Recent Tasks</h4>
+                        <div class="d-flex flex-wrap gap-2 recent-filters-dss">
+                            <!-- Search -->
+                            <input type="text" class="form-control form-control-dss" id="dashboardSearchTask" placeholder="Search task..." style="max-width: 180px; font-size: 13px;">
+                            <!-- Status filter -->
+                            <select class="form-select form-control-dss" id="dashboardFilterStatus" style="max-width: 130px; font-size: 13px;">
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <!-- Staff filter -->
+                            <select class="form-select form-control-dss" id="dashboardFilterStaff" style="max-width: 130px; font-size: 13px;">
+                                <option value="all">All Staff</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Task Title</th>
+                                    <th>Client</th>
+                                    <th>Assigned To</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTasksTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ALL TASKS TAB -->
+            <section id="tab-all-tasks" class="tab-content" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h2 class="admin-title m-0">All Assigned Tasks</h2>
+                    <button class="btn btn-primary-gradient px-4 py-2 border-0 text-white font-weight-bold" onclick="switchTab('assign-task')" style="border-radius: 8px;">
+                        <i class="fa-solid fa-circle-plus me-2"></i>Assign New Task
+                    </button>
+                </div>
+                
+                <div class="admin-card">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="text-white-50" style="font-size: 14px;">Filters:</span>
+                        </div>
+                        <div class="d-flex flex-wrap flex-md-nowrap gap-2 align-items-center">
+                            <!-- Search -->
+                            <input type="text" class="form-control form-control-dss" id="allSearchTask" placeholder="Search task title or client..." style="max-width: 210px;">
+                            <!-- Status -->
+                            <select class="form-select form-control-dss" id="allFilterStatus" style="max-width: 130px;">
+                                <option value="all">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="under_review">Under Review</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <!-- Staff -->
+                            <select class="form-select form-control-dss" id="allFilterStaff" style="max-width: 130px;">
+                                <option value="all">All Staff</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                            <!-- Priority -->
+                            <select class="form-select form-control-dss" id="allFilterPriority" style="max-width: 120px;">
+                                <option value="all">All Priorities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Task Title</th>
+                                    <th>Client</th>
+                                    <th>Assigned To</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allTasksTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 text-muted" style="font-size: 13px;">
+                        <div id="allPaginationInfo">Showing 0 to 0 of 0 tasks</div>
+                        <div id="allPaginationControls" class="d-flex gap-1 align-items-center">
+                            <!-- Page buttons populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CLIENTS DIRECTORY TAB -->
+            <section id="tab-clients-mgmt" class="tab-content" style="display: none;">
+                <div class="admin-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div>
+                            <h2 class="admin-title m-0"><i class="fa-solid fa-address-book text-warning me-2"></i> Clients Directory</h2>
+                            <p class="text-muted m-0 small mt-1">Manage client records and contact information</p>
+                        </div>
+                        <button class="btn btn-dss" id="addClientBtn">
+                            <i class="fa-solid fa-user-plus me-2"></i> Add Client
+                        </button>
+                    </div>
+
+                    <!-- Search and filters -->
+                    <div class="d-flex gap-3 mb-4 flex-wrap justify-content-between align-items-center">
+                        <div class="d-flex gap-2 flex-grow-1" style="max-width: 400px;">
+                            <span class="input-group-text bg-transparent border-end-0 border-color" style="border-radius: 10px 0 0 10px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-magnifying-glass text-white-50"></i></span>
+                            <input type="text" class="form-control form-control-dss border-start-0" id="searchClients" placeholder="Search clients by name or email..." style="border-radius: 0 10px 10px 0;">
+                        </div>
+                    </div>
+
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Email Address</th>
+                                    <th>Package</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clientsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center text-muted py-5" id="clientsEmptyState" style="display: none;">
+                        No clients found.
+                    </div>
+                </div>
+            </section>
+
+            <!-- PACKAGES MANAGEMENT TAB -->
+            <section id="tab-packages-mgmt" class="tab-content" style="display: none;">
+                <div class="admin-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div>
+                            <h2 class="admin-title m-0"><i class="fa-solid fa-box-archive text-warning me-2"></i> Service Packages</h2>
+                            <p class="text-muted m-0 small mt-1">Manage standard pricing packages and service options</p>
+                        </div>
+                        <button class="btn btn-dss" id="addPackageBtn">
+                            <i class="fa-solid fa-plus me-2"></i> Add Package
+                        </button>
+                    </div>
+
+                    <!-- Search and filters -->
+                    <div class="d-flex gap-3 mb-4 flex-wrap justify-content-between align-items-center">
+                        <div class="d-flex gap-2 flex-grow-1" style="max-width: 400px;">
+                            <span class="input-group-text bg-transparent border-end-0 border-color" style="border-radius: 10px 0 0 10px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-magnifying-glass text-white-50"></i></span>
+                            <input type="text" class="form-control form-control-dss border-start-0" id="searchPackages" placeholder="Search packages..." style="border-radius: 0 10px 10px 0;">
+                        </div>
+                    </div>
+
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Package Name</th>
+                                    <th>Price / Rate</th>
+                                    <th>Description</th>
+                                    <th>Package ID</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="packagesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center text-muted py-5" id="packagesEmptyState" style="display: none;">
+                        No packages found.
+                    </div>
+                </div>
+            </section>
+
+            <!-- ASSIGN TASK TAB -->
+            <section id="tab-assign-task" class="tab-content" style="display: none;">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="admin-card">
+                            <h2 class="admin-title"><i class="fa-solid fa-circle-plus text-warning me-2"></i> Assign New Task</h2>
+                            <p class="text-muted mb-4">Create a work task and assign it to a staff member</p>
+                            
+                            <form id="assignTaskForm">
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="taskTitle" class="form-label text-white-50">Task Title <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-dss" id="taskTitle" placeholder="e.g. Independence Day Poster Design" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="taskClient" class="form-label text-white-50">Client Name <span class="text-danger">*</span></label>
+                                        <select class="form-select form-control-dss" id="taskClient" required>
+                                            <option value="" disabled selected>Select Client</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="taskAssignee" class="form-label text-white-50">Assign To Staff <span class="text-danger">*</span></label>
+                                        <select class="form-select form-control-dss" id="taskAssignee" required>
+                                            <option value="" disabled selected>Select Staff Member</option>
+                                            <!-- Loaded dynamically -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="taskDeadline" class="form-label text-white-50">Deadline Date <span class="text-danger">*</span></label>
+                                        <input type="date" class="form-control form-control-dss" id="taskDeadline" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="taskPriority" class="form-label text-white-50">Task Priority <span class="text-danger">*</span></label>
+                                    <select class="form-select form-control-dss" id="taskPriority" required>
+                                        <option value="low">Low Priority (Green)</option>
+                                        <option value="medium" selected>Medium Priority (Yellow)</option>
+                                        <option value="high">High Priority (Red)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="taskDescription" class="form-label text-white-50">Task Guidelines / Description (Optional)</label>
+                                    <textarea class="form-control form-control-dss" id="taskDescription" rows="3" placeholder="Provide task requirements or links to references..."></textarea>
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn-primary-gradient border-0 px-5 py-3 text-white font-weight-bold" style="border-radius: 10px;" id="assignTaskSubmitBtn">
+                                        <i class="fa-solid fa-paper-plane me-2"></i> Assign Task
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CALENDAR TAB -->
+            <section id="tab-calendar" class="tab-content" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <h2 class="admin-title m-0">Task Calendar</h2>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-outline-dss btn-sm" id="calPrevBtn"><i class="fa-solid fa-chevron-left"></i></button>
+                        <h4 class="text-white m-0 fw-bold" id="calMonthTitle" style="min-width: 140px; text-align: center;">August 2026</h4>
+                        <button class="btn btn-outline-dss btn-sm" id="calNextBtn"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <!-- Calendar days header -->
+                    <div class="d-grid text-center text-white-50 fw-bold border-bottom pb-2 mb-2" style="grid-template-columns: repeat(7, 1fr); font-size: 13px;">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+                    <!-- Calendar grid days -->
+                    <div id="calendarGridDays" class="d-grid" style="grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(100px, auto); gap: 8px;">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAFF MANAGEMENT TAB -->
+            <section id="tab-staff-mgmt" class="tab-content" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h2 class="admin-title m-0">Staff Management</h2>
+                    <button class="btn btn-primary-gradient px-4 py-2 border-0 text-white font-weight-bold" data-bs-toggle="modal" data-bs-target="#addStaffModal" style="border-radius: 8px;">
+                        <i class="fa-solid fa-user-plus me-2"></i>Add New Staff
+                    </button>
+                </div>
+                
+                <div class="admin-card">
+                    <h4 class="text-white fw-bold mb-4"><i class="fa-solid fa-users text-warning me-2"></i> All Staff Members</h4>
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Staff Member</th>
+                                    <th>Role</th>
+                                    <th>Contact Info</th>
+                                    <th class="text-center">Performance</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAFF ATTENDANCE TAB -->
+            <section id="tab-staff-attendance" class="tab-content" style="display: none;">
+                <h2 class="admin-title mb-4">Staff Attendance Logs</h2>
+
+                <div class="row g-4 mb-4">
+                    <!-- Daily Punch Logs -->
+                    <div class="col-12">
+                        <div class="admin-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-calendar-day text-warning me-2"></i> Daily Punch Sheets</h4>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="custom-table text-white" style="min-width: 600px;">
+                                    <thead>
+                                        <tr>
+                                            <th>Staff Name</th>
+                                            <th>Date</th>
+                                            <th>Punch In</th>
+                                            <th>Punch Out</th>
+                                            <th>Duration</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminAttendanceTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="adminAttendanceEmptyState" class="text-center py-4 text-muted" style="display: none;">
+                                <i class="fa-solid fa-clock mb-2" style="font-size: 30px;"></i>
+                                <p class="mb-0">No attendance logs registered today yet.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Working Hours Aggregation -->
+                    <div class="col-12">
+                        <div class="admin-card">
+                            <h4 class="text-white fw-bold mb-3"><i class="fa-solid fa-business-time text-warning me-2"></i> Monthly Hours Aggregation</h4>
+                            <div class="table-responsive">
+                                <table class="custom-table text-white" style="min-width: 600px;">
+                                    <thead>
+                                        <tr>
+                                            <th>Staff Name</th>
+                                            <th>Total Present Days</th>
+                                            <th>Late Punches</th>
+                                            <th>Total Working Hours</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminMonthlyHoursTableBody">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STAFF WISE REPORT TAB -->
+            <section id="tab-staff-report" class="tab-content" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <h2 class="admin-title m-0">Staff Performance Reports</h2>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-white-50" style="white-space: nowrap;">Select Staff:</span>
+                        <select class="form-select form-control-dss" id="reportStaffSelector" style="min-width: 180px;">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- Staff Performance Stat Cards -->
+                    <div class="col-md-3">
+                        <div class="stat-card-new" style="background: var(--bg-surface);">
+                            <div class="stat-info-new">
+                                <div class="stat-num text-warning" id="reportTotalTasks">0</div>
+                                <div class="stat-title">Assigned Tasks</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-new" style="background: var(--bg-surface);">
+                            <div class="stat-info-new">
+                                <div class="stat-num text-warning" id="reportPendingTasks">0</div>
+                                <div class="stat-title">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-new" style="background: var(--bg-surface);">
+                            <div class="stat-info-new">
+                                <div class="stat-num text-info" id="reportReviewTasks">0</div>
+                                <div class="stat-title">In Review</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-new" style="background: var(--bg-surface);">
+                            <div class="stat-info-new">
+                                <div class="stat-num text-success" id="reportCompletedTasks">0</div>
+                                <div class="stat-title">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="text-white fw-bold mb-4" id="reportChartTitle">Task Distribution</h4>
+                        <div style="position: relative; height: 210px; display: flex; align-items: center; justify-content: center;">
+                            <canvas id="staffReportChart" style="max-width: 190px; max-height: 190px;"></canvas>
+                        </div>
+                    </div>
+                    <!-- Custom Horizontal Legend -->
+                    <div class="d-flex flex-wrap justify-content-center gap-3 mt-3 mb-2" style="font-family: var(--global-font);">
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="background-color: #fa9d1c; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                            <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Pending</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="background-color: #00bbf9; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                            <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">In Progress</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="background-color: #9b5de5; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                            <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Under Review</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span style="background-color: #00e676; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
+                            <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Completed</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WORK FILES TAB -->
+            <section id="tab-projects" class="tab-content" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h2 class="admin-title m-0">Work Files & Portfolio Projects</h2>
+                    <button class="btn btn-primary-gradient px-4 py-2 border-0 text-white font-weight-bold" type="button" data-bs-toggle="collapse" data-bs-target="#uploadCollapse" aria-expanded="false" aria-controls="uploadCollapse" style="border-radius: 8px;">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i>Upload New Work
+                    </button>
+                </div>
+
+                <!-- Collapse Upload Form Card -->
+                <div class="collapse mb-4" id="uploadCollapse">
+                    <div class="admin-card">
+                        <h4 class="text-white fw-bold mb-3"><i class="fa-solid fa-cloud-arrow-up text-warning me-2"></i> Upload New Portfolio Work</h4>
+                        <p class="text-muted small mb-4">Publish a new design project to your public website portfolio</p>
+                        
+                        <form id="uploadForm">
+                            <div class="row g-3">
+                                <div class="col-md-6 mb-3">
+                                    <label for="projectTitle" class="form-label text-white-50">Project Title</label>
+                                    <input type="text" class="form-control form-control-dss" id="projectTitle" placeholder="e.g. Modern Brand Brochure" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="projectCategory" class="form-label text-white-50">Category</label>
+                                    <select class="form-select form-control-dss" id="projectCategory" required>
+                                        <option value="" disabled selected>Select Category</option>
+                                        <option value="graphics">graphics design</option>
+                                        <option value="branding">branding identity</option>
+                                        <option value="packaging">packaging design</option>
+                                        <option value="social-media">social media design</option>
+                                        <option value="video">video ads</option>
+                                        <option value="marketing">digital marketing</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="projectDescription" class="form-label text-white-50">Project Description (Optional)</label>
+                                <textarea class="form-control form-control-dss" id="projectDescription" rows="3" placeholder="Explain the project details..."></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-white-50">Upload Media (Single/Multiple Images or Videos)</label>
+                                <div class="upload-dropzone" id="dropzone" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer; padding: 30px; text-align: center; border-radius: 12px;">
+                                    <i class="fa-solid fa-images text-warning mb-2" style="font-size: 32px;"></i>
+                                    <h5 class="text-white fs-6">Drag & drop files here or click to browse</h5>
+                                    <p class="text-muted small mb-0">Supports JPG, PNG, WEBP, MP4, WEBM (Multiple files allowed, Max 20MB per file)</p>
+                                    <input type="file" id="projectFile" accept="image/*,video/*" multiple style="display: none;" required>
+                                </div>
+                                <!-- Real-time upload preview -->
+                                <div class="preview-container mt-3" id="previewContainer" style="display: none;">
+                                    <button type="button" class="remove-preview-btn" id="removePreview" title="Remove Media">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    <div id="previewMedia"></div>
+                                </div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label text-white-50">Upload Thumbnail Image (Optional - Shows as preview card on homepage)</label>
+                                <div class="upload-dropzone" id="thumbnailDropzone" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer; padding: 30px; text-align: center; border-radius: 12px;">
+                                    <i class="fa-solid fa-image text-warning mb-2" style="font-size: 32px;"></i>
+                                    <h5 class="text-white fs-6">Drag & drop thumbnail image here or click to browse</h5>
+                                    <p class="text-muted small mb-0">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                                    <input type="file" id="projectThumbnailFile" accept="image/*" style="display: none;">
+                                </div>
+                                <!-- Real-time thumbnail preview -->
+                                <div class="preview-container mt-3" id="thumbnailPreviewContainer" style="display: none;">
+                                    <button type="button" class="remove-preview-btn" id="removeThumbnailPreview" title="Remove Thumbnail">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                    <div id="previewThumbnailMedia"></div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-dss px-5 py-3" id="uploadBtn" style="border-radius: 8px;">
+                                    <span id="uploadBtnText"><i class="fa-solid fa-paper-plane me-2"></i> Publish Project</span>
+                                    <span id="uploadSpinner" class="spinner-border spinner-border-sm me-2" style="display: none;" role="status"></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Projects grid list -->
+                <div class="admin-card">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-rectangle-list text-warning me-2"></i> Managed Works</h4>
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control form-control-dss" id="searchProjects" placeholder="Search projects..." style="max-width: 200px; font-size: 13px;">
+                            <select class="form-select form-control-dss" id="filterProjectsCategory" style="max-width: 150px; font-size: 13px;">
+                                <option value="all">All Categories</option>
+                                <option value="graphics">graphics design</option>
+                                <option value="branding">branding identity</option>
+                                <option value="packaging">packaging design</option>
+                                <option value="social-media">social media design</option>
+                                <option value="video">video ads</option>
+                                <option value="marketing">digital marketing</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="projectsLoadingState" class="text-center py-5 text-muted">
+                        <div class="spinner-border text-warning spinner-border-sm me-2" role="status"></div>
+                        Loading portfolio works...
+                    </div>
+                    <div class="works-grid" id="worksGrid" style="display: none;">
+                        <!-- Dynamic project cards loaded via JavaScript -->
+                    </div>
+                    <div id="projectsEmptyState" class="text-center py-5 text-muted" style="display: none;">
+                        No portfolio works found.
+                    </div>
+                </div>
+            </section>
+
+            <!-- CLIENT LEADS TAB -->
+            <section id="tab-leads" class="tab-content" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <h2 class="admin-title m-0">Client Leads & Inquiries</h2>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-dss" id="searchLeads" placeholder="Search inquiries..." style="max-width: 250px;">
+                        <select class="form-select form-control-dss" id="filterLeadsService" style="max-width: 180px;">
+                            <option value="all">All Services</option>
+                            <option value="posts">Social Media Posts</option>
+                            <option value="reels">Shorts / Reels</option>
+                            <option value="branding">Branding Kit</option>
+                            <option value="full-suite">Full Design Suite</option>
+                            <option value="custom">Custom Requirement</option>
+                        </select>
+                        <select class="form-select form-control-dss" id="filterLeadsStatus" style="max-width: 150px;">
+                            <option value="all">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="spam">Spam</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Client</th>
+                                    <th>Service</th>
+                                    <th>Message Snippet</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leadsTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        <div class="spinner-border text-warning spinner-border-sm me-2" role="status"></div>
+                                        Loading client enquiries...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="leadsEmptyState" class="text-center py-5 text-muted" style="display: none;">
+                        No client inquiries found.
+                    </div>
+                </div>
+            </section>
+
+            <!-- BRAND LOGOS TAB -->
+            <section id="tab-brand-logos-mgmt" class="tab-content" style="display: none;">
+                <div class="row g-4">
+                    <!-- Upload Brand Logo Form -->
+                    <div class="col-lg-4">
+                        <div class="admin-card p-4">
+                            <h4 class="text-white fw-bold mb-3"><i class="fa-solid fa-file-arrow-up text-warning me-2"></i> Upload Brand Logo</h4>
+                            <p class="text-muted small mb-4">Upload PNG/JPG logo of a brand impacted by DSS. For best display, use transparent logos.</p>
+                            
+                             <form id="brandLogoForm">
+                                <div class="mb-3">
+                                    <label for="brandName" class="form-label text-white-50">Brand Name (Optional)</label>
+                                    <input type="text" class="form-control form-control-dss" id="brandName" placeholder="e.g. AR Mall">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="brandLogoDarkFile" class="form-label text-white-50">Select Logo for Dark Theme <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control form-control-dss" id="brandLogoDarkFile" accept="image/*" required>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="brandLogoLightFile" class="form-label text-white-50">Select Logo for White Theme <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control form-control-dss" id="brandLogoLightFile" accept="image/*" required>
+                                </div>
+                                <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 w-100 text-white font-weight-bold" style="border-radius: 8px;" id="uploadLogoBtn">Upload Brand Logo</button>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Brand Logos Grid -->
+                    <div class="col-lg-8">
+                        <div class="admin-card p-4">
+                            <h4 class="text-white fw-bold mb-4"><i class="fa-solid fa-gem text-warning me-2"></i> Brands Impacted List</h4>
+                            <div class="row g-3" id="brandLogosListGrid">
+                                <!-- Loaded dynamically -->
+                            </div>
+                            <div id="brandLogosEmptyState" class="text-center text-muted py-5" style="display: none;">
+                                <i class="fa-solid fa-gem mb-2" style="font-size: 30px;"></i>
+                                <p class="mb-0">No brand logos uploaded yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CLIENT REVIEWS TAB -->
+            <section id="tab-reviews-mgmt" class="tab-content" style="display: none;">
+                <div class="admin-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div>
+                            <h2 class="admin-title m-0"><i class="fa-solid fa-star text-warning me-2"></i> Client Reviews & Testimonials</h2>
+                            <p class="text-muted m-0 small mt-1">Manage reviews and ratings displayed in the Testimonials carousel on the live site</p>
+                        </div>
+                        <button class="btn btn-dss" id="addReviewBtn">
+                            <i class="fa-solid fa-plus me-2"></i> Add Review
+                        </button>
+                    </div>
+
+                    <div class="project-table-container">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Client Name</th>
+                                    <th>Source</th>
+                                    <th>Rating</th>
+                                    <th>Review Description</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewsTableBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center text-muted py-5" id="reviewsEmptyState" style="display: none;">
+                        <i class="fa-solid fa-comment-slash mb-2" style="font-size: 30px;"></i>
+                        <p class="mb-0">No reviews found in the database.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- NOTIFICATIONS TAB -->
+            <section id="tab-notifications" class="tab-content" style="display: none;">
+                <h2 class="admin-title">System Alerts & Notifications</h2>
+                
+                <div class="admin-card">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-bell text-warning me-2"></i> Recent Alerts</h4>
+                        <button class="btn btn-outline-dss btn-sm px-3" id="clearNotificationsBtn">Clear All</button>
+                    </div>
+                    
+                    <div id="notificationsContainer" class="d-flex flex-column gap-3">
+                        <!-- Loaded dynamically -->
+                        <div class="text-center text-muted py-5" id="notificationsEmptyState">
+                            No notifications to display.
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content">
+                <div class="modal-header custom-modal-header border-0">
+                    <h5 class="modal-title text-white fw-bold" id="confirmModalLabel">Confirm Action</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body custom-modal-body text-white-50">
+                    <p id="confirmModalMessage">Are you sure you want to perform this action?</p>
+                </div>
+                <div class="modal-footer custom-modal-footer border-0">
+                    <button type="button" class="btn btn-outline-dss py-2 px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-dss py-2 px-4" id="confirmModalBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Details Modal -->
+    <div class="modal fade" id="leadDetailsModal" tabindex="-1" aria-labelledby="leadDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content custom-modal-content">
+                <div class="modal-header custom-modal-header">
+                    <h5 class="modal-title text-white fw-bold" id="leadDetailsModalLabel">Client Inquiry Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body custom-modal-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-white-50 small text-uppercase">Client Information</h6>
+                            <p class="text-white mb-2 fs-5 fw-bold" id="detailLeadName">-</p>
+                            <p class="text-white-50 mb-1"><i class="fa-solid fa-envelope me-2 text-warning"></i> <a id="detailLeadEmail" class="text-decoration-none text-white-50" href="#">-</a></p>
+                            <p class="text-white-50"><i class="fa-solid fa-phone me-2 text-warning"></i> <a id="detailLeadPhone" class="text-decoration-none text-white-50" href="#">-</a></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-white-50 small text-uppercase">Inquiry Metadata</h6>
+                            <p class="text-white mb-2"><span class="badge-dss" id="detailLeadService">-</span></p>
+                            <p class="text-white-50 mb-1"><i class="fa-solid fa-calendar me-2 text-warning"></i> <span id="detailLeadDate">-</span></p>
+                            <div class="d-flex align-items-center gap-2 mt-2">
+                                <span class="text-white-50">Status:</span>
+                                <select class="form-select form-control-dss py-1 px-2" id="detailLeadStatusSelect" style="width: auto; font-size: 13px;">
+                                    <option value="pending">Pending</option>
+                                    <option value="contacted">Contacted</option>
+                                    <option value="spam">Spam</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <hr class="border-secondary opacity-25">
+                            <h6 class="text-white-50 small text-uppercase mb-3">Client Message</h6>
+                            <div class="p-3 rounded bg-black bg-opacity-20 text-white border border-secondary border-opacity-10" style="white-space: pre-wrap; font-size: 15px;" id="detailLeadMessage">
+                                -
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer custom-modal-footer">
+                    <div class="me-auto lead-actions" id="detailLeadActions">
+                        <!-- Dynamic action buttons -->
+                    </div>
+                    <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div class="modal fade" id="addStaffModal" tabindex="-1" aria-labelledby="addStaffModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="addStaffModalLabel"><i class="fa-solid fa-user-plus text-warning me-2"></i> Add Staff Member</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addStaffForm">
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <div class="mb-3">
+                            <label for="staffName" class="form-label text-white-50">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="staffName" placeholder="e.g. Keyur Patel" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="staffRole" class="form-label text-white-50">Role / Specialization <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="staffRole" placeholder="e.g. UI/UX Designer" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="staffEmail" class="form-label text-white-50">Email Address</label>
+                            <input type="email" class="form-control form-control-dss" id="staffEmail" placeholder="e.g. keyur@designshaper.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="staffMobile" class="form-label text-white-50">Mobile Number</label>
+                            <input type="tel" class="form-control form-control-dss" id="staffMobile" placeholder="e.g. +91 98765 43210">
+                        </div>
+                        <div class="mb-3">
+                            <label for="staffPassword" class="form-label text-white-50">Portal Password <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="staffPassword" placeholder="Default: DSS@123" value="DSS@123" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="addStaffSubmitBtn">Create Member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Staff Modal -->
+    <div class="modal fade" id="editStaffModal" tabindex="-1" aria-labelledby="editStaffModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="editStaffModalLabel"><i class="fa-solid fa-user-pen text-warning me-2"></i> Edit Staff Member</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editStaffForm">
+                    <input type="hidden" id="editStaffId">
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <div class="mb-3">
+                            <label for="editStaffName" class="form-label text-white-50">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="editStaffName" placeholder="e.g. Keyur Patel" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStaffRole" class="form-label text-white-50">Role / Specialization <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="editStaffRole" placeholder="e.g. UI/UX Designer" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStaffEmail" class="form-label text-white-50">Email Address</label>
+                            <input type="email" class="form-control form-control-dss" id="editStaffEmail" placeholder="e.g. keyur@designshaper.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editStaffMobile" class="form-label text-white-50">Mobile Number</label>
+                            <input type="tel" class="form-control form-control-dss" id="editStaffMobile" placeholder="e.g. +91 98765 43210">
+                        </div>
+
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="editStaffSubmitBtn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Staff Details Modal -->
+    <div class="modal fade" id="viewStaffModal" tabindex="-1" aria-labelledby="viewStaffModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px; max-height: 90vh;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="viewStaffModalLabel"><i class="fa-solid fa-circle-info text-warning me-2"></i> Staff Member Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body custom-modal-body text-white p-4">
+                    <!-- Profile Info -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div id="viewStaffAvatar" style="width: 64px; height: 64px; border-radius: 50%; background: #fa9d1c; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; border: 2px solid rgba(255,255,255,0.1);">
+                            K
+                        </div>
+                        <div>
+                            <h3 class="fw-bold text-white mb-1" id="viewStaffName">Keyur Patel</h3>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <span class="badge bg-secondary text-white small" id="viewStaffRole">UI/UX Designer</span>
+                                <span class="text-white-50 small" id="viewStaffEmail"><i class="fa-regular fa-envelope me-1"></i> keyur@designshaper.com</span>
+                                <span class="text-white-50 small" id="viewStaffMobile"><i class="fa-solid fa-phone me-1"></i> +91 98765 43210</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task Performance Stats Cards -->
+                    <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-chart-simple text-warning me-2"></i> Performance Stats</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
+                                <div class="stat-num text-warning fw-bold fs-4" id="viewStaffPending">0</div>
+                                <div class="text-white-50 small" style="font-size: 11px;">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
+                                <div class="stat-num text-info fw-bold fs-4" id="viewStaffProgress">0</div>
+                                <div class="text-white-50 small" style="font-size: 11px;">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
+                                <div class="stat-num text-purple fw-bold fs-4" style="color: #9b5de5;" id="viewStaffReview">0</div>
+                                <div class="text-white-50 small" style="font-size: 11px;">Review</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
+                                <div class="stat-num text-success fw-bold fs-4" id="viewStaffCompleted">0</div>
+                                <div class="text-white-50 small" style="font-size: 11px;">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- List of Tasks -->
+                    <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-list-check text-warning me-2"></i> Assigned Tasks</h5>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto; overflow-x: hidden;">
+                        <table class="custom-table" style="margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Task Title</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viewStaffTasksBody">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Project Modal -->
+    <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content custom-modal-content">
+                <div class="modal-header custom-modal-header">
+                    <h5 class="modal-title text-white fw-bold" id="editProjectModalLabel">Edit Portfolio Work</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editProjectForm" novalidate>
+                    <div class="modal-body custom-modal-body">
+                        <input type="hidden" id="editProjectId">
+                        <div class="row g-4">
+                            <!-- Title -->
+                            <div class="col-md-6">
+                                <label for="editProjectTitle" class="form-label text-white">Project Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="editProjectTitle" required placeholder="e.g. Creative Social Posts">
+                            </div>
+                            <!-- Category -->
+                            <div class="col-md-6">
+                                <label for="editProjectCategory" class="form-label text-white">Category <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="editProjectCategory" required>
+                                    <option value="" disabled selected>Select Category</option>
+                                    <option value="graphics">graphics design</option>
+                                    <option value="branding">branding identity</option>
+                                    <option value="packaging">packaging design</option>
+                                    <option value="social-media">social media design</option>
+                                    <option value="video">video ads</option>
+                                    <option value="marketing">digital marketing</option>
+                                </select>
+                            </div>
+                            <!-- Description -->
+                            <div class="col-12">
+                                <label for="editProjectDesc" class="form-label text-white">Project Description</label>
+                                <textarea class="form-control form-control-dss" id="editProjectDesc" rows="3" placeholder="Describe the client work..."></textarea>
+                            </div>
+                            
+                            <!-- Existing Media Files list -->
+                            <div class="col-12">
+                                <label class="form-label text-white d-block">Current Media Files (Click &times; to remove)</label>
+                                <div id="editExistingMediaGrid" class="d-grid gap-3 p-3 rounded" style="background: rgba(0,0,0,0.2); min-height: 80px; border: 1px dashed rgba(255,255,255,0.1); grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
+                                    <!-- Populated dynamically via JS -->
+                                </div>
+                            </div>
+                            
+                            <!-- Add New Media Files input -->
+                            <div class="col-12">
+                                <label for="editProjectFiles" class="form-label text-white">Add New Images / Videos</label>
+                                <div class="upload-area p-4 text-center rounded" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer;" id="editDropzone">
+                                    <i class="fa-solid fa-cloud-arrow-up text-warning mb-2" style="font-size: 32px;"></i>
+                                    <p class="text-white mb-1">Click or drag files here to upload additional works</p>
+                                    <p class="text-white-50 small mb-0">Supported: JPG, PNG, WEBP, MP4 (Max 15 files)</p>
+                                    <input type="file" id="editProjectFiles" multiple accept="image/*,video/*" style="display: none;">
+                                </div>
+                                <div id="editNewFilesPreviewGrid" class="d-grid gap-3 mt-3" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
+                                    <!-- New files previews loaded here -->
+                                </div>
+                            </div>
+
+                            <!-- Optional Thumbnail Upload -->
+                            <div class="col-12">
+                                <label for="editThumbnailFile" class="form-label text-white">Upload New Thumbnail Image (Optional)</label>
+                                <input type="file" class="form-control form-control-dss" id="editThumbnailFile" accept="image/*">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" id="editProjectSubmitBtn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Task Modal (Popup Form) -->
+    <div class="modal fade" id="assignTaskModal" tabindex="-1" aria-labelledby="assignTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="assignTaskModalLabel"><i class="fa-solid fa-circle-plus text-warning me-2"></i> Assign New Task</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="modalAssignTaskForm">
+                    <div class="modal-body custom-modal-body p-4 text-white">
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="modalTaskTitle" class="form-label text-white-50">Task Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="modalTaskTitle" placeholder="e.g. Independence Day Poster Design" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="modalTaskClient" class="form-label text-white-50">Client Name <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="modalTaskClient" required>
+                                    <option value="" disabled selected>Select Client</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="modalTaskAssignee" class="form-label text-white-50">Assign To Staff <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="modalTaskAssignee" required>
+                                    <option value="" disabled selected>Select Staff Member</option>
+                                    <!-- Loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="modalTaskDeadline" class="form-label text-white-50">Deadline Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-dss" id="modalTaskDeadline" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalTaskPriority" class="form-label text-white-50">Task Priority <span class="text-danger">*</span></label>
+                            <select class="form-select form-control-dss" id="modalTaskPriority" required>
+                                <option value="low">Low Priority (Green)</option>
+                                <option value="medium" selected>Medium Priority (Yellow)</option>
+                                <option value="high">High Priority (Red)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="modalTaskDescription" class="form-label text-white-50">Task Guidelines / Description (Optional)</label>
+                            <textarea class="form-control form-control-dss" id="modalTaskDescription" rows="3" placeholder="Provide task requirements or links to references..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="modalAssignTaskSubmitBtn">
+                            <i class="fa-solid fa-paper-plane me-2"></i> Assign Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Client Modal -->
+    <div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="clientModalLabel"><i class="fa-solid fa-user-plus text-warning me-2"></i> <span id="clientModalTitle">Add New Client</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="clientForm">
+                    <input type="hidden" id="clientId">
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <div class="mb-3">
+                            <label for="clientName" class="form-label text-white-50">Client / Company Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="clientName" placeholder="e.g. TransGlobe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientEmail" class="form-label text-white-50">Email Address (Optional)</label>
+                            <input type="email" class="form-control form-control-dss" id="clientEmail" placeholder="e.g. contact@transglobe.org">
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientStatus" class="form-label text-white-50">Status</label>
+                            <select class="form-select form-control-dss" id="clientStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="clientPackageSelect" class="form-label text-white-50">Assign Package</label>
+                            <select class="form-select form-control-dss" id="clientPackageSelect">
+                                <option value="">None</option>
+                                <!-- Loaded dynamically via JS -->
+                                <option value="custom">Custom Package...</option>
+                            </select>
+                        </div>
+                        <!-- Collapsible Custom Package fields -->
+                        <div id="customPackageFields" style="display: none; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: 12px; padding: 15px;" class="mb-3">
+                            <h6 class="text-warning fw-bold mb-3" style="font-size: 13px;"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> Custom Package Parameters</h6>
+                            <div class="mb-2">
+                                <label for="customPackageName" class="form-label text-white-50 small mb-1">Package Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss form-control-sm" id="customPackageName" placeholder="e.g. Special Branding Campaign">
+                            </div>
+                            <div class="mb-2">
+                                <label for="customPackagePrice" class="form-label text-white-50 small mb-1">Price / Rate <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text border-end-0" style="border-radius: 8px 0 0 8px; display: flex; align-items: center; justify-content: center; font-weight: 600;">₹</span>
+                                    <input type="text" class="form-control form-control-dss form-control-sm border-start-0 border-end-0" id="customPackagePrice" placeholder="e.g. 25,000" style="border-radius: 0;">
+                                    <span class="input-group-text border-start-0" style="border-radius: 0 8px 8px 0; display: flex; align-items: center; justify-content: center; font-size: 11px;">/mo</span>
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label for="customPackageDesc" class="form-label text-white-50 small mb-1">Description (Optional)</label>
+                                <textarea class="form-control form-control-dss form-control-sm" id="customPackageDesc" rows="2" placeholder="Describe the custom package deliverables..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="clientSubmitBtn">Save Client</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification for feedback -->
+    <div id="toast" class="toast-notification">
+        <i id="toastIcon" class="fa-solid fa-circle-check"></i>
+        <div id="toastMessage" class="toast-message">Operation successful!</div>
+    </div>
+
+    <!-- Add/Edit Review Modal -->
+    <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="reviewModalLabel"><i class="fa-solid fa-star text-warning me-2"></i> <span id="reviewModalTitle">Add New Review</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="reviewForm">
+                    <input type="hidden" id="reviewId">
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <div class="mb-3">
+                            <label for="reviewClientName" class="form-label text-white-50">Client Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="reviewClientName" placeholder="e.g. kumbhani daksh" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="reviewRating" class="form-label text-white-50">Rating (1 to 5 Stars) <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="reviewRating" required>
+                                    <option value="5" selected>5 Stars</option>
+                                    <option value="4">4 Stars</option>
+                                    <option value="3">3 Stars</option>
+                                    <option value="2">2 Stars</option>
+                                    <option value="1">1 Star</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reviewSource" class="form-label text-white-50">Review Source <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="reviewSource" placeholder="e.g. Google Review" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reviewAvatarInitials" class="form-label text-white-50">Avatar Initials (Optional)</label>
+                            <input type="text" class="form-control form-control-dss" id="reviewAvatarInitials" placeholder="e.g. KD (Leave blank to auto-generate)">
+                        </div>
+                        <div class="mb-3">
+                            <label for="reviewText" class="form-label text-white-50">Review Text <span class="text-danger">*</span></label>
+                            <textarea class="form-control form-control-dss" id="reviewText" rows="4" placeholder="Paste the client's testimonial or feedback here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="reviewSubmitBtn">Save Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Package Modal -->
+    <div class="modal fade" id="packageModal" tabindex="-1" aria-labelledby="packageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="packageModalLabel"><i class="fa-solid fa-box-archive text-warning me-2"></i> <span id="packageModalTitle">Add New Package</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="packageForm">
+                    <input type="hidden" id="packageId">
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <div class="mb-3">
+                            <label for="packageName" class="form-label text-white-50">Package Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-dss" id="packageName" placeholder="e.g. Silver Branding" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="packagePrice" class="form-label text-white-50">Price / Rate <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text border-end-0" style="border-radius: 10px 0 0 10px; display: flex; align-items: center; justify-content: center; font-weight: 600;">₹</span>
+                                <input type="text" class="form-control form-control-dss border-start-0 border-end-0" id="packagePrice" placeholder="e.g. 15,000" style="border-radius: 0;" required>
+                                <span class="input-group-text border-start-0" style="border-radius: 0 10px 10px 0; display: flex; align-items: center; justify-content: center; font-size: 13px;">/mo</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="packageDesc" class="form-label text-white-50">Description / Scope (Optional)</label>
+                            <textarea class="form-control form-control-dss" id="packageDesc" rows="3" placeholder="Provide package features or scope details..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="packageSubmitBtn">Save Package</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Swiper/Bootstrap/JS scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/admin.js"></script>
+</body>
+</html>

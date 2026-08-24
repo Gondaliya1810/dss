@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Workspace - DesignShaperStudio</title>
+    
+    <!-- Google Fonts & Stylesheets -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+    
+    <style>
+        /* Sidebar layout styling for staff workspace */
+        .admin-sidebar {
+            width: 260px;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            left: 20px;
+            height: calc(100vh - 40px);
+            z-index: 1000;
+            transition: background-color 0.3s ease, border-color 0.3s ease, left var(--anim-normal), transform var(--anim-normal);
+            padding: 30px 20px;
+            box-shadow: var(--card-shadow);
+            overflow-y: auto;
+        }
+
+        .admin-sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .admin-main {
+            flex: 1;
+            margin-left: 300px;
+            padding: 40px;
+            min-width: 0;
+            transition: margin-left var(--anim-normal);
+            overflow-x: hidden;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .sidebar-brand img {
+            height: 40px;
+            margin-bottom: 15px;
+            object-fit: contain;
+        }
+
+        .admin-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .profile-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .profile-info {
+            text-align: left;
+        }
+
+        .profile-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .profile-role {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), background 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), color 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+            cursor: pointer;
+        }
+
+        .menu-link:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+            transform: translateX(5px);
+        }
+
+        .lightmode .menu-link:hover {
+            background: rgba(0, 0, 0, 0.03);
+            color: var(--text-primary) !important;
+            transform: translateX(5px);
+        }
+
+        .menu-link.active {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(250, 157, 28, 0.35);
+            transform: translateX(5px);
+        }
+
+        .menu-link i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .mobile-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .sidebar-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .admin-card {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Stats Grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card-new {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-card-new:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-shadow);
+        }
+
+        .stat-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            background: rgba(250, 157, 28, 0.1);
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .stat-card-new:hover .stat-icon {
+            transform: scale(1.1);
+        }
+
+        .stat-info-new {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-num {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .stat-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 991.98px) {
+            .admin-sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                width: 280px;
+                height: 100%;
+                border-radius: 0;
+                border-right: 1px solid var(--border-color);
+                border-top: none;
+                border-bottom: none;
+                border-left: none;
+                box-shadow: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            .admin-sidebar.show {
+                transform: translateX(0);
+            }
+            .admin-main {
+                margin-left: 0;
+                padding: 100px 20px 40px 20px;
+            }
+            .mobile-header {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .admin-main {
+                padding: 85px 12px 20px 12px !important;
+            }
+            .admin-card {
+                padding: 15px 12px !important;
+            }
+            .stat-card-new {
+                padding: 15px 12px !important;
+            }
+            .admin-title {
+                font-size: 20px !important;
+                margin-bottom: 15px !important;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+                gap: 12px !important;
+            }
+            .custom-table thead {
+                display: none;
+            }
+            .custom-table tr {
+                display: block;
+                margin-bottom: 15px;
+                padding: 10px;
+            }
+            .custom-table td {
+                font-size: 13px !important;
+                padding: 8px 10px !important;
+            }
+            .custom-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-secondary);
+                float: left;
+                text-transform: uppercase;
+                font-size: 11px;
+            }
+        }
+
+        /* Responsive Optimization for Laptop Screens */
+        @media (min-width: 992px) and (max-width: 1400px), (min-width: 992px) and (max-height: 850px) {
+            .admin-sidebar {
+                padding: 20px 15px !important;
+                width: 240px !important;
+                top: 15px !important;
+                bottom: 15px !important;
+                left: 15px !important;
+                height: calc(100vh - 30px) !important;
+            }
+            .admin-main {
+                margin-left: 270px !important;
+                padding: 25px !important;
+            }
+            .sidebar-brand {
+                padding-bottom: 15px !important;
+                margin-bottom: 15px !important;
+            }
+            .sidebar-brand img {
+                height: 32px !important;
+                margin-bottom: 10px !important;
+            }
+            .admin-profile {
+                gap: 8px !important;
+            }
+            .profile-avatar {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 14px !important;
+            }
+            .menu-link {
+                padding: 8px 15px !important;
+                gap: 10px !important;
+                font-size: 13px !important;
+                border-radius: 8px !important;
+            }
+            .menu-link i {
+                font-size: 16px !important;
+                width: 18px !important;
+            }
+            .stat-grid {
+                gap: 15px !important;
+                margin-bottom: 20px !important;
+            }
+            .stat-card-new {
+                padding: 15px !important;
+                gap: 12px !important;
+                border-radius: 12px !important;
+            }
+            .stat-num {
+                font-size: 20px !important;
+            }
+        }
+
+        .btn-dss {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .btn-dss:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(250, 157, 28, 0.5);
+        }
+
+        .btn-dss:active {
+            transform: translateY(1px);
+        }
+
+        /* Sliding Pill Tab Switcher */
+        .login-toggle-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 4px;
+            margin-bottom: 25px;
+        }
+        
+        .lightmode .login-toggle-container {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .login-toggle-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary) !important;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 25px;
+            transition: all var(--anim-normal);
+            cursor: pointer;
+        }
+
+        .login-toggle-btn.active {
+            background: var(--accent-gradient);
+            color: #ffffff !important;
+            box-shadow: var(--glow-btn-shadow);
+        }
+
+        .password-toggle-btn {
+            background: transparent !important;
+            border: none !important;
+            color: var(--text-secondary) !important;
+            cursor: pointer;
+            transition: color var(--anim-fast);
+        }
+        
+        .password-toggle-btn:hover {
+            color: var(--accent-color) !important;
+        }
+
+        .btn-outline-dss {
+            background: transparent;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all var(--anim-normal);
+        }
+
+        .btn-outline-dss:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color) !important;
+            background: rgba(250, 157, 28, 0.05);
+        }
+
+        /* Punch button custom styling */
+        .punch-btn {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 20px 40px;
+            border-radius: 50px;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+        }
+
+        .punch-btn-in {
+            background: linear-gradient(135deg, #00e676 0%, #00b0ff 100%);
+            color: #ffffff;
+        }
+
+        .punch-btn-in:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 230, 118, 0.4);
+        }
+
+        .punch-btn-out {
+            background: linear-gradient(135deg, #ff1744 0%, #ff9100 100%);
+            color: #ffffff;
+        }
+
+        .punch-btn-out:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 15px 30px rgba(255, 23, 68, 0.4);
+        }
+
+        .punch-btn-completed {
+            background: rgba(0, 230, 118, 0.08) !important;
+            color: #00e676 !important;
+            border: 2px solid rgba(0, 230, 118, 0.3) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .punch-btn:active {
+            transform: scale(0.98) translateY(1px);
+        }
+
+        /* Attendance list and tables */
+        .custom-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .custom-table tr {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            transition: all var(--anim-normal);
+        }
+
+        .lightmode .custom-table tr {
+            background: rgba(0, 0, 0, 0.01);
+        }
+
+        .custom-table tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .lightmode .custom-table tr:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .custom-table th {
+            padding: 12px 18px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+        }
+
+        .custom-table td {
+            padding: 15px 18px;
+            border: none;
+            vertical-align: middle;
+            color: var(--text-primary);
+        }
+
+        .custom-table td:first-child, .custom-table th:first-child {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .custom-table td:last-child, .custom-table th:last-child {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        .timer-display {
+            font-family: monospace;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 2px;
+            background: rgba(250, 157, 28, 0.05);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px dashed var(--accent-glow);
+            display: inline-block;
+        }
+
+        .lightmode .timer-display {
+            background: rgba(250, 157, 28, 0.02);
+        }
+
+        .status-select-dss {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+            font-size: 12px !important;
+            border-radius: 6px !important;
+            padding: 5px 10px !important;
+            cursor: pointer;
+            transition: border-color var(--anim-fast);
+        }
+
+        .status-select-dss:focus {
+            outline: none;
+            border-color: var(--accent-color) !important;
+        }
+
+        .status-select-dss option {
+            background-color: var(--bg-surface) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border-color);
+            padding: 15px 25px;
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--card-shadow);
+            z-index: 9999;
+            transform: translateY(150px);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        h1, h2, h3, h4, h5, h6, span, p, a, i, td, th, select, input, button, div {
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
+</head>
+<body style="background-color: var(--bg-dark); color: var(--text-secondary); transition: background-color var(--anim-normal);">
+
+    <!-- Background glow elements -->
+    <div id="cursor-glow"></div>
+
+
+
+    <!-- 2. DASHBOARD CONTAINER WITH SIDEBAR -->
+    <div id="dashboardPanel" style="display: none;">
+        
+        <!-- Mobile Header -->
+        <header class="mobile-header" id="mobileHeader">
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Navigation Sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <img src="./image/logo-light.png" alt="DSS Logo" id="mobileLogo" style="height: 30px !important; width: auto !important; object-fit: contain !important;">
+            <button id="themeSwitchMobile" class="themeswitch btn btn-link p-0 border-0 text-white-50" aria-label="Toggle Theme">
+                <i id="themeIconMobile" class="fas fa-moon"></i>
+            </button>
+        </header>
+
+        <div class="admin-layout">
+            
+            <!-- Staff Sidebar -->
+            <aside class="admin-sidebar" id="adminSidebar">
+                <div class="sidebar-brand">
+                    <img src="./image/logo-light.png" alt="DSS Logo" id="sidebarLogoImg">
+                    <div class="admin-profile">
+                        <div class="profile-avatar" id="staffAvatar">S</div>
+                        <div class="profile-info">
+                            <div class="profile-name" id="staffName">Staff Name</div>
+                            <div class="profile-role" id="staffRole">Role</div>
+                        </div>
+                    </div>
+                </div>
+
+                <ul class="sidebar-menu">
+                    <div class="menu-category" style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 20px; font-weight: 700;">Menu</div>
+                    <li>
+                        <div class="menu-link active" data-tab="dashboard" id="tabLinkDashboard">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="my-tasks" id="tabLinkMyTasks">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>My Task</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="my-submissions" id="tabLinkMySubmissions">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>My Submission</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="messages" id="tabLinkMessages">
+                            <i class="fa-solid fa-envelope"></i>
+                            <span>Message</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="profile-settings" id="tabLinkProfileSettings">
+                            <i class="fa-solid fa-user-gear"></i>
+                            <span>Profile Settings</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="my-attendance" id="tabLinkMyAttendance">
+                            <i class="fa-solid fa-business-time"></i>
+                            <span>My Attendance</span>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <button id="themeSwitch" class="btn-outline-dss py-2 px-3 border-0 d-flex align-items-center gap-3 w-100" style="font-size: 14px; border-radius: 10px;">
+                        <i id="themeIcon" class="fas fa-moon" style="width: 20px;"></i>
+                        <span id="themeText">Dark Mode</span>
+                    </button>
+                    <button class="btn btn-danger py-2 px-3 w-100 d-flex align-items-center gap-3 justify-content-center" id="logoutBtn" style="font-size: 14px; border-radius: 10px;">
+                        <i class="fa-solid fa-right-from-bracket"></i> Logout
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Panel Content -->
+            <main class="admin-main">
+                
+                <!-- 1. DASHBOARD TAB -->
+                <div class="tab-content-panel" id="tab-dashboard" style="display: block;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">Dashboard Overview</h2>
+                            <p class="text-muted mb-0">Welcome back to your workspace!</p>
+                        </div>
+                        <div class="text-muted text-end d-none d-sm-block">
+                            <span class="small" id="currentDateTime">Saturday, August 22, 2026</span>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="stat-grid mb-4">
+                        <!-- Active Tasks -->
+                        <div class="stat-card-new">
+                            <div class="stat-icon" style="background: rgba(250, 157, 28, 0.1); color: #fa9d1c;"><i class="fa-solid fa-list-check"></i></div>
+                            <div class="stat-info-new">
+                                <div class="stat-num" id="statActiveTasks">0</div>
+                                <div class="stat-title">Active Tasks</div>
+                                <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Assigned to You</div>
+                            </div>
+                        </div>
+                        <!-- Monthly Hours -->
+                        <div class="stat-card-new">
+                            <div class="stat-icon" style="background: rgba(0, 230, 118, 0.1); color: #00e676;"><i class="fa-solid fa-clock"></i></div>
+                            <div class="stat-info-new">
+                                <div class="stat-num" id="statMonthlyHours">0 Hrs</div>
+                                <div class="stat-title">Monthly Hours</div>
+                                <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">This Month</div>
+                            </div>
+                        </div>
+                        <!-- Present Days -->
+                        <div class="stat-card-new">
+                            <div class="stat-icon" style="background: rgba(0, 187, 249, 0.1); color: #00bbf9;"><i class="fa-solid fa-calendar-check"></i></div>
+                            <div class="stat-info-new">
+                                <div class="stat-num" id="statPresentDays">0 Days</div>
+                                <div class="stat-title">Present Days</div>
+                                <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Attendance</div>
+                            </div>
+                        </div>
+                        <!-- Shift Status -->
+                        <div class="stat-card-new">
+                            <div class="stat-icon" style="background: rgba(255, 23, 68, 0.1); color: #ff1744;"><i class="fa-solid fa-fingerprint"></i></div>
+                            <div class="stat-info-new">
+                                <div class="stat-num" id="statShiftStatus" style="font-size: 20px;">Offline</div>
+                                <div class="stat-title">Shift Status</div>
+                                <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Current State</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Inner Grid -->
+                    <div class="row g-4">
+                        <!-- Left Column: Attendance Console -->
+                        <div class="col-lg-5">
+                            <div class="admin-card p-4 h-100 d-flex flex-column justify-content-between text-center">
+                                <div>
+                                    <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-fingerprint text-warning me-2"></i> Shift Attendance</h5>
+                                    <p class="text-muted small mb-4">Punch in to log your work duration. Don't forget to punch out at the end of the shift.</p>
+                                    
+                                    <div class="my-4">
+                                        <div class="timer-display" id="shiftTimer">00:00:00</div>
+                                        <div class="text-muted small mt-1">Active Timer</div>
+                                    </div>
+                                </div>
+
+                                <div class="my-4">
+                                    <button id="punchBtn" class="punch-btn punch-btn-in w-100">
+                                        <i class="fa-solid fa-fingerprint me-2"></i> <span id="punchBtnText">Punch In</span>
+                                    </button>
+                                </div>
+
+                                <div class="text-muted small border-top pt-3" style="border-color: var(--border-color) !important;">
+                                    <i class="fa-solid fa-circle-info me-1"></i> Late punches (after 10:00 AM) are flagged automatically.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Quick Announcements -->
+                        <div class="col-lg-7">
+                            <div class="admin-card p-4 h-100">
+                                <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-bullhorn text-warning me-2"></i> Recent Announcements</h5>
+                                <div class="announcements-list d-flex flex-column gap-3" id="quickAnnouncementsList">
+                                    <!-- Populated dynamically -->
+                                    <div class="text-muted py-4 text-center">No announcements at the moment.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. MY TASK TAB -->
+                <div class="tab-content-panel" id="tab-my-tasks" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">My Assigned Tasks</h2>
+                            <p class="text-muted mb-0">Update your progress and task statuses here</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-card p-4">
+                        <div class="table-responsive">
+                            <table class="custom-table text-white mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Task Title</th>
+                                        <th>Deadline</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tasksTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="tasksEmptyState" class="text-center py-5 text-muted" style="display: none;">
+                            <i class="fa-solid fa-list-check mb-2" style="font-size: 30px;"></i>
+                            <p class="mb-0">You have no tasks assigned currently.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. MY SUBMISSION TAB -->
+                <div class="tab-content-panel" id="tab-my-submissions" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">Work Submission Portal</h2>
+                            <p class="text-muted mb-0">Submit working files or links for Admin approval</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Previous Submissions Table -->
+                        <div class="col-12">
+                            <div class="admin-card p-4">
+                                <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-clock-rotate-left text-warning me-2"></i> Submission History</h5>
+                                <div class="table-responsive">
+                                    <table class="custom-table text-white mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Task Title</th>
+                                                <th>Client</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="submissionsTableBody">
+                                            <!-- Loaded dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="submissionsEmptyState" class="text-center py-4 text-muted" style="display: none;">
+                                    <i class="fa-solid fa-file-invoice mb-2" style="font-size: 30px;"></i>
+                                    <p class="mb-0">No submissions done yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. MESSAGE TAB -->
+                <div class="tab-content-panel" id="tab-messages" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">Message Board & Notifications</h2>
+                            <p class="text-muted mb-0">Read announcements and updates from DSS admin</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-card p-4">
+                        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-inbox text-warning me-2"></i> Message Inbox</h5>
+                        <div class="d-flex flex-column gap-3" id="messagesInboxList">
+                            <!-- Populated dynamically -->
+                            <div class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-envelope-open-text mb-2" style="font-size: 30px;"></i>
+                                <p class="mb-0">Your inbox is empty.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. PROFILE SETTINGS TAB -->
+                <div class="tab-content-panel" id="tab-profile-settings" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">Profile Settings</h2>
+                            <p class="text-muted mb-0">Manage your contact information and login credentials</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Profile Contact Form -->
+                        <div class="col-lg-6">
+                            <div class="admin-card p-4">
+                                <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-id-card text-warning me-2"></i> Personal Details</h5>
+                                <form id="profileForm">
+                                    <div class="mb-3">
+                                        <label class="form-label text-white-50">Staff Name (Read-Only)</label>
+                                        <input type="text" class="form-control form-control-dss" id="profileName" readonly style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.05); color: #888 !important;">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-white-50">Assigned Role (Read-Only)</label>
+                                        <input type="text" class="form-control form-control-dss" id="profileRole" readonly style="background: rgba(255,255,255,0.01); border-color: rgba(255,255,255,0.05); color: #888 !important;">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="profileEmail" class="form-label text-white-50">Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control form-control-dss" id="profileEmail" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="profileMobile" class="form-label text-white-50">Mobile Number</label>
+                                        <input type="tel" class="form-control form-control-dss" id="profileMobile">
+                                    </div>
+                                    <button type="submit" class="btn btn-dss w-100" id="saveProfileBtn">
+                                        <span>Save Profile</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Change Password Form -->
+                        <div class="col-lg-6">
+                            <div class="admin-card p-4">
+                                <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-key text-warning me-2"></i> Update Password</h5>
+                                <form id="changePasswordForm">
+                                    <div class="mb-3">
+                                        <label for="oldPassword" class="form-label text-white-50">Current Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control form-control-dss" id="oldPassword" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newPassword" class="form-label text-white-50">New Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control form-control-dss" id="newPassword" required>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label for="confirmNewPassword" class="form-label text-white-50">Confirm New Password <span class="text-danger">*</span></label>
+                                        <input type="password" class="form-control form-control-dss" id="confirmNewPassword" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-dss w-100" id="changePassSubmitBtn" style="background: linear-gradient(135deg, var(--accent-color) 0%, #ff8c00 100%);">
+                                        <span>Update Password</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. MY ATTENDANCE TAB -->
+                <div class="tab-content-panel" id="tab-my-attendance" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h2 class="text-white fw-bold">My Attendance Records</h2>
+                            <p class="text-muted mb-0">Review all your daily punches and hours logged</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-card p-4">
+                        <div class="table-responsive">
+                            <table class="custom-table text-white mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Punch In</th>
+                                        <th>Punch Out</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logsTableBody">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="logsEmptyState" class="text-center py-5 text-muted" style="display: none;">
+                            <i class="fa-solid fa-calendar-check mb-2" style="font-size: 30px;"></i>
+                            <p class="mb-0">No attendance logs logged yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification for feedback -->
+    <div id="toast" class="toast-notification">
+        <i id="toastIcon" class="fa-solid fa-circle-check"></i>
+        <div id="toastMessage" class="toast-message">Operation successful!</div>
+    </div>
+
+    <!-- Bootstrap & FontAwesome JS dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/staff-dashboard.js"></script>
+</body>
+</html>

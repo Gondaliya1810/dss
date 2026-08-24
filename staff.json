@@ -1,0 +1,18 @@
+[
+  {
+    "id": "staff-1787323945242",
+    "name": "Harsh Gondaliya",
+    "role": "Video Editer",
+    "avatarColor": "#f15bb5",
+    "email": "harsh@gmail.com",
+    "mobile": "1234567890"
+  },
+  {
+    "id": "staff-1787324382165",
+    "name": "Dax Limbasiya",
+    "role": "Video Editer",
+    "avatarColor": "#00bbf9",
+    "email": "daxlimbasiya@gmail.com",
+    "mobile": "1234567890"
+  }
+]

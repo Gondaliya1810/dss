@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        if (localStorage.getItem('lightmode') === 'active') {
+            document.documentElement.classList.add('lightmode');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Details | DSS - Design Shaper Studio</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" href="./image/favicon.ico">
+    <style>
+        #project-work-list {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            width: 100%;
+            margin-top: 2rem;
+        }
+        @media (max-width: 1200px) {
+            #project-work-list {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        @media (max-width: 992px) {
+            #project-work-list {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            #project-work-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            #project-work-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .project-media-card {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .project-media-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .project-media-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            aspect-ratio: 4 / 5; /* Instagram portrait post aspect ratio */
+        }
+        .project-media-card video {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            aspect-ratio: 9 / 16; /* Full reel aspect ratio */
+        }
+        .back-btn-wrapper {
+            margin-bottom: 2rem;
+        }
+        .project-meta-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 2.5rem;
+            margin-bottom: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Section Header -->
+    <header>
+        <div class="navbar-wrapper">
+            <div class="hero-container">
+                <div class="navbar-container">
+                    <div class="logo-container-header">
+                        <a href="index.html">
+                            <img src="./image/logo-light.png" alt="DSS Logo" class="site-logo" id="logoImg">
+                        </a>
+                    </div>
+                    <div class="collapse d-none d-lg-block">
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" href="index.html">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="about.html">About Us</a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle active" href="service.html" id="servicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    services <i class="fa-solid fa-chevron-down ms-1" style="font-size: 9px; opacity: 0.7;"></i>
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="servicesDropdown">
+                                    <li><a class="dropdown-item" href="service-graphics.html">graphics design</a></li>
+                                    <li><a class="dropdown-item" href="service-branding.html">branding identity</a></li>
+                                    <li><a class="dropdown-item" href="service-packaging.html">packaging design</a></li>
+                                    <li><a class="dropdown-item" href="service-social.html">social media design</a></li>
+                                    <li><a class="dropdown-item" href="service-video.html">video ads</a></li>
+                                    <li><a class="dropdown-item" href="service-marketing.html">digital marketing</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="pricing.html">Pricing Plan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="contact.html">Contact Us</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="navbar-action-container">
+                        <div class="navbar-action-button">
+                            <button id="themeSwitch" class="themeswitch" aria-label="Toggle Theme">
+                                <i id="themeIcon" class="fas fa-moon"></i>
+                            </button>
+
+                            <button class="nav-btn d-lg-none" aria-label="Menu Toggle">
+                                <i class="fa-solid fa-bars"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Section Sidebar Info -->
+    <aside>
+        <div class="info-sidebar-overlay"></div>
+        <div class="info-sidebar">
+            <div class="info-sidebar-header">
+                <div></div>
+                <div class="close-info-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </div>
+            </div>
+            <div class="info-sidebar-content">
+                <div class="info-sidebar-logo mb-4">
+                    <img src="./image/logo-light.png" alt="DSS Logo" class="site-logo" id="infoSidebarLogoImg">
+                </div>
+                <h4 class="mb-3">Strong Partnerships, Proven Success</h4>
+                <p class="mb-4">We collaborate with brands to deliver viral visual content and growth-driven strategies. Let us shape your design.</p>
+                <div class="contact-info-list mt-4">
+                    <div class="contact-info-card">
+                        <div class="contact-info-icon"><i class="fa-solid fa-phone"></i></div>
+                        <div class="contact-info-text">
+                            <h4>Phone Number</h4>
+                            <p>+91 75729 52054</p>
+                        </div>
+                    </div>
+                    <div class="contact-info-card mt-3">
+                        <div class="contact-info-icon"><i class="fa-solid fa-envelope"></i></div>
+                        <div class="contact-info-text">
+                            <h4>Email Address</h4>
+                            <p>info@designshaperstudio.com</p>
+                        </div>
+                    </div>
+                    <div class="contact-info-card mt-3">
+                        <div class="contact-info-icon"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="contact-info-text">
+                            <h4>Address</h4>
+                            <p>312, 3rd Floor, AR Mall, Mota Varachha, Surat</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Section Mobile Menu Sidebar -->
+    <aside>
+        <div class="sidebar-overlay"></div>
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="./image/logo-light.png" class="site-logo" alt="DSS Logo" id="sidebarLogoImg">
+                </div>
+                <button class="close-btn" aria-label="Close Menu"><span><i class="fa-solid fa-xmark"></i></span></button>
+            </div>
+            <ul class="menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li class="menu-item-has-children">
+                    <div class="mobile-menu-parent">
+                        <a href="service.html" class="active">Services</a>
+                        <span class="sub-toggle"><i class="fa-solid fa-chevron-down"></i></span>
+                    </div>
+                    <ul class="sub-menu">
+                        <li><a href="service-graphics.html">Graphics Design</a></li>
+                        <li><a href="service-branding.html">Branding Identity</a></li>
+                        <li><a href="service-packaging.html">Packaging Design</a></li>
+                        <li><a href="service-social.html">Social Media Design</a></li>
+                        <li><a href="service-video.html">Video Ads</a></li>
+                        <li><a href="service-marketing.html">Digital Marketing</a></li>
+                    </ul>
+                </li>
+                <li><a href="pricing.html">Pricing Plan</a></li>
+                <li><a href="contact.html">Contact Us</a></li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="py-5" style="margin-top: 120px;">
+        <div class="hero-container" id="project-content-wrapper">
+            <!-- Back Button -->
+            <div class="back-btn-wrapper reveal-in">
+                <a href="javascript:history.back()" class="btn-outline-glass text-decoration-none px-4 py-2 d-inline-flex align-items-center gap-2">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Portfolio
+                </a>
+            </div>
+
+            <!-- Project Meta Section -->
+            <div class="project-meta-section reveal-in">
+                <span class="section-tag" id="project-category-tag">Category</span>
+                <h1 class="text-white mt-2 mb-3" id="project-title">Loading Project...</h1>
+                <p class="text-white-50 fs-5 max-width-800" id="project-desc">Please wait while we retrieve the portfolio details.</p>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="portfolio-tabs mb-5 justify-content-center justify-content-md-start reveal-in" id="project-filter-tabs">
+                <!-- Dynamic Tabs injected here -->
+            </div>
+
+            <!-- Grid Media Container -->
+            <div id="project-work-list">
+                <!-- Media Elements (Images/Videos) injected here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="hero-container">
+            <div class="footer-grid">
+                <div class="footer-col">
+                    <img src="./image/logo-light.png" alt="DSS Logo" class="site-logo mb-3" id="footerLogoImg">
+                    <p class="text-white-50">Shaping scroll-stopping posts and editing viral reels to scale your visual brand representation.</p>
+                    <div class="social-links">
+                        <a href="https://instagram.com" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://youtube.com" class="social-btn"><i class="fa-brands fa-youtube"></i></a>
+                        <a href="https://facebook.com" class="social-btn"><i class="fa-brands fa-facebook"></i></a>
+                        <a href="https://linkedin.com" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="service.html">Services</a></li>
+                        <li><a href="pricing.html">Pricing Plan</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Services</h3>
+                    <ul class="footer-links">
+                        <li><a href="service-graphics.html">graphics design</a></li>
+                        <li><a href="service-branding.html">branding identity</a></li>
+                        <li><a href="service-packaging.html">packaging design</a></li>
+                        <li><a href="service-social.html">social media design</a></li>
+                        <li><a href="service-video.html">video ads</a></li>
+                        <li><a href="service-marketing.html">digital marketing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h3>Contact Info</h3>
+                    <ul class="footer-links">
+                        <li><span class="text-white">Email:</span> info@designshaperstudio.com</li>
+                        <li><span class="text-white">Phone:</span> +91 75729 52054</li>
+                        <li><span class="text-white">Location:</span> 312, 3rd Floor, AR Mall, Mota Varachha, Surat</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-map">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3718.9702213768407!2d72.87327341178651!3d21.232971280387532!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be04f40f0000001%3A0xe54ef92955adad67!2sAR%20Mall!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin" width="100%" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Design Shaper Studio. All Rights Reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="./js/script.js"></script>
+
+    <!-- Project Render Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('id');
+            if (!projectId) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const defaultProjects = [
+                {
+                    id: "default-graphics",
+                    title: "creative agency post templates",
+                    category: "graphics",
+                    description: "High-end post templates and outlines designed for social media growth, utilizing consistent brand geometry, layout hierarchy, and content formatting.",
+                    mediaPaths: ["./image/graphics-design.png"],
+                    mediaTypes: ["image"]
+                },
+                {
+                    id: "default-branding",
+                    title: "corporate brand identity guidelines",
+                    category: "branding",
+                    description: "Complete corporate brand guidelines including typography rules, color swatches, logo usage spacing rules, and layout templates.",
+                    mediaPaths: ["./image/branding-identity.png"],
+                    mediaTypes: ["image"]
+                },
+                {
+                    id: "default-packaging",
+                    title: "minimalist box product packaging",
+                    category: "packaging",
+                    description: "Minimalist, luxury box packaging templates featuring gold foil stamps and clean textured print mockups.",
+                    mediaPaths: ["./image/packaging-design.png"],
+                    mediaTypes: ["image"]
+                },
+                {
+                    id: "default-social",
+                    title: "high-retention instagram carousel",
+                    category: "social-media",
+                    description: "Instagram carousel deck designed with engaging typography, progressive flow layouts, and high-retention copy elements.",
+                    mediaPaths: ["./image/social-media-design.png"],
+                    mediaTypes: ["image"]
+                },
+                {
+                    id: "default-video",
+                    title: "high-energy promotional video ad",
+                    category: "video",
+                    description: "Fast-paced promotional video ad featuring high-impact visual transitions, sound design effects, and kinetic text overlays.",
+                    mediaPaths: ["./image/video-ads.png"],
+                    mediaTypes: ["image"]
+                },
+                {
+                    id: "default-marketing",
+                    title: "targeted social media ad campaign",
+                    category: "marketing",
+                    description: "Premium visual assets designed specifically for targeted marketing campaigns across Instagram and Meta ads manager channels.",
+                    mediaPaths: ["./image/digital-marketing.png"],
+                    mediaTypes: ["image"]
+                }
+            ];
+
+            let project = defaultProjects.find(p => p.id === projectId);
+
+            if (!project) {
+                try {
+                    const response = await fetch('/api/projects');
+                    const data = await response.json();
+                    if (data.success && data.projects) {
+                        const dbProj = data.projects.find(p => p.id === projectId);
+                        if (dbProj) {
+                            project = {
+                                id: dbProj.id,
+                                title: dbProj.title,
+                                category: dbProj.category,
+                                description: dbProj.description,
+                                mediaPaths: dbProj.mediaPaths || [dbProj.imagePath],
+                                mediaTypes: dbProj.mediaTypes || [dbProj.fileType || 'image'],
+                                thumbnailPath: dbProj.thumbnailPath
+                            };
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching dynamic project details:', e);
+                }
+            }
+
+            if (!project) {
+                document.getElementById('project-content-wrapper').innerHTML = `
+                    <div class="text-center py-5">
+                        <h2 class="text-white">Project Not Found</h2>
+                        <p class="text-white-50">The requested portfolio work could not be located.</p>
+                        <a href="index.html" class="btn-outline-glass px-4 py-2 mt-3 text-decoration-none d-inline-block">Back to Home</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render metadata
+            document.getElementById('project-title').textContent = project.title;
+            document.getElementById('project-desc').textContent = project.description || 'No description available for this project.';
+            
+            const categoryLabels = {
+                'graphics': 'graphics design',
+                'branding': 'branding identity',
+                'packaging': 'packaging design',
+                'social-media': 'social media design',
+                'video': 'video ads',
+                'marketing': 'digital marketing'
+            };
+            document.getElementById('project-category-tag').textContent = categoryLabels[project.category] || project.category;
+
+            // Map media items
+            const mediaItems = [];
+            project.mediaPaths.forEach((path, index) => {
+                mediaItems.push({
+                    path,
+                    type: project.mediaTypes[index] || 'image'
+                });
+            });
+
+            const hasImages = mediaItems.some(item => item.type === 'image');
+            const hasVideos = mediaItems.some(item => item.type === 'video');
+
+            const filterTabsContainer = document.getElementById('project-filter-tabs');
+            const workListContainer = document.getElementById('project-work-list');
+
+            // Render tabs if both videos and images exist
+            if (hasImages && hasVideos) {
+                filterTabsContainer.innerHTML = `
+                    <button class="portfolio-tab-btn active" data-filter="all">All Works</button>
+                    <button class="portfolio-tab-btn" data-filter="graphics">Graphics</button>
+                    <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
+                `;
+                
+                const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        renderWorkList(tab.getAttribute('data-filter'));
+                    });
+                });
+            } else {
+                filterTabsContainer.style.display = 'none';
+            }
+
+            // Render media in responsive CSS grid
+            const renderWorkList = (filterType) => {
+                workListContainer.innerHTML = '';
+                
+                let filteredItems = mediaItems;
+                if (filterType === 'graphics') {
+                    filteredItems = mediaItems.filter(item => item.type === 'image');
+                } else if (filterType === 'reels') {
+                    filteredItems = mediaItems.filter(item => item.type === 'video');
+                }
+
+                if (filteredItems.length === 0) {
+                    workListContainer.innerHTML = `<p class="text-white-50 text-center py-4 w-100" style="grid-column: 1 / -1;">No assets in this category.</p>`;
+                    return;
+                }
+
+                filteredItems.forEach((item, index) => {
+                    const cardWrapper = document.createElement('div');
+                    cardWrapper.className = 'reveal-in visible';
+                    cardWrapper.style.width = '100%';
+                    
+                    let mediaHTML = '';
+                    if (item.type === 'video') {
+                        mediaHTML = `
+                            <div class="project-media-card video-card" style="position: relative;">
+                                <video data-src="${item.path}" preload="none" loop muted playsinline class="w-100 lazy-video"></video>
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.15); pointer-events: none;">
+                                    <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.25); border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                                        <i class="fa-solid fa-play" style="margin-left: 3px;"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        mediaHTML = `
+                            <div class="project-media-card image-card">
+                                <img src="${item.path}" loading="lazy" alt="${project.title}">
+                            </div>
+                        `;
+                    }
+                    
+                    cardWrapper.innerHTML = mediaHTML;
+                    workListContainer.appendChild(cardWrapper);
+                    
+                    // Open the fullscreen lightbox player when a card is clicked
+                    cardWrapper.addEventListener('click', () => {
+                        if (window.openLightboxModal) {
+                            window.openLightboxModal([item.path], [item.type], project.title);
+                        }
+                    });
+
+                    // Disable right-click context menu
+                    const mediaElement = cardWrapper.querySelector('img, video');
+                    if (mediaElement) {
+                        mediaElement.addEventListener('contextmenu', e => e.preventDefault());
+                    }
+                });
+
+                // Initialize lazy loading for videos
+                initLazyVideos();
+            };
+
+            const initLazyVideos = () => {
+                if (!('IntersectionObserver' in window)) {
+                    // Fallback for older browsers
+                    document.querySelectorAll('.lazy-video').forEach(video => {
+                        video.src = video.getAttribute('data-src');
+                        video.play().catch(e => {});
+                    });
+                    return;
+                }
+
+                const videoObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const video = entry.target;
+                        if (entry.isIntersecting) {
+                            if (!video.src) {
+                                video.src = video.getAttribute('data-src');
+                            }
+                            video.play().catch(err => {});
+                        } else {
+                            if (video.src) {
+                                video.pause();
+                            }
+                        }
+                    });
+                }, {
+                    root: null,
+                    rootMargin: '150px 0px', // start loading video when 150px away
+                    threshold: 0.1
+                });
+
+                document.querySelectorAll('.lazy-video').forEach(video => {
+                    videoObserver.observe(video);
+                });
+            };
+
+            // Initial render
+            renderWorkList('all');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "task-1787324169646",
+    "title": "Raksha Bandhan Reel",
+    "client": "TG",
+    "assignedTo": {
+      "id": "staff-1787323945242",
+      "name": "Harsh Gondaliya",
+      "role": "Video Editer",
+      "avatarColor": "#f15bb5"
+    },
+    "deadline": "2026-08-22",
+    "status": "pending",
+    "priority": "high",
+    "description": "",
+    "createdAt": "2026-08-21T14:56:09.646Z"
+  }
+]
