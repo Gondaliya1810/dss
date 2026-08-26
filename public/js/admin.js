@@ -4584,7 +4584,7 @@ function updateClockUI() {
         }
 
         const item = document.createElement('div');
-        item.className = 'position-absolute translate-middle-x translate-middle-y text-center clock-num-node';
+        item.className = 'position-absolute translate-middle text-center clock-num-node';
         item.style.left = `${x}px`;
         item.style.top = `${y}px`;
         item.style.width = '30px';
