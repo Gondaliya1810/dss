@@ -30,34 +30,52 @@ app.use((req, res, next) => {
     next();
 });
 
-// Configure Email Transporter using SMTP settings
-const mailTransporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-    port: parseInt(process.env.SMTP_PORT) || 465,
-    secure: parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    },
-    family: 4, // Force IPv4 to resolve ENETUNREACH in Railway containers
-    connectionTimeout: 15000, // 15 seconds timeout
-    tls: {
-        rejectUnauthorized: false // Avoid certificate errors
+// Function to initialize and verify SMTP transporter on startup (forces IPv4)
+async function verifySmtpOnStartup() {
+    if (!process.env.SMTP_USER) {
+        console.warn('SMTP_USER is not defined. Staff password recovery emails will fail.');
+        return;
     }
-});
 
-// Verify SMTP connection configuration on startup
-if (process.env.SMTP_USER) {
-    mailTransporter.verify(function (error, success) {
+    const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+    let resolvedHost = smtpHost;
+
+    try {
+        const dns = require('dns').promises;
+        const addresses = await dns.resolve4(smtpHost);
+        if (addresses && addresses.length > 0) {
+            resolvedHost = addresses[0];
+            console.log(`[Startup] Resolved SMTP Host ${smtpHost} to IPv4: ${resolvedHost}`);
+        }
+    } catch (dnsErr) {
+        console.warn(`[Startup] DNS resolve4 failed for ${smtpHost}, using original host name:`, dnsErr.message);
+    }
+
+    const testTransporter = nodemailer.createTransport({
+        host: resolvedHost,
+        port: parseInt(process.env.SMTP_PORT) || 465,
+        secure: parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+        },
+        connectionTimeout: 15000,
+        tls: {
+            rejectUnauthorized: false,
+            servername: smtpHost
+        }
+    });
+
+    testTransporter.verify(function (error, success) {
         if (error) {
             console.error('SMTP Connection Validation Failed:', error.message);
         } else {
             console.log('SMTP Connection Success: Server is ready to send emails.');
         }
     });
-} else {
-    console.warn('SMTP_USER is not defined. Staff password recovery emails will fail.');
 }
+
+verifySmtpOnStartup();
 
 
 
@@ -1527,13 +1545,42 @@ const otpStore = new Map();
 // Helper to send email
 const sendMail = async (to, subject, html) => {
     try {
+        const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
+        let resolvedHost = smtpHost;
+
+        try {
+            const dns = require('dns').promises;
+            const addresses = await dns.resolve4(smtpHost);
+            if (addresses && addresses.length > 0) {
+                resolvedHost = addresses[0];
+                console.log(`[sendMail] Resolved ${smtpHost} to IPv4: ${resolvedHost}`);
+            }
+        } catch (dnsErr) {
+            console.warn(`[sendMail] DNS resolve4 failed, using original host name:`, dnsErr.message);
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: resolvedHost,
+            port: parseInt(process.env.SMTP_PORT) || 465,
+            secure: parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            },
+            connectionTimeout: 15000,
+            tls: {
+                rejectUnauthorized: false,
+                servername: smtpHost
+            }
+        });
+
         const mailOptions = {
             from: process.env.SMTP_FROM || `"Design Shaper Studio" <${process.env.SMTP_USER}>`,
             to,
             subject,
             html
         };
-        await mailTransporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
         console.log(`Email sent successfully to ${to}`);
         return true;
     } catch (err) {
