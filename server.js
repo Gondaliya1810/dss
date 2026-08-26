@@ -5,6 +5,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 const { Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review } = require('./db');
 
@@ -24,6 +25,18 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+// Configure Email Transporter using SMTP settings
+const mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.hostinger.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: parseInt(process.env.SMTP_PORT) === 465 || !process.env.SMTP_PORT,
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+    }
+});
+
 
 
 // Ensure upload directory exists
@@ -1483,6 +1496,150 @@ app.delete('/api/reviews/:id', async (req, res) => {
         res.json({ success: true, message: 'Review deleted successfully.' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// In-memory store for OTPs
+const otpStore = new Map();
+
+// Helper to send email
+const sendMail = async (to, subject, html) => {
+    try {
+        const mailOptions = {
+            from: process.env.SMTP_FROM || `"Design Shaper Studio" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html
+        };
+        await mailTransporter.sendMail(mailOptions);
+        console.log(`Email sent successfully to ${to}`);
+        return true;
+    } catch (err) {
+        console.error('Nodemailer send error:', err);
+        throw new Error('Failed to send email. Please check server SMTP configuration.');
+    }
+};
+
+// POST: Request OTP for Staff Forgot Password
+app.post('/api/staff/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    try {
+        // Find staff by email
+        const staffMember = await Staff.findOne({ email: email.trim().toLowerCase() });
+        if (!staffMember) {
+            return res.status(404).json({ success: false, message: 'No staff account found with this email address.' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now
+
+        // Store OTP
+        otpStore.set(email.trim().toLowerCase(), { otp, expiry });
+
+        // Send OTP Email
+        const emailContent = `
+            <div style="font-family: 'Quicksand', sans-serif; max-width: 500px; margin: 0 auto; padding: 25px; background-color: #0f0f15; border: 1px solid #fa9d1c; border-radius: 16px; color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #fa9d1c; margin: 0; font-weight: 700; font-size: 24px;">Design Shaper Studio</h2>
+                    <p style="color: #62627a; margin: 5px 0 0 0; font-size: 14px;">Staff Portal Verification</p>
+                </div>
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px;">
+                <p style="font-size: 15px; color: #9a9ab0; line-height: 1.6;">Hello <strong>${staffMember.name}</strong>,</p>
+                <p style="font-size: 15px; color: #9a9ab0; line-height: 1.6;">You have requested a verification code to recover your password. Please use the following 6-digit OTP (One Time Password):</p>
+                <div style="text-align: center; margin: 25px 0;">
+                    <span style="font-size: 32px; font-weight: 700; letter-spacing: 5px; color: #fa9d1c; background: rgba(250, 157, 28, 0.08); padding: 12px 25px; border-radius: 8px; border: 1px dashed rgba(250, 157, 28, 0.3);">${otp}</span>
+                </div>
+                <p style="font-size: 13px; color: #62627a; line-height: 1.5; margin-top: 25px;">Note: This verification code is valid for <strong>10 minutes</strong>. If you did not request this, you can safely ignore this email.</p>
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 25px; margin-bottom: 15px;">
+                <div style="text-align: center; font-size: 12px; color: #62627a;">
+                    © 2026 Design Shaper Studio. All rights reserved.
+                </div>
+            </div>
+        `;
+
+        await sendMail(email.trim().toLowerCase(), 'Staff Portal Verification Code (OTP)', emailContent);
+        return res.status(200).json({ success: true, message: 'Verification code sent to your email.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// POST: Verify OTP and Email Password
+app.post('/api/staff/verify-otp', async (req, res) => {
+    const { email, code } = req.body;
+    if (!email || !code) {
+        return res.status(400).json({ success: false, message: 'Email and verification code are required.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = code.trim();
+
+    try {
+        const storedData = otpStore.get(cleanEmail);
+        if (!storedData) {
+            return res.status(400).json({ success: false, message: 'No verification request found for this email.' });
+        }
+
+        if (Date.now() > storedData.expiry) {
+            otpStore.delete(cleanEmail);
+            return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
+        }
+
+        if (storedData.otp !== cleanCode) {
+            return res.status(400).json({ success: false, message: 'Invalid verification code. Please check and try again.' });
+        }
+
+        // Fetch staff password
+        const staffMember = await Staff.findOne({ email: cleanEmail });
+        if (!staffMember) {
+            return res.status(404).json({ success: false, message: 'Staff member account not found.' });
+        }
+
+        // Password Recovery Email
+        const emailContent = `
+            <div style="font-family: 'Quicksand', sans-serif; max-width: 500px; margin: 0 auto; padding: 25px; background-color: #0f0f15; border: 1px solid #fa9d1c; border-radius: 16px; color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #fa9d1c; margin: 0; font-weight: 700; font-size: 24px;">Design Shaper Studio</h2>
+                    <p style="color: #62627a; margin: 5px 0 0 0; font-size: 14px;">Staff Password Recovery</p>
+                </div>
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px;">
+                <p style="font-size: 15px; color: #9a9ab0; line-height: 1.6;">Hello <strong>${staffMember.name}</strong>,</p>
+                <p style="font-size: 15px; color: #9a9ab0; line-height: 1.6;">Your verification was successful! Here are your current login credentials for the Staff Portal:</p>
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 20px; margin: 25px 0;">
+                    <table style="width: 100%; font-size: 15px; color: #ffffff; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 6px 0; color: #62627a; width: 120px; font-weight: 600;">Email:</td>
+                            <td style="padding: 6px 0; color: #ffffff; font-weight: 500;">${staffMember.email}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 6px 0; color: #62627a; font-weight: 600;">Password:</td>
+                            <td style="padding: 6px 0; color: #fa9d1c; font-weight: 700; font-size: 17px; letter-spacing: 0.5px;">${staffMember.password}</td>
+                        </tr>
+                    </table>
+                </div>
+                <p style="font-size: 13px; color: #62627a; line-height: 1.5; margin-top: 25px;">For security, we recommend that you do not share your credentials with anyone. If you want to update your password in the future, please ask the Administrator.</p>
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 25px; margin-bottom: 15px;">
+                <div style="text-align: center; font-size: 12px; color: #62627a;">
+                    © 2026 Design Shaper Studio. All rights reserved.
+                </div>
+            </div>
+        `;
+
+        await sendMail(cleanEmail, 'Your Staff Portal Login Credentials', emailContent);
+
+        // Cleanup OTP
+        otpStore.delete(cleanEmail);
+
+        return res.status(200).json({ success: true, message: 'Your login credentials have been sent to your email.' });
+    } catch (error) {
+        console.error('Verify OTP error:', error);
+        return res.status(500).json({ success: false, message: error.message });
     }
 });
 

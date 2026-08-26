@@ -416,21 +416,11 @@
         if (forgotPasswordBtn) {
             forgotPasswordBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (activeRole === 'admin') {
-                    showResetModal(
-                        'Admin Password Reset',
-                        'Admin credentials are managed via environment variables. To change the password, please update the <code style="color: var(--accent-color);">ADMIN_PASS</code> variable in your Railway dashboard settings or local <code style="color: var(--accent-color);">.env</code> file.'
-                    );
-                } else {
-                    showResetModal(
-                        'Staff Password Reset',
-                        'Please contact the Administrator at <strong style="color: var(--text-primary);">Design Shaper Studio</strong> to reset or recover your staff login password.'
-                    );
-                }
+                showStaffForgotModal();
             });
         }
 
-        function showResetModal(title, message) {
+        function showStaffForgotModal() {
             const existing = document.getElementById('reset-info-modal');
             if (existing) existing.remove();
 
@@ -451,14 +441,49 @@
             modal.style.transition = 'opacity 0.3s ease';
 
             modal.innerHTML = `
-                <div class="glass-card" style="max-width: 400px; width: 90%; text-align: center; padding: 30px; position: relative;">
+                <div class="glass-card" id="otpModalCard" style="max-width: 420px; width: 90%; padding: 30px; position: relative;">
                     <button class="modal-close-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
-                    <div style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px;">
-                        <i class="fa-solid fa-circle-info"></i>
+                    
+                    <!-- STEP 1: Enter Email -->
+                    <div id="otpStepEmail">
+                        <div style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px; text-align: center;">
+                            <i class="fa-solid fa-envelope-open-text"></i>
+                        </div>
+                        <h3 class="text-white mb-2 text-center" style="font-size: 20px; font-weight: 700;">Password Recovery</h3>
+                        <p class="text-white-50 text-center mb-4" style="font-size: 13px; line-height: 1.5;">Enter your registered Staff Email address. We will send a 6-digit verification code (OTP) to your inbox.</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size: 12px;">Staff Email Address</label>
+                            <input type="email" class="form-control form-control-dss" id="forgotStaffEmail" placeholder="e.g. staff@dss.com" required>
+                        </div>
+                        <button class="btn btn-dss w-100" id="otpSendBtn">Send Verification Code</button>
                     </div>
-                    <h3 class="text-white mb-3" style="font-size: 20px; font-weight: 700;">${title}</h3>
-                    <p class="text-white-50" style="font-size: 14px; line-height: 1.6; margin-bottom: 20px;">${message}</p>
-                    <button class="btn btn-dss w-100 modal-ok-btn">OK</button>
+
+                    <!-- STEP 2: Enter Verification Code -->
+                    <div id="otpStepCode" style="display: none;">
+                        <div style="font-size: 40px; color: var(--accent-color); margin-bottom: 15px; text-align: center;">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <h3 class="text-white mb-2 text-center" style="font-size: 20px; font-weight: 700;">Enter OTP</h3>
+                        <p class="text-white-50 text-center mb-4" style="font-size: 13px; line-height: 1.5;">We have sent a verification code to <strong class="text-white" id="otpTargetEmail"></strong>. Please enter it below.</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-white-50" style="font-size: 12px;">6-Digit OTP</label>
+                            <input type="text" class="form-control form-control-dss text-center" id="forgotStaffCode" placeholder="######" maxlength="6" style="letter-spacing: 5px; font-size: 18px; font-weight: 700;" required>
+                        </div>
+                        <button class="btn btn-dss w-100 mb-2" id="otpVerifyBtn">Verify & Send Password</button>
+                        <button class="btn btn-outline-secondary w-100 text-white-50" id="otpBackBtn" style="border: 1px solid var(--border-color); background: transparent; font-size: 13px;">Back</button>
+                    </div>
+
+                    <!-- STEP 3: Success -->
+                    <div id="otpStepSuccess" style="display: none;">
+                        <div style="font-size: 40px; color: var(--success-color); margin-bottom: 15px; text-align: center;">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h3 class="text-white mb-2 text-center" style="font-size: 20px; font-weight: 700;">Password Sent!</h3>
+                        <p class="text-white-50 text-center mb-4" style="font-size: 13px; line-height: 1.5;">Your current password has been successfully sent to your email. Please check your inbox (and spam folder).</p>
+                        <button class="btn btn-dss w-100 modal-ok-btn">Close</button>
+                    </div>
                 </div>
             `;
 
@@ -472,6 +497,95 @@
                 modal.style.opacity = '0';
                 setTimeout(() => modal.remove(), 300);
             };
+
+            const stepEmail = modal.querySelector('#otpStepEmail');
+            const stepCode = modal.querySelector('#otpStepCode');
+            const stepSuccess = modal.querySelector('#otpStepSuccess');
+            const inputEmail = modal.querySelector('#forgotStaffEmail');
+            const inputCode = modal.querySelector('#forgotStaffCode');
+            const targetEmailSpan = modal.querySelector('#otpTargetEmail');
+
+            const sendBtn = modal.querySelector('#otpSendBtn');
+            const verifyBtn = modal.querySelector('#otpVerifyBtn');
+            const backBtn = modal.querySelector('#otpBackBtn');
+
+            // Send OTP Event
+            sendBtn.addEventListener('click', async () => {
+                const email = inputEmail.value.trim();
+                if (!email) {
+                    showToast('Please enter your email address.', false);
+                    return;
+                }
+
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Sending...';
+
+                try {
+                    const response = await fetch('/api/staff/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        targetEmailSpan.textContent = email;
+                        stepEmail.style.display = 'none';
+                        stepCode.style.display = 'block';
+                        showToast(data.message, true);
+                    } else {
+                        showToast(data.message || 'Error requesting verification code.', false);
+                    }
+                } catch (error) {
+                    console.error('Request OTP error:', error);
+                    showToast('Failed to connect to the server.', false);
+                } finally {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = 'Send Verification Code';
+                }
+            });
+
+            // Verify OTP Event
+            verifyBtn.addEventListener('click', async () => {
+                const email = inputEmail.value.trim();
+                const code = inputCode.value.trim();
+                if (!code || code.length !== 6) {
+                    showToast('Please enter the 6-digit verification code.', false);
+                    return;
+                }
+
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Verifying...';
+
+                try {
+                    const response = await fetch('/api/staff/verify-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, code })
+                    });
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        stepCode.style.display = 'none';
+                        stepSuccess.style.display = 'block';
+                        showToast(data.message, true);
+                    } else {
+                        showToast(data.message || 'Invalid verification code.', false);
+                    }
+                } catch (error) {
+                    console.error('Verify OTP error:', error);
+                    showToast('Failed to connect to the server.', false);
+                } finally {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = 'Verify & Send Password';
+                }
+            });
+
+            // Back Event
+            backBtn.addEventListener('click', () => {
+                stepCode.style.display = 'none';
+                stepEmail.style.display = 'block';
+            });
 
             modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
             modal.querySelector('.modal-ok-btn').addEventListener('click', closeModal);
