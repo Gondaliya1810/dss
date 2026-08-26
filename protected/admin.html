@@ -903,24 +903,29 @@
             color: var(--text-primary);
         }
 
-        /* Premium Clock Transition Animations */
-        .clock-transition {
-            transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        .time-picker-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.8);
+            border-radius: 12px;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
         }
-        .clock-fade-out {
-            opacity: 0 !important;
-            transform: scale(0.9) rotate(-10deg) !important;
+        .time-picker-btn:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            transform: translateY(-1px);
         }
-
-        #clockHand {
-            left: calc(50% - 1px) !important;
-            bottom: 50% !important;
-            width: 2px !important;
-            height: 75px !important;
+        .time-picker-btn.active-btn {
             background: var(--accent-color) !important;
-            transform-origin: 50% 100% !important;
-            -webkit-transform-origin: 50% 100% !important;
-            z-index: 3 !important;
+            border-color: var(--accent-color) !important;
+            color: #fff !important;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.25);
         }
 
         .custom-modal-header {
@@ -3073,26 +3078,20 @@
                         </div>
                     </div>
 
-                    <!-- Label showing what is being selected -->
-                    <div class="text-center text-warning fw-bold mb-3" id="clockModeLabel" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;">
-                        SELECT HOUR
+                    <!-- Hours Grid Container -->
+                    <div class="w-100" id="hoursSection">
+                        <div class="text-white-50 small mb-2 fw-bold text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Hours</div>
+                        <div class="row g-2 mb-3" id="hoursGrid">
+                            <!-- JS will render 12 buttons here -->
+                        </div>
                     </div>
 
-                    <!-- Circular Clock Face Container -->
-                    <div class="clock-face-container position-relative mb-4 clock-transition" id="clockFaceContainer" style="width: 220px; height: 220px; border-radius: 50%; background: #16161c; border: 2px solid rgba(255,255,255,0.03); cursor: pointer; user-select: none; -webkit-user-select: none;">
-                        
-                        <!-- Center Dot -->
-                        <div class="position-absolute translate-middle-x translate-middle-y" style="left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-color); z-index: 5; transform: translate(-50%, -50%);"></div>
-                        
-                        <!-- Clock Hand / Needle -->
-                        <div class="position-absolute" id="clockHand" style="transform: rotate(0deg); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);">
-                            <div class="position-absolute rounded-circle" style="top: 0; left: 50%; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-color); transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-                                <div class="rounded-circle" style="width: 6px; height: 6px; background: #fff;"></div>
-                            </div>
+                    <!-- Minutes Grid Container -->
+                    <div class="w-100" id="minutesSection">
+                        <div class="text-white-50 small mb-2 fw-bold text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Minutes</div>
+                        <div class="row g-2 mb-4" id="minutesGrid">
+                            <!-- JS will render 12 buttons here -->
                         </div>
-
-                        <!-- Clock Numbers (Rendered Dynamically in JS) -->
-                        <div id="clockNumbers" class="w-100 h-100 position-relative" style="z-index: 2;"></div>
                     </div>
 
                     <!-- Action Buttons -->

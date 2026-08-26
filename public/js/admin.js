@@ -4294,7 +4294,6 @@ let activeTimeRangeTargetInput = null;
 
 const clockPickerState = {
     activeTab: 'start', // 'start' | 'end'
-    activeMode: 'hours', // 'hours' | 'minutes'
     start: { hours: 9, minutes: 30, ampm: 'AM' },
     end: { hours: 7, minutes: 0, ampm: 'PM' }
 };
@@ -4309,7 +4308,6 @@ function openTimeRangePicker(targetInputId) {
     clockPickerState.start = { hours: 9, minutes: 30, ampm: 'AM' };
     clockPickerState.end = { hours: 7, minutes: 0, ampm: 'PM' };
     clockPickerState.activeTab = 'start';
-    clockPickerState.activeMode = 'hours';
 
     if (currentValue) {
         const parts = currentValue.split('-');
@@ -4342,86 +4340,13 @@ function parseTimeToParts(timeStr) {
     return { hours, minutes, ampm };
 }
 
-function transitionClock(action) {
-    const container = document.getElementById('clockFaceContainer');
-    if (!container) return;
-    
-    container.classList.add('clock-fade-out');
-    
-    setTimeout(() => {
-        action();
-        setTimeout(() => {
-            container.classList.remove('clock-fade-out');
-        }, 50);
-    }, 220);
-}
-
-function triggerNextClockStep() {
-    setTimeout(() => {
-        const tab = clockPickerState.activeTab;
-        const mode = clockPickerState.activeMode;
-        
-        if (tab === 'start' && mode === 'hours') {
-            transitionClock(() => {
-                clockPickerState.activeMode = 'minutes';
-                updateClockUI();
-            });
-        } else if (tab === 'start' && mode === 'minutes') {
-            transitionClock(() => {
-                clockPickerState.activeTab = 'end';
-                clockPickerState.activeMode = 'hours';
-                updateClockUI();
-            });
-        } else if (tab === 'end' && mode === 'hours') {
-            transitionClock(() => {
-                clockPickerState.activeMode = 'minutes';
-                updateClockUI();
-            });
-        }
-    }, 350);
-}
-
 function initClockEventListeners() {
-    const container = document.getElementById('clockFaceContainer');
-    if (!container || container.getAttribute('data-listened') === 'true') return;
+    const btnAM = document.getElementById('btnSetAM');
+    if (!btnAM || btnAM.getAttribute('data-listened') === 'true') return;
     
-    container.setAttribute('data-listened', 'true');
-    
-    let isDragging = false;
-    
-    container.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        handleClockPointerEvent(e);
-    });
-    
-    container.addEventListener('mousemove', (e) => {
-        if (isDragging) handleClockPointerEvent(e);
-    });
-    
-    window.addEventListener('mouseup', () => {
-        if (isDragging) {
-            isDragging = false;
-            triggerNextClockStep();
-        }
-    });
-    
-    container.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        handleClockPointerEvent(e);
-    });
-    
-    container.addEventListener('touchmove', (e) => {
-        if (isDragging) handleClockPointerEvent(e);
-    });
-    
-    container.addEventListener('touchend', () => {
-        if (isDragging) {
-            isDragging = false;
-            triggerNextClockStep();
-        }
-    });
+    btnAM.setAttribute('data-listened', 'true');
 
-    document.getElementById('btnSetAM').onclick = () => {
+    btnAM.onclick = () => {
         clockPickerState[clockPickerState.activeTab].ampm = 'AM';
         updateClockUI();
     };
@@ -4431,31 +4356,12 @@ function initClockEventListeners() {
     };
 
     document.getElementById('tabStartTime').onclick = () => {
-        transitionClock(() => {
-            clockPickerState.activeTab = 'start';
-            clockPickerState.activeMode = 'hours';
-            updateClockUI();
-        });
+        clockPickerState.activeTab = 'start';
+        updateClockUI();
     };
     document.getElementById('tabEndTime').onclick = () => {
-        transitionClock(() => {
-            clockPickerState.activeTab = 'end';
-            clockPickerState.activeMode = 'hours';
-            updateClockUI();
-        });
-    };
-
-    document.getElementById('displayHours').onclick = () => {
-        transitionClock(() => {
-            clockPickerState.activeMode = 'hours';
-            updateClockUI();
-        });
-    };
-    document.getElementById('displayMinutes').onclick = () => {
-        transitionClock(() => {
-            clockPickerState.activeMode = 'minutes';
-            updateClockUI();
-        });
+        clockPickerState.activeTab = 'end';
+        updateClockUI();
     };
 
     document.getElementById('btnClockConfirm').onclick = () => {
@@ -4476,40 +4382,11 @@ function initClockEventListeners() {
     };
 }
 
-function handleClockPointerEvent(e) {
-    const container = document.getElementById('clockFaceContainer');
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    const x = clientX - rect.left - 110;
-    const y = clientY - rect.top - 110;
-    
-    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
-    if (angle < 0) angle += 360;
-    
-    const activeTime = clockPickerState[clockPickerState.activeTab];
-    
-    if (clockPickerState.activeMode === 'hours') {
-        let hour = Math.round(angle / 30);
-        if (hour === 0) hour = 12;
-        activeTime.hours = hour;
-    } else {
-        let minute = Math.round(angle / 6) % 60;
-        // Snap strictly to nearest 5 minutes
-        minute = Math.round(minute / 5) * 5 % 60;
-        activeTime.minutes = minute;
-    }
-    updateClockUI();
-}
-
 function updateClockUI() {
     const isStart = clockPickerState.activeTab === 'start';
-    const isHours = clockPickerState.activeMode === 'hours';
     const activeTime = clockPickerState[clockPickerState.activeTab];
 
+    // 1. Update Tabs styles
     const tabStart = document.getElementById('tabStartTime');
     const tabEnd = document.getElementById('tabEndTime');
     if (isStart) {
@@ -4524,25 +4401,13 @@ function updateClockUI() {
         tabStart.style.borderBottom = 'none';
     }
 
+    // 2. Update Header numbers
     const displayHrsEl = document.getElementById('displayHours');
     const displayMinsEl = document.getElementById('displayMinutes');
     displayHrsEl.textContent = activeTime.hours.toString().padStart(2, '0');
     displayMinsEl.textContent = activeTime.minutes.toString().padStart(2, '0');
 
-    if (isHours) {
-        displayHrsEl.style.color = '#38bdf8'; 
-        displayHrsEl.style.opacity = '1';
-        displayMinsEl.style.color = '#fff';
-        displayMinsEl.style.opacity = '0.5';
-        document.getElementById('clockModeLabel').textContent = 'SELECT HOUR';
-    } else {
-        displayMinsEl.style.color = '#38bdf8'; 
-        displayMinsEl.style.opacity = '1';
-        displayHrsEl.style.color = '#fff';
-        displayHrsEl.style.opacity = '0.5';
-        document.getElementById('clockModeLabel').textContent = 'SELECT MINUTE';
-    }
-
+    // 3. Update AM/PM buttons
     const btnAM = document.getElementById('btnSetAM');
     const btnPM = document.getElementById('btnSetPM');
     if (activeTime.ampm === 'AM') {
@@ -4557,53 +4422,45 @@ function updateClockUI() {
         btnAM.style.color = 'rgba(255,255,255,0.5)';
     }
 
-    const numContainer = document.getElementById('clockNumbers');
-    numContainer.innerHTML = '';
-    
-    const radius = 80;
-    const cx = 110;
-    const cy = 110;
-
+    // 4. Render Hours Grid
+    const hoursGrid = document.getElementById('hoursGrid');
+    hoursGrid.innerHTML = '';
     for (let i = 1; i <= 12; i++) {
-        const angleDeg = i * 30;
-        const angleRad = (angleDeg - 90) * Math.PI / 180;
-        const x = cx + radius * Math.cos(angleRad);
-        const y = cy + radius * Math.sin(angleRad);
-        
-        let labelVal = '';
-        let isSelected = false;
-
-        if (isHours) {
-            labelVal = i.toString();
-            isSelected = activeTime.hours === i;
-        } else {
-            const minVal = (i === 12) ? 0 : i * 5;
-            labelVal = minVal.toString().padStart(2, '0');
-            isSelected = Math.round(activeTime.minutes / 5) * 5 % 60 === minVal;
-        }
-
-        const item = document.createElement('div');
-        item.className = 'position-absolute translate-middle text-center clock-num-node';
-        item.style.left = `${x}px`;
-        item.style.top = `${y}px`;
-        item.style.width = '30px';
-        item.style.height = '30px';
-        item.style.lineHeight = '30px';
-        item.style.fontSize = '12px';
-        item.style.color = isSelected ? '#fff' : 'rgba(255,255,255,0.7)';
-        item.style.fontWeight = isSelected ? '700' : '400';
-        item.style.borderRadius = '50%';
-        item.style.zIndex = '4';
-        item.textContent = labelVal;
-        
-        numContainer.appendChild(item);
+        const col = document.createElement('div');
+        col.className = 'col-3';
+        const btn = document.createElement('div');
+        btn.className = `time-picker-btn ${activeTime.hours === i ? 'active-btn' : ''}`;
+        btn.textContent = i.toString().padStart(2, '0');
+        btn.onclick = () => {
+            activeTime.hours = i;
+            updateClockUI();
+        };
+        col.appendChild(btn);
+        hoursGrid.appendChild(col);
     }
 
-    let targetAngle = 0;
-    if (isHours) {
-        targetAngle = activeTime.hours * 30;
-    } else {
-        targetAngle = activeTime.minutes * 6;
+    // 5. Render Minutes Grid
+    const minutesGrid = document.getElementById('minutesGrid');
+    minutesGrid.innerHTML = '';
+    for (let i = 0; i < 60; i += 5) {
+        const col = document.createElement('div');
+        col.className = 'col-3';
+        const btn = document.createElement('div');
+        btn.className = `time-picker-btn ${activeTime.minutes === i ? 'active-btn' : ''}`;
+        btn.textContent = i.toString().padStart(2, '0');
+        btn.onclick = () => {
+            activeTime.minutes = i;
+            updateClockUI();
+            
+            // Auto switch tab from Start Time to End Time after selecting minutes
+            if (clockPickerState.activeTab === 'start') {
+                setTimeout(() => {
+                    clockPickerState.activeTab = 'end';
+                    updateClockUI();
+                }, 350);
+            }
+        };
+        col.appendChild(btn);
+        minutesGrid.appendChild(col);
     }
-    document.getElementById('clockHand').style.transform = `rotate(${targetAngle}deg)`;
 }
