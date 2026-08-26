@@ -6,6 +6,10 @@ const multer = require('multer');
 const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const multerS3 = require('multer-s3');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+}
 require('dotenv').config();
 const { Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review } = require('./db');
 
