@@ -4341,6 +4341,45 @@ function parseTimeToParts(timeStr) {
     return { hours, minutes, ampm };
 }
 
+function transitionClock(action) {
+    const container = document.getElementById('clockFaceContainer');
+    if (!container) return;
+    
+    container.classList.add('clock-fade-out');
+    
+    setTimeout(() => {
+        action();
+        setTimeout(() => {
+            container.classList.remove('clock-fade-out');
+        }, 50);
+    }, 220);
+}
+
+function triggerNextClockStep() {
+    setTimeout(() => {
+        const tab = clockPickerState.activeTab;
+        const mode = clockPickerState.activeMode;
+        
+        if (tab === 'start' && mode === 'hours') {
+            transitionClock(() => {
+                clockPickerState.activeMode = 'minutes';
+                updateClockUI();
+            });
+        } else if (tab === 'start' && mode === 'minutes') {
+            transitionClock(() => {
+                clockPickerState.activeTab = 'end';
+                clockPickerState.activeMode = 'hours';
+                updateClockUI();
+            });
+        } else if (tab === 'end' && mode === 'hours') {
+            transitionClock(() => {
+                clockPickerState.activeMode = 'minutes';
+                updateClockUI();
+            });
+        }
+    }, 350);
+}
+
 function initClockEventListeners() {
     const container = document.getElementById('clockFaceContainer');
     if (!container || container.getAttribute('data-listened') === 'true') return;
@@ -4359,7 +4398,10 @@ function initClockEventListeners() {
     });
     
     window.addEventListener('mouseup', () => {
-        isDragging = false;
+        if (isDragging) {
+            isDragging = false;
+            triggerNextClockStep();
+        }
     });
     
     container.addEventListener('touchstart', (e) => {
@@ -4372,7 +4414,10 @@ function initClockEventListeners() {
     });
     
     container.addEventListener('touchend', () => {
-        isDragging = false;
+        if (isDragging) {
+            isDragging = false;
+            triggerNextClockStep();
+        }
     });
 
     document.getElementById('btnSetAM').onclick = () => {
@@ -4385,23 +4430,31 @@ function initClockEventListeners() {
     };
 
     document.getElementById('tabStartTime').onclick = () => {
-        clockPickerState.activeTab = 'start';
-        clockPickerState.activeMode = 'hours';
-        updateClockUI();
+        transitionClock(() => {
+            clockPickerState.activeTab = 'start';
+            clockPickerState.activeMode = 'hours';
+            updateClockUI();
+        });
     };
     document.getElementById('tabEndTime').onclick = () => {
-        clockPickerState.activeTab = 'end';
-        clockPickerState.activeMode = 'hours';
-        updateClockUI();
+        transitionClock(() => {
+            clockPickerState.activeTab = 'end';
+            clockPickerState.activeMode = 'hours';
+            updateClockUI();
+        });
     };
 
     document.getElementById('displayHours').onclick = () => {
-        clockPickerState.activeMode = 'hours';
-        updateClockUI();
+        transitionClock(() => {
+            clockPickerState.activeMode = 'hours';
+            updateClockUI();
+        });
     };
     document.getElementById('displayMinutes').onclick = () => {
-        clockPickerState.activeMode = 'minutes';
-        updateClockUI();
+        transitionClock(() => {
+            clockPickerState.activeMode = 'minutes';
+            updateClockUI();
+        });
     };
 
     document.getElementById('btnClockConfirm').onclick = () => {
@@ -4413,7 +4466,6 @@ function initClockEventListeners() {
         
         if (activeTimeRangeTargetInput) {
             activeTimeRangeTargetInput.value = `${startTimeStr} - ${endTimeStr}`;
-            // Dispatch change event to trigger auto-time update
             activeTimeRangeTargetInput.dispatchEvent(new Event('change'));
         }
         
