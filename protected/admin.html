@@ -19,6 +19,15 @@
 
     <style>
         /* Custom Admin styles for a premium dashboard look matching the theme */
+        @media (max-width: 767.98px) {
+            #chatContactsPanel.mobile-hide {
+                display: none !important;
+            }
+            #chatWindowPanel.mobile-hide {
+                display: none !important;
+            }
+        }
+
         #logoImg {
             height: 50px !important;
             width: auto !important;
@@ -2190,7 +2199,7 @@
 
                 <div class="row g-4" style="height: calc(100vh - 250px); min-height: 500px;">
                     <!-- Left Panel: Contacts -->
-                    <div class="col-lg-4 col-md-5 h-100">
+                    <div class="col-lg-4 col-md-5 h-100" id="chatContactsPanel">
                         <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" style="background: var(--bg-surface);">
                             <div class="p-3 border-bottom" style="border-color: var(--border-color) !important;">
                                 <div class="input-group">
@@ -2210,7 +2219,7 @@
                     </div>
 
                     <!-- Right Panel: Chat Window -->
-                    <div class="col-lg-8 col-md-7 h-100">
+                    <div class="col-lg-8 col-md-7 h-100 mobile-hide" id="chatWindowPanel">
                         <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" id="chatWindowPlaceholder" style="background: var(--bg-surface-glass); height: 500px;">
                             <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted p-5">
                                 <i class="fa-regular fa-comments mb-3" style="font-size: 60px; color: var(--border-color);"></i>
@@ -2223,6 +2232,10 @@
                             <!-- Chat Header -->
                             <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                                 <div class="d-flex align-items-center gap-3">
+                                    <!-- Back button visible only on mobile -->
+                                    <button class="btn btn-link text-white ps-0 d-md-none me-1" id="btnChatBack" style="text-decoration: none; padding: 0;" onclick="showChatContactsMobile()">
+                                        <i class="fa-solid fa-chevron-left" style="font-size: 18px;"></i>
+                                    </button>
                                     <div class="profile-avatar" id="activeChatAvatar" style="width: 42px; height: 42px; background: var(--accent-color); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff;">S</div>
                                     <div>
                                         <h5 class="text-white fw-bold mb-0" id="activeChatName">Staff Member</h5>

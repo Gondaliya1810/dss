@@ -4044,8 +4044,20 @@ function renderChatContacts(list = chatContacts) {
     });
 }
 
+function showChatContactsMobile() {
+    document.getElementById('chatContactsPanel').classList.remove('mobile-hide');
+    document.getElementById('chatWindowPanel').classList.add('mobile-hide');
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    activeChatPartnerId = null;
+}
+window.showChatContactsMobile = showChatContactsMobile;
+
 async function selectChatPartner(partnerId, name, role, avatarColor) {
     activeChatPartnerId = partnerId;
+
+    // Mobile view panel toggles
+    document.getElementById('chatContactsPanel').classList.add('mobile-hide');
+    document.getElementById('chatWindowPanel').classList.remove('mobile-hide');
 
     // Show Chat Window
     document.getElementById('chatWindowPlaceholder').classList.add('d-none');
