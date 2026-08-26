@@ -912,6 +912,17 @@
             transform: scale(0.9) rotate(-10deg) !important;
         }
 
+        #clockHand {
+            left: calc(50% - 1px) !important;
+            bottom: 50% !important;
+            width: 2px !important;
+            height: 75px !important;
+            background: var(--accent-color) !important;
+            transform-origin: 50% 100% !important;
+            -webkit-transform-origin: 50% 100% !important;
+            z-index: 3 !important;
+        }
+
         .custom-modal-header {
             border-bottom: 1px solid var(--border-color);
             padding: 20px 24px;
@@ -3074,7 +3085,7 @@
                         <div class="position-absolute translate-middle-x translate-middle-y" style="left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-color); z-index: 5; transform: translate(-50%, -50%);"></div>
                         
                         <!-- Clock Hand / Needle -->
-                        <div class="position-absolute" id="clockHand" style="left: 50%; bottom: 50%; width: 2px; height: 75px; background: var(--accent-color); transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3;">
+                        <div class="position-absolute" id="clockHand" style="transform: rotate(0deg); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);">
                             <div class="position-absolute rounded-circle" style="top: 0; left: 50%; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-color); transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
                                 <div class="rounded-circle" style="width: 6px; height: 6px; background: #fff;"></div>
                             </div>
