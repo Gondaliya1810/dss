@@ -2073,13 +2073,15 @@ async function migrateAttendanceLogs() {
                 const diffHrs = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
                 
                 if (diffHrs > 0) {
-                    log.totalHours = diffHrs;
-                    // Also update status if needed
+                    let status = log.status || 'present';
                     if (diffHrs < 4.0) {
-                        log.status = 'half_day';
+                        status = 'half_day';
                     }
-                    await log.save();
-                    console.log(`[Migration] Fixed attendance log ${log.id}: set totalHours to ${diffHrs}`);
+                    await Attendance.findOneAndUpdate(
+                        { id: log.id },
+                        { totalHours: diffHrs, status }
+                    );
+                    console.log(`[Migration] Fixed attendance log ${log.id}: set totalHours to ${diffHrs} and status to ${status}`);
                 }
             }
         }
