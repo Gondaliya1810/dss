@@ -673,6 +673,7 @@
                         <div class="profile-info">
                             <div class="profile-name" id="staffName">Staff Name</div>
                             <div class="profile-role" id="staffRole">Role</div>
+                            <div class="text-white-50 mt-1" id="staffShiftInfo" style="font-size: 10px; display: block;"><i class="fa-solid fa-clock me-1"></i> Day Shift</div>
                         </div>
                     </div>
                 </div>
@@ -701,6 +702,7 @@
                         <div class="menu-link" data-tab="messages" id="tabLinkMessages">
                             <i class="fa-solid fa-envelope"></i>
                             <span>Message</span>
+                            <span id="unreadStaffChatBadge" style="display: none; background-color: #ff3b30 !important; color: #fff; border-radius: 50%; font-size: 10px; font-weight: 700; width: 18px; height: 18px; line-height: 18px; text-align: center; margin-left: auto; flex-shrink: 0;">0</span>
                         </div>
                     </li>
                     <li>
@@ -897,19 +899,41 @@
                 <div class="tab-content-panel" id="tab-messages" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="text-white fw-bold">Message Board & Notifications</h2>
-                            <p class="text-muted mb-0">Read announcements and updates from DSS admin</p>
+                            <h2 class="text-white fw-bold">Chat with Admin</h2>
+                            <p class="text-muted mb-0">Chat directly and securely with the DSS administrator</p>
                         </div>
                     </div>
 
-                    <div class="admin-card p-4">
-                        <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-inbox text-warning me-2"></i> Message Inbox</h5>
-                        <div class="d-flex flex-column gap-3" id="messagesInboxList">
-                            <!-- Populated dynamically -->
-                            <div class="text-center py-5 text-muted">
-                                <i class="fa-solid fa-envelope-open-text mb-2" style="font-size: 30px;"></i>
-                                <p class="mb-0">Your inbox is empty.</p>
+                    <div class="admin-card p-0 d-flex flex-column overflow-hidden" style="height: 500px;">
+                        <!-- Chat Header -->
+                        <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="profile-avatar" style="width: 42px; height: 42px; background: var(--accent-color); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff;">A</div>
+                                <div>
+                                    <h5 class="text-white fw-bold mb-0">DSS Admin</h5>
+                                    <span class="text-muted" style="font-size: 11px;">Administrator</span>
+                                </div>
                             </div>
+                            <button class="btn btn-sm btn-outline-danger px-3 py-2 border-0" id="btnDeleteStaffChat" onclick="deleteStaffChatHistory()" title="Clear Chat History">
+                                <i class="fa-solid fa-trash-can me-1"></i> Clear Chat
+                            </button>
+                        </div>
+                        <!-- Chat messages list -->
+                        <div class="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-3" id="staffChatMessagesContainer" style="background: rgba(10, 10, 12, 0.2); height: 350px;">
+                            <!-- Messages loaded dynamically -->
+                            <div class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-spinner fa-spin mb-2" style="font-size: 24px;"></i>
+                                <p class="mb-0">Loading chat history...</p>
+                            </div>
+                        </div>
+                        <!-- Chat Input -->
+                        <div class="p-3 border-top" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                            <form id="staffChatSendForm" class="d-flex gap-2 align-items-center" onsubmit="event.preventDefault(); sendStaffChatMessage();">
+                                <input type="text" class="form-control form-control-dss flex-grow-1" id="staffChatMessageInput" placeholder="Type your message here..." style="height: 45px; border-radius: 8px;" autocomplete="off">
+                                <button type="submit" class="btn btn-dss px-4 h-100 d-flex align-items-center justify-content-center" id="staffChatSendBtn" style="height: 45px; border-radius: 8px;">
+                                    <i class="fa-solid fa-paper-plane me-1"></i> Send
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

@@ -20,6 +20,13 @@ let staffReportChart = null;
 let currentCalendarDate = new Date();
 let packageModal = null;
 
+// Internal Chat State
+let chatContacts = [];
+let activeChatPartnerId = null;
+let chatPollInterval = null;
+let lastUnreadCount = 0;
+let originalTitle = document.title;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Bootstrap Modals
     const confirmModalEl = document.getElementById('confirmModal');
@@ -46,6 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initTaskTrackerForm();
     initClientsManagement();
     initPackagesManagement();
+    
+    // Check for unread chat messages
+    setTimeout(() => {
+        if (localStorage.getItem('adminToken')) {
+            updateAdminChatBadge();
+            setInterval(updateAdminChatBadge, 10000);
+            
+            // Request desktop notification permission
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+    }, 1000);
 });
 
 // Toast notification helper
@@ -221,6 +241,12 @@ function initTabNavigation() {
             const targetTab = link.getAttribute('data-tab');
             if (!targetTab) return;
 
+            // Clear chat polling interval if switching away from messages tab
+            if (targetTab !== 'messages' && chatPollInterval) {
+                clearInterval(chatPollInterval);
+                chatPollInterval = null;
+            }
+
             // Update active menu link
             links.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
@@ -244,6 +270,9 @@ function initTabNavigation() {
                     }
                     if (targetTab === 'reviews-mgmt') {
                         loadReviews();
+                    }
+                    if (targetTab === 'messages') {
+                        loadChatContacts();
                     }
                 } else {
                     content.style.display = 'none';
@@ -2004,6 +2033,9 @@ function renderDashboard() {
     
     // Notifications badge
     updateNotificationsCount();
+    
+    // Unread Chat Messages count card
+    updateAdminChatBadge();
 }
 
 function renderDashboardDoughnutChart(pending, inProgress, completed) {
@@ -2512,7 +2544,10 @@ function renderStaffTable() {
                     </div>
                 </div>
             </td>
-            <td data-label="Role">${s.role}</td>
+            <td data-label="Role">
+                <div class="text-white">${s.role}</div>
+                <div class="text-muted small" style="font-size: 11px; margin-top: 2px;"><i class="fa-solid fa-clock me-1"></i> ${s.shift || 'Full Time'} (${s.shiftTime || '10:00 AM - 07:00 PM'})</div>
+            </td>
             <td data-label="Contact Info">
                 <div class="text-white-50" style="font-size: 13px;">${s.email || 'N/A'}</div>
                 <div class="text-muted small" style="font-size: 11px; margin-top: 2px;">${s.mobile || 'N/A'}</div>
@@ -2715,6 +2750,35 @@ function initTaskTrackerForm() {
         });
     }
     
+    // Auto-update shift time based on selected shift type
+    const staffShiftSelect = document.getElementById('staffShift');
+    if (staffShiftSelect) {
+        staffShiftSelect.addEventListener('change', () => {
+            const shiftTimeInput = document.getElementById('staffShiftTime');
+            if (shiftTimeInput) {
+                if (staffShiftSelect.value === 'Full Time') {
+                    shiftTimeInput.value = '09:30 AM - 07:00 PM';
+                } else if (staffShiftSelect.value === 'Part Time') {
+                    shiftTimeInput.value = '02:00 PM - 07:00 PM';
+                }
+            }
+        });
+    }
+
+    const editStaffShiftSelect = document.getElementById('editStaffShift');
+    if (editStaffShiftSelect) {
+        editStaffShiftSelect.addEventListener('change', () => {
+            const editShiftTimeInput = document.getElementById('editStaffShiftTime');
+            if (editShiftTimeInput) {
+                if (editStaffShiftSelect.value === 'Full Time') {
+                    editShiftTimeInput.value = '09:30 AM - 07:00 PM';
+                } else if (editStaffShiftSelect.value === 'Part Time') {
+                    editShiftTimeInput.value = '02:00 PM - 07:00 PM';
+                }
+            }
+        });
+    }
+
     // Add Staff form submit
     const addStaffForm = document.getElementById('addStaffForm');
     if (addStaffForm) {
@@ -2725,6 +2789,8 @@ function initTaskTrackerForm() {
             const email = document.getElementById('staffEmail').value.trim();
             const mobile = document.getElementById('staffMobile').value.trim();
             const password = document.getElementById('staffPassword').value.trim();
+            const shift = document.getElementById('staffShift').value;
+            const shiftTime = document.getElementById('staffShiftTime').value.trim();
             
             const submitBtn = document.getElementById('addStaffSubmitBtn');
             submitBtn.disabled = true;
@@ -2737,7 +2803,7 @@ function initTaskTrackerForm() {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
                     },
-                    body: JSON.stringify({ name, role, email, mobile, password })
+                    body: JSON.stringify({ name, role, email, mobile, password, shift, shiftTime })
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -2775,6 +2841,8 @@ function initTaskTrackerForm() {
             const role = document.getElementById('editStaffRole').value.trim();
             const email = document.getElementById('editStaffEmail').value.trim();
             const mobile = document.getElementById('editStaffMobile').value.trim();
+            const shift = document.getElementById('editStaffShift').value;
+            const shiftTime = document.getElementById('editStaffShiftTime').value.trim();
             
             const submitBtn = document.getElementById('editStaffSubmitBtn');
             submitBtn.disabled = true;
@@ -2787,7 +2855,7 @@ function initTaskTrackerForm() {
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
                     },
-                    body: JSON.stringify({ name, role, email, mobile })
+                    body: JSON.stringify({ name, role, email, mobile, shift, shiftTime })
                 });
                 const data = await response.json();
                 if (data.success) {
@@ -2942,6 +3010,10 @@ function viewStaffDetails(staffId) {
     document.getElementById('viewStaffEmail').innerHTML = `<i class="fa-regular fa-envelope me-1"></i> ${s.email || 'N/A'}`;
     document.getElementById('viewStaffMobile').innerHTML = `<i class="fa-solid fa-phone me-1"></i> ${s.mobile || 'N/A'}`;
     
+    const shiftText = s.shift || 'Full Time';
+    const shiftTimeText = s.shiftTime || '10:00 AM - 07:00 PM';
+    document.getElementById('viewStaffShift').innerHTML = `<i class="fa-solid fa-clock me-1"></i> ${shiftText} (${shiftTimeText})`;
+    
     // Fill stats
     const staffTasks = tasksList.filter(t => t.assignedTo.id === staffId);
     const pending = staffTasks.filter(t => t.status === 'pending').length;
@@ -2992,6 +3064,8 @@ function openEditStaffModal(staffId) {
     document.getElementById('editStaffRole').value = s.role;
     document.getElementById('editStaffEmail').value = s.email || '';
     document.getElementById('editStaffMobile').value = s.mobile || '';
+    document.getElementById('editStaffShift').value = s.shift || 'Day';
+    document.getElementById('editStaffShiftTime').value = s.shiftTime || '10:00 AM - 07:00 PM';
     
     const modalEl = document.getElementById('editStaffModal');
     const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
@@ -3891,3 +3965,401 @@ function deleteReview(id) {
     });
 }
 window.deleteReview = deleteReview;
+
+// ========================================================================
+// INTERNAL CHAT MODULE
+// ========================================================================
+
+async function loadChatContacts() {
+    const contactsListEl = document.getElementById('chatContactsList');
+    if (!contactsListEl) return;
+
+    try {
+        const response = await fetch('/api/chat/contacts', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+        });
+        const data = await response.json();
+        if (data.success) {
+            chatContacts = data.contacts;
+            renderChatContacts();
+            
+            // Re-bind search input
+            const searchInput = document.getElementById('chatSearchStaff');
+            if (searchInput) {
+                searchInput.oninput = () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    const filtered = chatContacts.filter(c => c.name.toLowerCase().includes(query) || c.role.toLowerCase().includes(query));
+                    renderChatContacts(filtered);
+                };
+            }
+        } else {
+            showToast(data.message || 'Failed to load chat contacts.', false);
+        }
+    } catch (err) {
+        console.error(err);
+        contactsListEl.innerHTML = '<div class="text-center py-5 text-danger"><p>Error loading contacts</p></div>';
+    }
+}
+
+function renderChatContacts(list = chatContacts) {
+    const contactsListEl = document.getElementById('chatContactsList');
+    if (!contactsListEl) return;
+
+    contactsListEl.innerHTML = '';
+    if (list.length === 0) {
+        contactsListEl.innerHTML = '<div class="text-center py-4 text-muted"><p class="mb-0">No staff members found.</p></div>';
+        return;
+    }
+
+    list.forEach(c => {
+        const div = document.createElement('div');
+        div.className = `d-flex align-items-center gap-3 p-3 border-bottom cursor-pointer chat-contact-item ${activeChatPartnerId === c.id ? 'active-chat-item' : ''}`;
+        div.style.borderColor = 'var(--border-color)';
+        div.style.transition = 'background 0.2s';
+        div.style.cursor = 'pointer';
+        if (activeChatPartnerId === c.id) {
+            div.style.background = 'rgba(255, 255, 255, 0.05)';
+        }
+
+        let badgeHTML = '';
+        if (c.unreadCount > 0) {
+            badgeHTML = `<span class="badge bg-danger rounded-pill ms-auto" style="font-size: 10px; font-weight: 700; padding: 4px 8px;">${c.unreadCount}</span>`;
+        }
+
+        div.innerHTML = `
+            <div class="profile-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: ${c.avatarColor}; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                ${c.name.charAt(0)}
+            </div>
+            <div class="text-start flex-grow-1 overflow-hidden">
+                <h6 class="text-white fw-bold mb-0 text-truncate" style="font-size: 14px;">${c.name}</h6>
+                <span class="text-muted text-truncate d-block" style="font-size: 11px;">${c.role}</span>
+            </div>
+            ${badgeHTML}
+        `;
+
+        div.onclick = () => {
+            selectChatPartner(c.id, c.name, c.role, c.avatarColor);
+        };
+        contactsListEl.appendChild(div);
+    });
+}
+
+async function selectChatPartner(partnerId, name, role, avatarColor) {
+    activeChatPartnerId = partnerId;
+
+    // Show Chat Window
+    document.getElementById('chatWindowPlaceholder').classList.add('d-none');
+    const activeWin = document.getElementById('chatActiveWindow');
+    activeWin.classList.remove('d-none');
+
+    // Set header
+    document.getElementById('activeChatName').textContent = name;
+    document.getElementById('activeChatRole').textContent = role;
+    const avatar = document.getElementById('activeChatAvatar');
+    avatar.textContent = name.charAt(0);
+    avatar.style.background = avatarColor;
+
+    // Clear input
+    document.getElementById('chatMessageInput').value = '';
+
+    // Mark messages as read on backend
+    try {
+        await fetch(`/api/chat/read/${partnerId}`, {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+        });
+        
+        // Refresh contacts list to clear badges
+        const contact = chatContacts.find(c => c.id === partnerId);
+        if (contact) contact.unreadCount = 0;
+        renderChatContacts();
+        updateAdminChatBadge();
+    } catch (e) {
+        console.error(e);
+    }
+
+    // Load history
+    loadChatHistory();
+
+    // Setup polling interval (clear previous first)
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    chatPollInterval = setInterval(loadChatHistory, 3000);
+}
+
+async function loadChatHistory() {
+    if (!activeChatPartnerId) return;
+    const container = document.getElementById('chatMessagesContainer');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`/api/chat/history/${activeChatPartnerId}`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+        });
+        const data = await response.json();
+        if (data.success) {
+            const isAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+
+            container.innerHTML = '';
+            if (data.history.length === 0) {
+                container.innerHTML = '<div class="text-center py-5 text-muted small"><p class="mb-0">No messages yet. Send a message to start conversation.</p></div>';
+                return;
+            }
+
+            data.history.forEach(m => {
+                const isMe = m.senderId === 'admin';
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}`;
+                
+                const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                msgDiv.innerHTML = `
+                    <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; 
+                        background: ${isMe ? 'var(--accent-color)' : 'rgba(255,255,255,0.06)'}; 
+                        color: ${isMe ? '#fff' : 'var(--text-primary)'};
+                        border-bottom-right-radius: ${isMe ? '2px' : '12px'};
+                        border-bottom-left-radius: ${isMe ? '12px' : '2px'};">
+                        ${escapeHTML(m.message)}
+                    </div>
+                    <span class="text-muted mt-1" style="font-size: 9px;">${timeStr}</span>
+                `;
+                container.appendChild(msgDiv);
+            });
+
+            if (isAtBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function sendAdminChatMessage() {
+    const input = document.getElementById('chatMessageInput');
+    if (!input || !activeChatPartnerId) return;
+
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+
+    try {
+        const response = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+            },
+            body: JSON.stringify({
+                receiverId: activeChatPartnerId,
+                message: message
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            await loadChatHistory();
+            const container = document.getElementById('chatMessagesContainer');
+            if (container) container.scrollTop = container.scrollHeight;
+        } else {
+            showToast(data.message || 'Failed to send message.', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Connection failed.', false);
+    }
+}
+
+async function updateAdminChatBadge() {
+    const badge = document.getElementById('unreadChatBadge');
+    
+    try {
+        const response = await fetch('/api/chat/unread-count', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('adminToken') }
+        });
+        const data = await response.json();
+        if (data.success) {
+            // Check if there are new unread messages
+            if (data.count > lastUnreadCount) {
+                // Play notification sound
+                playNotificationSound();
+                
+                // Show desktop push notification if tab is in background
+                if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+                    new Notification("Design Shaper Studio", {
+                        body: "You have new unread messages in internal chat.",
+                        icon: "/favicon.ico"
+                    });
+                }
+            }
+            
+            // Save last count
+            lastUnreadCount = data.count;
+            
+            // Update browser tab title
+            if (data.count > 0) {
+                document.title = `(${data.count}) ${originalTitle}`;
+            } else {
+                document.title = originalTitle;
+            }
+
+            // Update sidebar badge
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function playNotificationSound() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Primary chime tone
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+        gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain1.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+        gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        
+        // Secondary harmonic tone (played slightly later)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.08); // E6 note
+        gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.08);
+        gain2.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        
+        osc1.start();
+        osc2.start();
+        osc1.stop(audioCtx.currentTime + 0.5);
+        osc2.stop(audioCtx.currentTime + 0.6);
+    } catch (err) {
+        console.warn('AudioContext blocked or not supported:', err);
+    }
+}
+
+function escapeHTML(str) {
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+}
+
+window.sendAdminChatMessage = sendAdminChatMessage;
+
+function deleteAdminChatHistory() {
+    if (!activeChatPartnerId) return;
+
+    showConfirmModal('Are you sure you want to clear this chat history permanently? This action cannot be undone.', async () => {
+        try {
+            const response = await fetch(`/api/chat/history/${activeChatPartnerId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Chat history cleared successfully.', true);
+                loadChatHistory();
+            } else {
+                showToast(data.message || 'Failed to clear chat history.', false);
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Connection failed.', false);
+        }
+    });
+}
+window.deleteAdminChatHistory = deleteAdminChatHistory;
+
+// Time Range Picker Popup logic
+let activeTimeRangeTargetInput = null;
+
+function openTimeRangePicker(targetInputId) {
+    activeTimeRangeTargetInput = document.getElementById(targetInputId);
+    if (!activeTimeRangeTargetInput) return;
+
+    const currentValue = activeTimeRangeTargetInput.value.trim();
+    let defaultStart = "09:30";
+    let defaultEnd = "19:00";
+
+    if (currentValue) {
+        const parts = currentValue.split('-');
+        if (parts.length === 2) {
+            const startParsed = parseTimeTo24h(parts[0].trim());
+            const endParsed = parseTimeTo24h(parts[1].trim());
+            if (startParsed) defaultStart = startParsed;
+            if (endParsed) defaultEnd = endParsed;
+        }
+    }
+
+    document.getElementById('pickerStartTime').value = defaultStart;
+    document.getElementById('pickerEndTime').value = defaultEnd;
+
+    const timeModalEl = document.getElementById('timeRangePickerModal');
+    const timeModal = bootstrap.Modal.getInstance(timeModalEl) || new bootstrap.Modal(timeModalEl);
+    timeModal.show();
+}
+window.openTimeRangePicker = openTimeRangePicker;
+
+function parseTimeTo24h(timeStr) {
+    const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return null;
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = match[3].toUpperCase();
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+}
+
+function format24hToAMPM(timeStr) {
+    const parts = timeStr.split(':');
+    if (parts.length !== 2) return timeStr;
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+}
+
+// Bind Set Time confirmation click listener
+document.addEventListener('DOMContentLoaded', () => {
+    const btnConfirmTimeRange = document.getElementById('btnConfirmTimeRange');
+    if (btnConfirmTimeRange) {
+        btnConfirmTimeRange.addEventListener('click', () => {
+            const startTime = document.getElementById('pickerStartTime').value;
+            const endTime = document.getElementById('pickerEndTime').value;
+            if (!startTime || !endTime) return;
+
+            const formattedStart = format24hToAMPM(startTime);
+            const formattedEnd = format24hToAMPM(endTime);
+
+            if (activeTimeRangeTargetInput) {
+                activeTimeRangeTargetInput.value = `${formattedStart} - ${formattedEnd}`;
+            }
+
+            const timeModalEl = document.getElementById('timeRangePickerModal');
+            const timeModal = bootstrap.Modal.getInstance(timeModalEl);
+            if (timeModal) timeModal.hide();
+        });
+    }
+});

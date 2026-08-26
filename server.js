@@ -11,7 +11,7 @@ if (typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first');
 }
 require('dotenv').config();
-const { Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review } = require('./db');
+const { supabase, Project, Lead, Client, Staff, Task, Package, Attendance, BrandLogo, Review, Chat } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -550,6 +550,28 @@ const validateAdminAuth = (req) => {
     return authHeader && authHeader.startsWith('Bearer dss-token-');
 };
 
+function parseShiftStartTime(shiftTimeStr) {
+    if (!shiftTimeStr) return null;
+    const parts = shiftTimeStr.split('-');
+    if (parts.length < 1) return null;
+    
+    const startPart = parts[0].trim(); // e.g. "02:00 PM"
+    const match = startPart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return null;
+    
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3].toUpperCase();
+    
+    if (ampm === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+    }
+    
+    return { hours, minutes };
+}
+
 // ------------------------------------------------------------------------
 // TASK TRACKING API ENDPOINTS
 // ------------------------------------------------------------------------
@@ -706,6 +728,35 @@ app.put('/api/staff/change-password', async (req, res) => {
     }
 });
 
+// GET current staff member's profile
+app.get('/api/staff/profile', async (req, res) => {
+    const staff = await validateStaffAuth(req);
+    if (!staff) {
+        return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
+    }
+    try {
+        const staffObj = await Staff.findOne({ id: staff.id });
+        if (!staffObj) {
+            return res.status(404).json({ success: false, message: 'Staff member not found.' });
+        }
+        res.json({
+            success: true,
+            staff: {
+                id: staffObj.id,
+                name: staffObj.name,
+                role: staffObj.role,
+                avatarColor: staffObj.avatarColor,
+                email: staffObj.email,
+                mobile: staffObj.mobile,
+                shift: staffObj.shift || 'Full Time',
+                shiftTime: staffObj.shiftTime || '09:30 AM - 07:00 PM'
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // PUT update staff profile settings
 app.put('/api/staff/profile', async (req, res) => {
     const staff = await validateStaffAuth(req);
@@ -728,7 +779,9 @@ app.put('/api/staff/profile', async (req, res) => {
                 role: staffObj.role,
                 avatarColor: staffObj.avatarColor,
                 email: staffObj.email,
-                mobile: staffObj.mobile
+                mobile: staffObj.mobile,
+                shift: staffObj.shift || 'Day',
+                shiftTime: staffObj.shiftTime || '10:00 AM - 07:00 PM'
             }
         });
     } catch (err) {
@@ -754,7 +807,7 @@ app.post('/api/staff', async (req, res) => {
     if (!validateAdminAuth(req)) {
         return res.status(403).json({ success: false, message: 'Unauthorized access.' });
     }
-    const { name, role, email, mobile, password } = req.body;
+    const { name, role, email, mobile, password, shift, shiftTime } = req.body;
     if (!name || !role) {
         return res.status(400).json({ success: false, message: 'Name and Role are required.' });
     }
@@ -770,7 +823,9 @@ app.post('/api/staff', async (req, res) => {
             avatarColor: randomColor,
             email: email || '',
             mobile: mobile || '',
-            password: password || 'DSS@123'
+            password: password || 'DSS@123',
+            shift: shift || 'Day',
+            shiftTime: shiftTime || '10:00 AM - 07:00 PM'
         });
 
         await newStaff.save();
@@ -786,13 +841,20 @@ app.put('/api/staff/:id', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized access.' });
     }
     const { id } = req.params;
-    const { name, role, email, mobile } = req.body;
+    const { name, role, email, mobile, shift, shiftTime } = req.body;
     if (!name || !role) {
         return res.status(400).json({ success: false, message: 'Name and Role are required.' });
     }
 
     try {
-        const updateData = { name, role, email: email || '', mobile: mobile || '' };
+        const updateData = { 
+            name, 
+            role, 
+            email: email || '', 
+            mobile: mobile || '',
+            shift: shift || 'Day',
+            shiftTime: shiftTime || '10:00 AM - 07:00 PM'
+        };
         const staff = await Staff.findOneAndUpdate(
             { id },
             updateData,
@@ -804,15 +866,20 @@ app.put('/api/staff/:id', async (req, res) => {
         }
 
         // Update tasks containing this staff member
-        await Task.updateMany(
-            { 'assignedTo.id': id },
-            { 
-                $set: { 
-                    'assignedTo.name': name,
-                    'assignedTo.role': role
-                } 
-            }
-        );
+        const { error: taskUpdateErr } = await supabase
+            .from('tasks')
+            .update({
+                assignedTo: {
+                    id: id,
+                    name: name,
+                    role: role
+                }
+            })
+            .eq('assignedTo->>id', id);
+
+        if (taskUpdateErr) {
+            console.error('Error updating tasks on staff update:', taskUpdateErr);
+        }
 
         res.json({ success: true, staff });
     } catch (error) {
@@ -1097,7 +1164,10 @@ app.post('/api/staff/login', async (req, res) => {
                 name: staff.name,
                 role: staff.role,
                 avatarColor: staff.avatarColor,
-                email: staff.email
+                email: staff.email,
+                mobile: staff.mobile,
+                shift: staff.shift || 'Day',
+                shiftTime: staff.shiftTime || '10:00 AM - 07:00 PM'
             }
         });
     } catch (err) {
@@ -1136,12 +1206,40 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Already punched in today.' });
         }
 
-        // Check if late (e.g. punch-in after 10:00 AM)
+        // Check shift start time restriction for all staff members based on their shiftTime
+        if (staff.shiftTime) {
+            const shiftStart = parseShiftStartTime(staff.shiftTime);
+            if (shiftStart) {
+                const now = new Date();
+                const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                const startMinutes = shiftStart.hours * 60 + shiftStart.minutes;
+                
+                if (currentMinutes < startMinutes) {
+                    const timeDisplay = staff.shiftTime.split('-')[0].trim();
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `You cannot punch-in before your shift start time (${timeDisplay}).` 
+                    });
+                }
+            }
+        }
+
+        // Calculate status dynamically based on shift start time (with 30 min grace period)
         const now = new Date();
         let status = 'present';
-        const startOfTodayTenAm = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
-        if (now > startOfTodayTenAm) {
-            status = 'late';
+        const shiftStart = parseShiftStartTime(staff.shiftTime);
+        if (shiftStart) {
+            const shiftStartToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), shiftStart.hours, shiftStart.minutes, 0);
+            const graceTime = new Date(shiftStartToday.getTime() + 30 * 60 * 1000); // 30 minutes grace period
+            if (now > graceTime) {
+                status = 'late';
+            }
+        } else {
+            // Fallback default
+            const startOfTodayTenAm = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
+            if (now > startOfTodayTenAm) {
+                status = 'late';
+            }
         }
 
         log = new Attendance({
@@ -1745,6 +1843,221 @@ app.post('/api/staff/verify-otp', async (req, res) => {
     } catch (error) {
         console.error('Verify OTP error:', error);
         return res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ========================================================================
+// INTERNAL CHAT / MESSAGING API
+// ========================================================================
+// GET all staff members list for Admin Chat sidebar with unread counts
+app.get('/api/chat/contacts', async (req, res) => {
+    if (!validateAdminAuth(req)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+    }
+    try {
+        const staff = await Staff.find({});
+        const unreadMessages = await Chat.find({ receiverId: 'admin', read: false });
+        
+        // Filter out messages that have been soft-deleted by the receiver (admin)
+        const activeUnread = unreadMessages.filter(m => !m.deletedByReceiver);
+
+        const contacts = staff.map(s => {
+            const contactUnread = activeUnread.filter(m => m.senderId === s.id).length;
+            return {
+                id: s.id,
+                name: s.name,
+                role: s.role,
+                avatarColor: s.avatarColor || '#fa9d1c',
+                unreadCount: contactUnread
+            };
+        });
+        res.json({ success: true, contacts });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET message history between user and a partner
+app.get('/api/chat/history/:partnerId', async (req, res) => {
+    const { partnerId } = req.params;
+    let userId = null;
+    
+    // Check if requester is admin
+    const isAdmin = validateAdminAuth(req);
+    let staff = null;
+    if (!isAdmin) {
+        staff = await validateStaffAuth(req);
+        if (!staff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+        }
+        userId = staff.id;
+    } else {
+        userId = 'admin';
+    }
+
+    try {
+        // Retrieve all messages
+        const messages = await Chat.find({});
+        
+        // Filter messages locally (checking soft-deleted flags)
+        const chatHistory = messages.filter(m => {
+            const isMatch = (m.senderId === userId && m.receiverId === partnerId) || 
+                            (m.senderId === partnerId && m.receiverId === userId);
+            if (!isMatch) return false;
+
+            // Hide if deleted by requester
+            if (m.senderId === userId && m.deletedBySender) return false;
+            if (m.receiverId === userId && m.deletedByReceiver) return false;
+
+            return true;
+        });
+
+        // Sort by date (createdAt)
+        chatHistory.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        res.json({ success: true, history: chatHistory });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// POST send a message
+app.post('/api/chat/send', async (req, res) => {
+    const { receiverId, message } = req.body;
+    if (!receiverId || !message || !message.trim()) {
+        return res.status(400).json({ success: false, message: 'Receiver and message text are required.' });
+    }
+
+    let senderId = null;
+    let senderName = null;
+
+    // Check if sender is admin
+    const isAdmin = validateAdminAuth(req);
+    let staff = null;
+    if (!isAdmin) {
+        staff = await validateStaffAuth(req);
+        if (!staff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+        }
+        senderId = staff.id;
+        senderName = staff.name;
+    } else {
+        senderId = 'admin';
+        senderName = 'Admin';
+    }
+
+    try {
+        const chatMsg = new Chat({
+            id: 'msg-' + Date.now(),
+            senderId,
+            senderName,
+            receiverId,
+            message: message.trim(),
+            read: false,
+            deletedBySender: false,
+            deletedByReceiver: false,
+            createdAt: new Date()
+        });
+
+        await chatMsg.save();
+        res.status(201).json({ success: true, message: chatMsg });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE chat history between user and a partner (Soft Delete - Delete for Me)
+app.delete('/api/chat/history/:partnerId', async (req, res) => {
+    const { partnerId } = req.params;
+    let userId = null;
+
+    const isAdmin = validateAdminAuth(req);
+    if (!isAdmin) {
+        const staff = await validateStaffAuth(req);
+        if (!staff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+        }
+        userId = staff.id;
+    } else {
+        userId = 'admin';
+    }
+
+    try {
+        // Mark messages sent by user to partner as deletedBySender
+        const { error: err1 } = await supabase
+            .from('chats')
+            .update({ deletedBySender: true })
+            .eq('senderId', userId)
+            .eq('receiverId', partnerId);
+
+        // Mark messages received by user from partner as deletedByReceiver
+        const { error: err2 } = await supabase
+            .from('chats')
+            .update({ deletedByReceiver: true })
+            .eq('senderId', partnerId)
+            .eq('receiverId', userId);
+
+        if (err1) throw err1;
+        if (err2) throw err2;
+
+        res.json({ success: true, message: 'Chat history cleared for you successfully.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// PUT mark messages from partner as read
+app.put('/api/chat/read/:partnerId', async (req, res) => {
+    const { partnerId } = req.params;
+    let userId = null;
+
+    const isAdmin = validateAdminAuth(req);
+    if (!isAdmin) {
+        const staff = await validateStaffAuth(req);
+        if (!staff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+        }
+        userId = staff.id;
+    } else {
+        userId = 'admin';
+    }
+
+    try {
+        const { error } = await supabase
+            .from('chats')
+            .update({ read: true })
+            .eq('senderId', partnerId)
+            .eq('receiverId', userId)
+            .eq('read', false);
+        
+        if (error) throw error;
+        res.json({ success: true, message: 'Messages marked as read.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET total unread messages count for sidebar badge
+app.get('/api/chat/unread-count', async (req, res) => {
+    let userId = null;
+    const isAdmin = validateAdminAuth(req);
+    if (!isAdmin) {
+        const staff = await validateStaffAuth(req);
+        if (!staff) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+        }
+        userId = staff.id;
+    } else {
+        userId = 'admin';
+    }
+
+    try {
+        const unread = await Chat.find({ receiverId: userId, read: false });
+        // Only count messages that are NOT soft-deleted by the receiver
+        const activeUnread = unread.filter(m => !m.deletedByReceiver);
+        res.json({ success: true, count: activeUnread.length });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 

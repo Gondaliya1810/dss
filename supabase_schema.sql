@@ -72,7 +72,9 @@ CREATE TABLE staff (
     "avatarColor" VARCHAR(50),
     email VARCHAR(150) DEFAULT '',
     mobile VARCHAR(50) DEFAULT '',
-    password VARCHAR(100) DEFAULT 'DSS@123'
+    password VARCHAR(100) DEFAULT 'DSS@123',
+    "shift" VARCHAR(50) DEFAULT 'Day',
+    "shiftTime" VARCHAR(100) DEFAULT '10:00 AM - 07:00 PM'
 );
 
 -- 8. Tasks Table
@@ -100,4 +102,17 @@ CREATE TABLE attendance (
     "punchOut" TIMESTAMP WITH TIME ZONE,
     "totalHours" NUMERIC DEFAULT 0,
     status VARCHAR(50) DEFAULT 'present'
+);
+
+-- 10. Chats Table
+CREATE TABLE chats (
+    id VARCHAR(50) PRIMARY KEY,
+    "senderId" VARCHAR(50) NOT NULL,
+    "senderName" VARCHAR(150) NOT NULL,
+    "receiverId" VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    "read" BOOLEAN DEFAULT FALSE,
+    "deletedBySender" BOOLEAN DEFAULT FALSE,
+    "deletedByReceiver" BOOLEAN DEFAULT FALSE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -178,6 +178,7 @@ const Package = createModel('packages');
 const Attendance = createModel('attendance');
 const BrandLogo = createModel('brand_logos');
 const Review = createModel('reviews');
+const Chat = createModel('chats');
 
 // Seeding logic on server startup
 async function seedDatabase() {
@@ -358,5 +359,6 @@ module.exports = {
     Package,
     Attendance,
     BrandLogo,
-    Review
+    Review,
+    Chat
 };

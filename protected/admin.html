@@ -1545,6 +1545,13 @@
                     <span>Staff Wise Report</span>
                 </div>
             </li>
+            <li>
+                <div class="menu-link" data-tab="messages" id="tabLinkMessages">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Internal Chat</span>
+                    <span id="unreadChatBadge" style="display: none; background-color: #ff3b30 !important; color: #fff; border-radius: 50%; font-size: 10px; font-weight: 700; width: 18px; height: 18px; line-height: 18px; text-align: center; margin-left: auto; flex-shrink: 0;">0</span>
+                </div>
+            </li>
 
             <div class="menu-category">Portfolio & Inquiries</div>
             <li>
@@ -2147,6 +2154,78 @@
                 </div>
             </section>
 
+            <!-- INTERNAL CHAT TAB -->
+            <section id="tab-messages" class="tab-content" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <h2 class="admin-title m-0">Internal Staff Chat</h2>
+                        <p class="text-muted small mb-0">Chat directly and securely with your team members</p>
+                    </div>
+                </div>
+
+                <div class="row g-4" style="height: calc(100vh - 250px); min-height: 500px;">
+                    <!-- Left Panel: Contacts -->
+                    <div class="col-lg-4 col-md-5 h-100">
+                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" style="background: var(--bg-surface);">
+                            <div class="p-3 border-bottom" style="border-color: var(--border-color) !important;">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-transparent border-end-0" style="border-color: var(--border-color); color: var(--text-secondary);"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                    <input type="text" class="form-control form-control-dss border-start-0" id="chatSearchStaff" placeholder="Search staff members..." style="height: 40px;">
+                                </div>
+                            </div>
+                            <!-- Contacts list -->
+                            <div class="flex-grow-1 overflow-auto" id="chatContactsList" style="max-height: 400px;">
+                                <!-- Loaded dynamically -->
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-spinner fa-spin mb-2" style="font-size: 24px;"></i>
+                                    <p class="mb-0">Loading contacts...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Chat Window -->
+                    <div class="col-lg-8 col-md-7 h-100">
+                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" id="chatWindowPlaceholder" style="background: var(--bg-surface-glass); height: 500px;">
+                            <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted p-5">
+                                <i class="fa-regular fa-comments mb-3" style="font-size: 60px; color: var(--border-color);"></i>
+                                <h4 class="text-white fw-bold mb-1">Select a Staff Member</h4>
+                                <p class="mb-0 text-center" style="font-size: 13px; max-width: 320px;">Choose a team member from the contacts list on the left to start chatting.</p>
+                            </div>
+                        </div>
+
+                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden d-none" id="chatActiveWindow" style="height: 500px;">
+                            <!-- Chat Header -->
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="profile-avatar" id="activeChatAvatar" style="width: 42px; height: 42px; background: var(--accent-color); font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #fff;">S</div>
+                                    <div>
+                                        <h5 class="text-white fw-bold mb-0" id="activeChatName">Staff Member</h5>
+                                        <span class="text-muted" style="font-size: 11px;" id="activeChatRole">Role</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger px-3 py-2 border-0" id="btnDeleteAdminChat" onclick="deleteAdminChatHistory()" title="Clear Chat History">
+                                    <i class="fa-solid fa-trash-can me-1"></i> Clear Chat
+                                </button>
+                            </div>
+                            <!-- Chat messages list -->
+                            <div class="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-3" id="chatMessagesContainer" style="background: rgba(10, 10, 12, 0.2); height: 350px;">
+                                <!-- Messages loaded dynamically -->
+                            </div>
+                            <!-- Chat Input -->
+                            <div class="p-3 border-top" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
+                                <form id="chatSendForm" class="d-flex gap-2 align-items-center" onsubmit="event.preventDefault(); sendAdminChatMessage();">
+                                    <input type="text" class="form-control form-control-dss flex-grow-1" id="chatMessageInput" placeholder="Type your message here..." style="height: 45px; border-radius: 8px;" autocomplete="off">
+                                    <button type="submit" class="btn btn-dss px-4 h-100 d-flex align-items-center justify-content-center" id="chatSendBtn" style="height: 45px; border-radius: 8px;">
+                                        <i class="fa-solid fa-paper-plane me-1"></i> Send
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- WORK FILES TAB -->
             <section id="tab-projects" class="tab-content" style="display: none;">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -2506,6 +2585,19 @@
                             <label for="staffPassword" class="form-label text-white-50">Portal Password <span class="text-danger">*</span></label>
                             <input type="text" class="form-control form-control-dss" id="staffPassword" placeholder="Default: DSS@123" value="DSS@123" required>
                         </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="staffShift" class="form-label text-white-50">Shift <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="staffShift" required>
+                                    <option value="Full Time" selected>Full Time</option>
+                                    <option value="Part Time">Part Time</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="staffShiftTime" class="form-label text-white-50">Shift Time <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="staffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" value="09:30 AM - 07:00 PM" readonly style="cursor: pointer;" onclick="openTimeRangePicker('staffShiftTime')" required>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
                         <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
@@ -2542,7 +2634,19 @@
                             <label for="editStaffMobile" class="form-label text-white-50">Mobile Number</label>
                             <input type="tel" class="form-control form-control-dss" id="editStaffMobile" placeholder="e.g. +91 98765 43210">
                         </div>
-
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="editStaffShift" class="form-label text-white-50">Shift <span class="text-danger">*</span></label>
+                                <select class="form-select form-control-dss" id="editStaffShift" required>
+                                    <option value="Full Time">Full Time</option>
+                                    <option value="Part Time">Part Time</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editStaffShiftTime" class="form-label text-white-50">Shift Time <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="editStaffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" readonly style="cursor: pointer;" onclick="openTimeRangePicker('editStaffShiftTime')" required>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
                         <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
@@ -2573,6 +2677,7 @@
                                 <span class="badge bg-secondary text-white small" id="viewStaffRole">UI/UX Designer</span>
                                 <span class="text-white-50 small" id="viewStaffEmail"><i class="fa-regular fa-envelope me-1"></i> keyur@designshaper.com</span>
                                 <span class="text-white-50 small" id="viewStaffMobile"><i class="fa-solid fa-phone me-1"></i> +91 98765 43210</span>
+                                <span class="badge bg-info text-dark small" id="viewStaffShift"><i class="fa-solid fa-clock me-1"></i> Day Shift (10:00 AM - 07:00 PM)</span>
                             </div>
                         </div>
                     </div>
@@ -2912,6 +3017,32 @@
                         <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="packageSubmitBtn">Save Package</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time Range Picker Modal -->
+    <div class="modal fade" id="timeRangePickerModal" tabindex="-1" aria-labelledby="timeRangePickerModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                <div class="modal-header custom-modal-header border-bottom pb-2" style="border-color: var(--border-color) !important;">
+                    <h6 class="modal-title text-white fw-bold" id="timeRangePickerModalLabel"><i class="fa-regular fa-clock text-warning me-2"></i> Select Shift Time</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body custom-modal-body text-white p-3">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">Start Time</label>
+                        <input type="time" class="form-control form-control-dss" id="pickerStartTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small">End Time</label>
+                        <input type="time" class="form-control form-control-dss" id="pickerEndTime" required>
+                    </div>
+                </div>
+                <div class="modal-footer custom-modal-footer border-top pt-2" style="border-color: var(--border-color) !important;">
+                    <button type="button" class="btn btn-sm btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-warning fw-bold px-3" id="btnConfirmTimeRange">Set Time</button>
+                </div>
             </div>
         </div>
     </div>

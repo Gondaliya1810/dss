@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Chat Polling State
+    let staffChatPollInterval = null;
+    let lastUnreadCount = 0;
+    let originalTitle = document.title;
+
     // DOM Elements
     const dashboardPanel = document.getElementById('dashboardPanel');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -155,12 +160,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Workspace Page
     async function initWorkspace() {
         loadProfileSummary();
+        
+        // Fetch latest profile details from database to update localStorage (shift details, etc.)
+        try {
+            const response = await fetch('/api/staff/profile', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                localStorage.setItem('staffInfo', JSON.stringify(data.staff));
+                loadProfileSummary();
+            }
+        } catch (err) {
+            console.error('Error fetching staff profile on init:', err);
+        }
+
         updateDateTime();
         setInterval(updateDateTime, 60000);
         
         await checkTodayPunchStatus();
         await loadAttendanceHistory();
         await loadStaffTasks();
+        
+        // Start polling for unread chat messages
+        updateStaffChatBadge();
+        setInterval(updateStaffChatBadge, 10000);
+
+        // Request desktop notification permission
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
         
         // Setup menu navigation click handlers
         menuLinks.forEach(link => {
@@ -180,6 +209,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
+                // Clear staff chat polling interval if switching away from messages tab
+                if (targetTab !== 'messages' && typeof staffChatPollInterval !== 'undefined' && staffChatPollInterval) {
+                    clearInterval(staffChatPollInterval);
+                    staffChatPollInterval = null;
+                }
+
                 // Load specific tab datasets
                 if (targetTab === 'dashboard') {
                     checkTodayPunchStatus();
@@ -190,7 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadStaffTasks(); // Reload to populate dropdown
                     renderSubmissionsTable();
                 } else if (targetTab === 'messages') {
-                    renderAnnouncementsInbox();
+                    startStaffChat();
                 } else if (targetTab === 'profile-settings') {
                     loadProfileData();
                 } else if (targetTab === 'my-attendance') {
@@ -221,6 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (staffAvatar) {
                 staffAvatar.textContent = info.name.charAt(0).toUpperCase();
                 if (info.avatarColor) staffAvatar.style.background = info.avatarColor;
+            }
+            const staffShiftInfo = document.getElementById('staffShiftInfo');
+            if (staffShiftInfo) {
+                const shiftVal = info.shift || 'Full Time';
+                const timeVal = info.shiftTime || '10:00 AM - 07:00 PM';
+                staffShiftInfo.innerHTML = `<i class="fa-solid fa-clock me-1"></i> ${shiftVal} (${timeVal})`;
             }
         }
     }
@@ -801,4 +842,246 @@ document.addEventListener('DOMContentLoaded', () => {
             toast.classList.remove('show');
         }, 3000);
     }
+
+    // ========================================================================
+    // INTERNAL STAFF CHAT MODULE
+    // ========================================================================
+
+    async function startStaffChat() {
+        const container = document.getElementById('staffChatMessagesContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin mb-2" style="font-size: 24px;"></i>
+                    <p class="mb-0">Loading chat history...</p>
+                </div>
+            `;
+        }
+
+        // Clear input
+        const input = document.getElementById('staffChatMessageInput');
+        if (input) input.value = '';
+
+        // Mark messages as read
+        try {
+            await fetch('/api/chat/read/admin', {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+            });
+            updateStaffChatBadge();
+        } catch (e) {
+            console.error(e);
+        }
+
+        // Load chat history immediately
+        loadStaffChatHistory();
+
+        // Start polling chat history every 3 seconds
+        if (staffChatPollInterval) clearInterval(staffChatPollInterval);
+        staffChatPollInterval = setInterval(loadStaffChatHistory, 3000);
+    }
+    window.startStaffChat = startStaffChat;
+
+    async function loadStaffChatHistory() {
+        const container = document.getElementById('staffChatMessagesContainer');
+        if (!container) return;
+
+        try {
+            const response = await fetch('/api/chat/history/admin', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                const isAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+
+                container.innerHTML = '';
+                if (data.history.length === 0) {
+                    container.innerHTML = '<div class="text-center py-5 text-muted small"><p class="mb-0">No messages yet. Send a message to start conversation with Admin.</p></div>';
+                    return;
+                }
+
+                data.history.forEach(m => {
+                    const isMe = m.senderId !== 'admin';
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}`;
+
+                    const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    msgDiv.innerHTML = `
+                        <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; 
+                            background: ${isMe ? 'var(--accent-color)' : 'rgba(255,255,255,0.06)'}; 
+                            color: ${isMe ? '#fff' : 'var(--text-primary)'};
+                            border-bottom-right-radius: ${isMe ? '2px' : '12px'};
+                            border-bottom-left-radius: ${isMe ? '12px' : '2px'};">
+                            ${escapeHTML(m.message)}
+                        </div>
+                        <span class="text-muted mt-1" style="font-size: 9px;">${timeStr}</span>
+                    `;
+                    container.appendChild(msgDiv);
+                });
+
+                if (isAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function sendStaffChatMessage() {
+        const input = document.getElementById('staffChatMessageInput');
+        if (!input) return;
+
+        const message = input.value.trim();
+        if (!message) return;
+
+        input.value = '';
+
+        try {
+            const response = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('staffToken')
+                },
+                body: JSON.stringify({
+                    receiverId: 'admin',
+                    message: message
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                await loadStaffChatHistory();
+                const container = document.getElementById('staffChatMessagesContainer');
+                if (container) container.scrollTop = container.scrollHeight;
+            } else {
+                showToast(data.message || 'Failed to send message.', false);
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Connection failed.', false);
+        }
+    }
+    window.sendStaffChatMessage = sendStaffChatMessage;
+
+    async function updateStaffChatBadge() {
+        const badge = document.getElementById('unreadStaffChatBadge');
+        if (!badge) return;
+
+        try {
+            const response = await fetch('/api/chat/unread-count', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                // Check if there are new unread messages
+                if (data.count > lastUnreadCount) {
+                    // Play notification sound
+                    playNotificationSound();
+                    
+                    // Show desktop push notification if tab is in background
+                    if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+                        new Notification("Design Shaper Studio", {
+                            body: "You have new unread messages from DSS Admin.",
+                            icon: "/favicon.ico"
+                        });
+                    }
+                }
+                
+                // Save last count
+                lastUnreadCount = data.count;
+                
+                // Update browser tab title
+                if (data.count > 0) {
+                    document.title = `(${data.count}) ${originalTitle}`;
+                } else {
+                    document.title = originalTitle;
+                }
+
+                // Update sidebar badge
+                if (badge) {
+                    if (data.count > 0) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function playNotificationSound() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Primary chime tone
+            const osc1 = audioCtx.createOscillator();
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+            gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain1.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+            gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc1.connect(gain1);
+            gain1.connect(audioCtx.destination);
+            
+            // Secondary harmonic tone (played slightly later)
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.08); // E6 note
+            gain2.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.08);
+            gain2.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.12);
+            gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            
+            osc1.start();
+            osc2.start();
+            osc1.stop(audioCtx.currentTime + 0.5);
+            osc2.stop(audioCtx.currentTime + 0.6);
+        } catch (err) {
+            console.warn('AudioContext blocked or not supported:', err);
+        }
+    }
+
+    function escapeHTML(str) {
+        return str.replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#039;');
+    }
+
+    function deleteStaffChatHistory() {
+        const isConfirmed = confirm('Are you sure you want to clear your chat history with Admin? This action cannot be undone.');
+        if (!isConfirmed) return;
+
+        try {
+            fetch('/api/chat/history/admin', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('staffToken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Chat history cleared successfully.', true);
+                    loadStaffChatHistory();
+                } else {
+                    showToast(data.message || 'Failed to clear chat history.', false);
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            showToast('Connection failed.', false);
+        }
+    }
+    window.deleteStaffChatHistory = deleteStaffChatHistory;
 });
