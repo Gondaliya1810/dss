@@ -4336,7 +4336,8 @@ function parseTimeToParts(timeStr) {
     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
     if (!match) return null;
     let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
+    let minutes = parseInt(match[2], 10);
+    minutes = Math.round(minutes / 5) * 5 % 60;
     const ampm = match[3].toUpperCase();
     return { hours, minutes, ampm };
 }
@@ -4497,10 +4498,8 @@ function handleClockPointerEvent(e) {
         activeTime.hours = hour;
     } else {
         let minute = Math.round(angle / 6) % 60;
-        const remainder = minute % 5;
-        if (remainder <= 1 || remainder >= 4) {
-            minute = Math.round(minute / 5) * 5 % 60;
-        }
+        // Snap strictly to nearest 5 minutes
+        minute = Math.round(minute / 5) * 5 % 60;
         activeTime.minutes = minute;
     }
     updateClockUI();
