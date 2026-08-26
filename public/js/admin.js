@@ -2900,10 +2900,9 @@ async function changeTaskStatus(taskId, status) {
 window.changeTaskStatus = changeTaskStatus;
 
 function confirmDeleteTask(taskId) {
-    confirmModalCallback = () => deleteTask(taskId);
-    document.getElementById('confirmModalLabel').textContent = 'Confirm Delete Task';
-    document.querySelector('#confirmModal .modal-body').textContent = 'Are you sure you want to delete this task? This action cannot be undone.';
-    confirmModal.show();
+    const label = document.getElementById('confirmModalLabel');
+    if (label) label.textContent = 'Confirm Delete Task';
+    showConfirmModal('Are you sure you want to delete this task? This action cannot be undone.', () => deleteTask(taskId));
 }
 window.confirmDeleteTask = confirmDeleteTask;
 
