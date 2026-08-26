@@ -1629,13 +1629,13 @@
                             <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Need Attention</div>
                         </div>
                     </div>
-                    <!-- Under Review -->
-                    <div class="stat-card-new stat-review">
-                        <div class="stat-icon" style="background: rgba(155, 93, 229, 0.1); color: #9b5de5;"><i class="fa-solid fa-list-check"></i></div>
+                    <!-- In Progress -->
+                    <div class="stat-card-new stat-review" style="background: rgba(0, 187, 249, 0.03); border: 1px solid rgba(0, 187, 249, 0.15);">
+                        <div class="stat-icon" style="background: rgba(0, 187, 249, 0.1); color: #00bbf9;"><i class="fa-solid fa-spinner"></i></div>
                         <div class="stat-info-new">
                             <div class="stat-num" id="statReviewTasks">0</div>
-                            <div class="stat-title">Under Review</div>
-                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Awaiting Review</div>
+                            <div class="stat-title">In Progress</div>
+                            <div class="stat-subtitle text-muted" style="font-size: 11px; margin-top: 3px;">Currently Working</div>
                         </div>
                     </div>
                     <!-- Completed -->
@@ -1678,10 +1678,7 @@
                                     <span style="background-color: #00bbf9; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
                                     <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">In Progress</span>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span style="background-color: #9b5de5; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
-                                    <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Under Review</span>
-                                </div>
+
                                 <div class="d-flex align-items-center gap-2">
                                     <span style="background-color: #00e676; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
                                     <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Completed</span>
@@ -1768,7 +1765,6 @@
                                 <option value="all">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="in_progress">In Progress</option>
-                                <option value="under_review">Under Review</option>
                                 <option value="completed">Completed</option>
                             </select>
                             <!-- Staff -->
@@ -2111,7 +2107,7 @@
                         <div class="stat-card-new" style="background: var(--bg-surface);">
                             <div class="stat-info-new">
                                 <div class="stat-num text-info" id="reportReviewTasks">0</div>
-                                <div class="stat-title">In Review</div>
+                                <div class="stat-title">In Progress</div>
                             </div>
                         </div>
                     </div>
@@ -2142,10 +2138,7 @@
                             <span style="background-color: #00bbf9; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
                             <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">In Progress</span>
                         </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span style="background-color: #9b5de5; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
-                            <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Under Review</span>
-                        </div>
+
                         <div class="d-flex align-items-center gap-2">
                             <span style="background-color: #00e676; width: 12px; height: 12px; border-radius: 3px; display: inline-block;"></span>
                             <span style="color: var(--text-secondary); font-size: 13px; font-weight: 600;">Completed</span>
@@ -2587,30 +2580,26 @@
                     <!-- Task Performance Stats Cards -->
                     <h5 class="fw-bold text-white mb-3"><i class="fa-solid fa-chart-simple text-warning me-2"></i> Performance Stats</h5>
                     <div class="row g-3 mb-4">
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-4">
                             <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
                                 <div class="stat-num text-warning fw-bold fs-4" id="viewStaffPending">0</div>
                                 <div class="text-white-50 small" style="font-size: 11px;">Pending</div>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-4">
                             <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
                                 <div class="stat-num text-info fw-bold fs-4" id="viewStaffProgress">0</div>
                                 <div class="text-white-50 small" style="font-size: 11px;">In Progress</div>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
-                                <div class="stat-num text-purple fw-bold fs-4" style="color: #9b5de5;" id="viewStaffReview">0</div>
-                                <div class="text-white-50 small" style="font-size: 11px;">Review</div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4 col-sm-4">
                             <div class="stat-card-new p-3 text-center" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;">
                                 <div class="stat-num text-success fw-bold fs-4" id="viewStaffCompleted">0</div>
                                 <div class="text-white-50 small" style="font-size: 11px;">Completed</div>
                             </div>
                         </div>
+                        <!-- Hidden to prevent JS errors -->
+                        <div id="viewStaffReview" style="display: none;">0</div>
                     </div>
 
                     <!-- List of Tasks -->

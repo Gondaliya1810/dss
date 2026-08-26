@@ -1985,7 +1985,7 @@ function renderDashboard() {
     
     document.getElementById('statTotalTasks').textContent = total;
     document.getElementById('statPendingTasks').textContent = pending;
-    document.getElementById('statReviewTasks').textContent = review;
+    document.getElementById('statReviewTasks').textContent = inProgress;
     document.getElementById('statCompletedTasks').textContent = completed;
     
     const clientCountEl = document.getElementById('statTotalClients');
@@ -1994,7 +1994,7 @@ function renderDashboard() {
     }
     
     // Doughnut chart drawing
-    renderDashboardDoughnutChart(pending, inProgress, review, completed);
+    renderDashboardDoughnutChart(pending, inProgress, completed);
     
     // Alert list
     renderDueThisWeek();
@@ -2006,16 +2006,16 @@ function renderDashboard() {
     updateNotificationsCount();
 }
 
-function renderDashboardDoughnutChart(pending, inProgress, review, completed) {
+function renderDashboardDoughnutChart(pending, inProgress, completed) {
     const ctx = document.getElementById('tasksDoughnutChart');
     if (!ctx) return;
     
     const isLight = document.documentElement.classList.contains('lightmode');
     const textSecondary = isLight ? '#52526b' : '#9a9ab0';
     
-    const chartData = [pending, inProgress, review, completed];
-    const chartLabels = ['Pending', 'In Progress', 'Under Review', 'Completed'];
-    const chartColors = ['#fa9d1c', '#00bbf9', '#9b5de5', '#00e676'];
+    const chartData = [pending, inProgress, completed];
+    const chartLabels = ['Pending', 'In Progress', 'Completed'];
+    const chartColors = ['#fa9d1c', '#00bbf9', '#00e676'];
     
     if (tasksDoughnutChart) {
         tasksDoughnutChart.data.datasets[0].data = chartData;
@@ -2435,7 +2435,7 @@ function updateStaffWiseReport() {
     
     document.getElementById('reportTotalTasks').textContent = total;
     document.getElementById('reportPendingTasks').textContent = pending;
-    document.getElementById('reportReviewTasks').textContent = review;
+    document.getElementById('reportReviewTasks').textContent = inProgress;
     document.getElementById('reportCompletedTasks').textContent = completed;
     
     document.getElementById('reportChartTitle').textContent = `Task Distribution - ${staff.name}`;
@@ -2447,9 +2447,9 @@ function updateStaffWiseReport() {
     const isLight = document.documentElement.classList.contains('lightmode');
     const textSecondary = isLight ? '#52526b' : '#9a9ab0';
     
-    const chartData = [pending, inProgress, review, completed];
-    const chartLabels = ['Pending', 'In Progress', 'Under Review', 'Completed'];
-    const chartColors = ['#fa9d1c', '#00bbf9', '#9b5de5', '#00e676'];
+    const chartData = [pending, inProgress, completed];
+    const chartLabels = ['Pending', 'In Progress', 'Completed'];
+    const chartColors = ['#fa9d1c', '#00bbf9', '#00e676'];
     
     if (staffReportChart) {
         staffReportChart.data.datasets[0].data = chartData;
