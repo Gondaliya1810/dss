@@ -3023,26 +3023,66 @@
 
     <!-- Time Range Picker Modal -->
     <div class="modal fade" id="timeRangePickerModal" tabindex="-1" aria-labelledby="timeRangePickerModalLabel" aria-hidden="true" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
-                <div class="modal-header custom-modal-header border-bottom pb-2" style="border-color: var(--border-color) !important;">
-                    <h6 class="modal-title text-white fw-bold" id="timeRangePickerModalLabel"><i class="fa-regular fa-clock text-warning me-2"></i> Select Shift Time</h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 320px;">
+            <div class="modal-content custom-modal-content" style="background: #121216; border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
+                
+                <!-- Time Range Tabs Header -->
+                <div class="d-flex border-bottom" style="border-color: rgba(255,255,255,0.06) !important; background: rgba(0,0,0,0.2);">
+                    <button type="button" class="flex-grow-1 py-3 text-center border-0 bg-transparent text-white fw-bold active-time-tab" id="tabStartTime" style="font-size: 13px; opacity: 1; border-bottom: 2px solid var(--accent-color) !important; transition: all 0.2s;">
+                        START TIME
+                    </button>
+                    <button type="button" class="flex-grow-1 py-3 text-center border-0 bg-transparent text-white-50" id="tabEndTime" style="font-size: 13px; opacity: 0.6; transition: all 0.2s;">
+                        END TIME
+                    </button>
                 </div>
-                <div class="modal-body custom-modal-body text-white p-3">
-                    <div class="mb-3">
-                        <label class="form-label text-white-50 small">Start Time</label>
-                        <input type="time" class="form-control form-control-dss" id="pickerStartTime" required>
+
+                <div class="p-4 d-flex flex-column align-items-center">
+                    
+                    <!-- Time Display Header (Hours : Minutes + AM/PM) -->
+                    <div class="w-100 d-flex align-items-center justify-content-between mb-4 px-2" style="background: rgba(255,255,255,0.02); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.03);">
+                        <div class="d-flex align-items-center text-white" style="font-size: 32px; font-family: monospace; font-weight: 700;">
+                            <span id="displayHours" class="text-warning cursor-pointer select-active" style="cursor: pointer; transition: color 0.2s;">12</span>
+                            <span class="mx-1" style="opacity: 0.5;">:</span>
+                            <span id="displayMinutes" class="text-white-50 cursor-pointer" style="cursor: pointer; transition: color 0.2s;">00</span>
+                        </div>
+                        
+                        <!-- AM/PM Toggle Pill -->
+                        <div class="d-flex p-1" style="background: rgba(255,255,255,0.05); border-radius: 20px;">
+                            <button type="button" class="btn btn-sm btn-dark border-0 rounded-pill px-3 py-1 font-weight-bold" id="btnSetAM" style="font-size: 11px; background: var(--accent-color); color: #fff;">AM</button>
+                            <button type="button" class="btn btn-sm btn-dark border-0 rounded-pill px-3 py-1 text-white-50 bg-transparent" id="btnSetPM" style="font-size: 11px;">PM</button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label text-white-50 small">End Time</label>
-                        <input type="time" class="form-control form-control-dss" id="pickerEndTime" required>
+
+                    <!-- Label showing what is being selected -->
+                    <div class="text-center text-warning fw-bold mb-3" id="clockModeLabel" style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;">
+                        SELECT HOUR
                     </div>
+
+                    <!-- Circular Clock Face Container -->
+                    <div class="clock-face-container position-relative mb-4" id="clockFaceContainer" style="width: 220px; height: 220px; border-radius: 50%; background: #16161c; border: 2px solid rgba(255,255,255,0.03); cursor: pointer; user-select: none; -webkit-user-select: none;">
+                        
+                        <!-- Center Dot -->
+                        <div class="position-absolute translate-middle-x translate-middle-y" style="left: 50%; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-color); z-index: 5; transform: translate(-50%, -50%);"></div>
+                        
+                        <!-- Clock Hand / Needle -->
+                        <div class="position-absolute" id="clockHand" style="left: 50%; bottom: 50%; width: 2px; height: 75px; background: var(--accent-color); transform-origin: bottom center; transform: rotate(0deg); transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); z-index: 3;">
+                            <div class="position-absolute rounded-circle" style="top: 0; left: 50%; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-color); transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+                                <div class="rounded-circle" style="width: 6px; height: 6px; background: #fff;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Clock Numbers (Rendered Dynamically in JS) -->
+                        <div id="clockNumbers" class="w-100 h-100 position-relative" style="z-index: 2;"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="w-100 d-flex gap-2">
+                        <button type="button" class="btn flex-grow-1 border-0" data-bs-dismiss="modal" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border-radius: 14px; font-weight: 600; padding: 10px; font-size: 13px;">Cancel</button>
+                        <button type="button" class="btn flex-grow-1 btn-warning fw-bold border-0" id="btnClockConfirm" style="border-radius: 14px; padding: 10px; font-size: 13px;">OK</button>
+                    </div>
+
                 </div>
-                <div class="modal-footer custom-modal-footer border-top pt-2" style="border-color: var(--border-color) !important;">
-                    <button type="button" class="btn btn-sm btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-sm btn-warning fw-bold px-3" id="btnConfirmTimeRange">Set Time</button>
-                </div>
+
             </div>
         </div>
     </div>

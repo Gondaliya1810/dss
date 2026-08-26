@@ -4292,74 +4292,267 @@ window.deleteAdminChatHistory = deleteAdminChatHistory;
 // Time Range Picker Popup logic
 let activeTimeRangeTargetInput = null;
 
+const clockPickerState = {
+    activeTab: 'start', // 'start' | 'end'
+    activeMode: 'hours', // 'hours' | 'minutes'
+    start: { hours: 9, minutes: 30, ampm: 'AM' },
+    end: { hours: 7, minutes: 0, ampm: 'PM' }
+};
+
 function openTimeRangePicker(targetInputId) {
     activeTimeRangeTargetInput = document.getElementById(targetInputId);
     if (!activeTimeRangeTargetInput) return;
 
     const currentValue = activeTimeRangeTargetInput.value.trim();
-    let defaultStart = "09:30";
-    let defaultEnd = "19:00";
+    
+    // Set default values
+    clockPickerState.start = { hours: 9, minutes: 30, ampm: 'AM' };
+    clockPickerState.end = { hours: 7, minutes: 0, ampm: 'PM' };
+    clockPickerState.activeTab = 'start';
+    clockPickerState.activeMode = 'hours';
 
     if (currentValue) {
         const parts = currentValue.split('-');
         if (parts.length === 2) {
-            const startParsed = parseTimeTo24h(parts[0].trim());
-            const endParsed = parseTimeTo24h(parts[1].trim());
-            if (startParsed) defaultStart = startParsed;
-            if (endParsed) defaultEnd = endParsed;
+            const startParsed = parseTimeToParts(parts[0].trim());
+            const endParsed = parseTimeToParts(parts[1].trim());
+            if (startParsed) clockPickerState.start = startParsed;
+            if (endParsed) clockPickerState.end = endParsed;
         }
     }
-
-    document.getElementById('pickerStartTime').value = defaultStart;
-    document.getElementById('pickerEndTime').value = defaultEnd;
 
     const timeModalEl = document.getElementById('timeRangePickerModal');
     const timeModal = bootstrap.Modal.getInstance(timeModalEl) || new bootstrap.Modal(timeModalEl);
     timeModal.show();
+    
+    setTimeout(() => {
+        initClockEventListeners();
+        updateClockUI();
+    }, 200);
 }
 window.openTimeRangePicker = openTimeRangePicker;
 
-function parseTimeTo24h(timeStr) {
+function parseTimeToParts(timeStr) {
     const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
     if (!match) return null;
     let hours = parseInt(match[1], 10);
-    const minutes = match[2];
+    const minutes = parseInt(match[2], 10);
     const ampm = match[3].toUpperCase();
-    if (ampm === 'PM' && hours !== 12) hours += 12;
-    if (ampm === 'AM' && hours === 12) hours = 0;
-    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+    return { hours, minutes, ampm };
 }
 
-function format24hToAMPM(timeStr) {
-    const parts = timeStr.split(':');
-    if (parts.length !== 2) return timeStr;
-    let hours = parseInt(parts[0], 10);
-    const minutes = parts[1];
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    return `${hours.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+function initClockEventListeners() {
+    const container = document.getElementById('clockFaceContainer');
+    if (!container || container.getAttribute('data-listened') === 'true') return;
+    
+    container.setAttribute('data-listened', 'true');
+    
+    let isDragging = false;
+    
+    container.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        handleClockPointerEvent(e);
+    });
+    
+    container.addEventListener('mousemove', (e) => {
+        if (isDragging) handleClockPointerEvent(e);
+    });
+    
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    container.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        handleClockPointerEvent(e);
+    });
+    
+    container.addEventListener('touchmove', (e) => {
+        if (isDragging) handleClockPointerEvent(e);
+    });
+    
+    container.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+
+    document.getElementById('btnSetAM').onclick = () => {
+        clockPickerState[clockPickerState.activeTab].ampm = 'AM';
+        updateClockUI();
+    };
+    document.getElementById('btnSetPM').onclick = () => {
+        clockPickerState[clockPickerState.activeTab].ampm = 'PM';
+        updateClockUI();
+    };
+
+    document.getElementById('tabStartTime').onclick = () => {
+        clockPickerState.activeTab = 'start';
+        clockPickerState.activeMode = 'hours';
+        updateClockUI();
+    };
+    document.getElementById('tabEndTime').onclick = () => {
+        clockPickerState.activeTab = 'end';
+        clockPickerState.activeMode = 'hours';
+        updateClockUI();
+    };
+
+    document.getElementById('displayHours').onclick = () => {
+        clockPickerState.activeMode = 'hours';
+        updateClockUI();
+    };
+    document.getElementById('displayMinutes').onclick = () => {
+        clockPickerState.activeMode = 'minutes';
+        updateClockUI();
+    };
+
+    document.getElementById('btnClockConfirm').onclick = () => {
+        const start = clockPickerState.start;
+        const end = clockPickerState.end;
+        
+        const startTimeStr = `${start.hours.toString().padStart(2, '0')}:${start.minutes.toString().padStart(2, '0')} ${start.ampm}`;
+        const endTimeStr = `${end.hours.toString().padStart(2, '0')}:${end.minutes.toString().padStart(2, '0')} ${end.ampm}`;
+        
+        if (activeTimeRangeTargetInput) {
+            activeTimeRangeTargetInput.value = `${startTimeStr} - ${endTimeStr}`;
+            // Dispatch change event to trigger auto-time update
+            activeTimeRangeTargetInput.dispatchEvent(new Event('change'));
+        }
+        
+        const timeModalEl = document.getElementById('timeRangePickerModal');
+        const timeModal = bootstrap.Modal.getInstance(timeModalEl);
+        if (timeModal) timeModal.hide();
+    };
 }
 
-// Bind Set Time confirmation click listener
-document.addEventListener('DOMContentLoaded', () => {
-    const btnConfirmTimeRange = document.getElementById('btnConfirmTimeRange');
-    if (btnConfirmTimeRange) {
-        btnConfirmTimeRange.addEventListener('click', () => {
-            const startTime = document.getElementById('pickerStartTime').value;
-            const endTime = document.getElementById('pickerEndTime').value;
-            if (!startTime || !endTime) return;
-
-            const formattedStart = format24hToAMPM(startTime);
-            const formattedEnd = format24hToAMPM(endTime);
-
-            if (activeTimeRangeTargetInput) {
-                activeTimeRangeTargetInput.value = `${formattedStart} - ${formattedEnd}`;
-            }
-
-            const timeModalEl = document.getElementById('timeRangePickerModal');
-            const timeModal = bootstrap.Modal.getInstance(timeModalEl);
-            if (timeModal) timeModal.hide();
-        });
+function handleClockPointerEvent(e) {
+    const container = document.getElementById('clockFaceContainer');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    const x = clientX - rect.left - 110;
+    const y = clientY - rect.top - 110;
+    
+    let angle = Math.atan2(y, x) * 180 / Math.PI + 90;
+    if (angle < 0) angle += 360;
+    
+    const activeTime = clockPickerState[clockPickerState.activeTab];
+    
+    if (clockPickerState.activeMode === 'hours') {
+        let hour = Math.round(angle / 30);
+        if (hour === 0) hour = 12;
+        activeTime.hours = hour;
+    } else {
+        let minute = Math.round(angle / 6) % 60;
+        const remainder = minute % 5;
+        if (remainder <= 1 || remainder >= 4) {
+            minute = Math.round(minute / 5) * 5 % 60;
+        }
+        activeTime.minutes = minute;
     }
-});
+    updateClockUI();
+}
+
+function updateClockUI() {
+    const isStart = clockPickerState.activeTab === 'start';
+    const isHours = clockPickerState.activeMode === 'hours';
+    const activeTime = clockPickerState[clockPickerState.activeTab];
+
+    const tabStart = document.getElementById('tabStartTime');
+    const tabEnd = document.getElementById('tabEndTime');
+    if (isStart) {
+        tabStart.style.opacity = '1';
+        tabStart.style.borderBottom = '2px solid var(--accent-color)';
+        tabEnd.style.opacity = '0.6';
+        tabEnd.style.borderBottom = 'none';
+    } else {
+        tabEnd.style.opacity = '1';
+        tabEnd.style.borderBottom = '2px solid var(--accent-color)';
+        tabStart.style.opacity = '0.6';
+        tabStart.style.borderBottom = 'none';
+    }
+
+    const displayHrsEl = document.getElementById('displayHours');
+    const displayMinsEl = document.getElementById('displayMinutes');
+    displayHrsEl.textContent = activeTime.hours.toString().padStart(2, '0');
+    displayMinsEl.textContent = activeTime.minutes.toString().padStart(2, '0');
+
+    if (isHours) {
+        displayHrsEl.style.color = '#38bdf8'; 
+        displayHrsEl.style.opacity = '1';
+        displayMinsEl.style.color = '#fff';
+        displayMinsEl.style.opacity = '0.5';
+        document.getElementById('clockModeLabel').textContent = 'SELECT HOUR';
+    } else {
+        displayMinsEl.style.color = '#38bdf8'; 
+        displayMinsEl.style.opacity = '1';
+        displayHrsEl.style.color = '#fff';
+        displayHrsEl.style.opacity = '0.5';
+        document.getElementById('clockModeLabel').textContent = 'SELECT MINUTE';
+    }
+
+    const btnAM = document.getElementById('btnSetAM');
+    const btnPM = document.getElementById('btnSetPM');
+    if (activeTime.ampm === 'AM') {
+        btnAM.style.background = 'var(--accent-color)';
+        btnAM.style.color = '#fff';
+        btnPM.style.background = 'transparent';
+        btnPM.style.color = 'rgba(255,255,255,0.5)';
+    } else {
+        btnPM.style.background = 'var(--accent-color)';
+        btnPM.style.color = '#fff';
+        btnAM.style.background = 'transparent';
+        btnAM.style.color = 'rgba(255,255,255,0.5)';
+    }
+
+    const numContainer = document.getElementById('clockNumbers');
+    numContainer.innerHTML = '';
+    
+    const radius = 80;
+    const cx = 110;
+    const cy = 110;
+
+    for (let i = 1; i <= 12; i++) {
+        const angleDeg = i * 30;
+        const angleRad = (angleDeg - 90) * Math.PI / 180;
+        const x = cx + radius * Math.cos(angleRad);
+        const y = cy + radius * Math.sin(angleRad);
+        
+        let labelVal = '';
+        let isSelected = false;
+
+        if (isHours) {
+            labelVal = i.toString();
+            isSelected = activeTime.hours === i;
+        } else {
+            const minVal = (i === 12) ? 0 : i * 5;
+            labelVal = minVal.toString().padStart(2, '0');
+            isSelected = Math.round(activeTime.minutes / 5) * 5 % 60 === minVal;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'position-absolute translate-middle-x translate-middle-y text-center clock-num-node';
+        item.style.left = `${x}px`;
+        item.style.top = `${y}px`;
+        item.style.width = '30px';
+        item.style.height = '30px';
+        item.style.lineHeight = '30px';
+        item.style.fontSize = '12px';
+        item.style.color = isSelected ? '#fff' : 'rgba(255,255,255,0.7)';
+        item.style.fontWeight = isSelected ? '700' : '400';
+        item.style.borderRadius = '50%';
+        item.style.zIndex = '4';
+        item.textContent = labelVal;
+        
+        numContainer.appendChild(item);
+    }
+
+    let targetAngle = 0;
+    if (isHours) {
+        targetAngle = activeTime.hours * 30;
+    } else {
+        targetAngle = activeTime.minutes * 6;
+    }
+    document.getElementById('clockHand').style.transform = `rotate(${targetAngle}deg)`;
+}
