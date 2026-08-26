@@ -1262,17 +1262,14 @@ app.put('/api/staff/tasks/:id/submit', async (req, res) => {
     }
     const { id } = req.params;
     const { submissionLink, submissionComment } = req.body;
-    if (!submissionLink) {
-        return res.status(400).json({ success: false, message: 'Submission link is required.' });
-    }
 
     try {
         const task = await Task.findOneAndUpdate(
             { id, 'assignedTo.id': staff.id },
             { 
-                status: 'under_review',
-                submissionLink,
-                submissionComment: submissionComment || ''
+                status: 'completed',
+                submissionLink: submissionLink || 'Completed',
+                submissionComment: submissionComment || 'Work completed by staff.'
             },
             { new: true }
         );
