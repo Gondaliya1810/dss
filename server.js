@@ -37,6 +37,19 @@ const mailTransporter = nodemailer.createTransport({
     }
 });
 
+// Verify SMTP connection configuration on startup
+if (process.env.SMTP_USER) {
+    mailTransporter.verify(function (error, success) {
+        if (error) {
+            console.error('SMTP Connection Validation Failed:', error.message);
+        } else {
+            console.log('SMTP Connection Success: Server is ready to send emails.');
+        }
+    });
+} else {
+    console.warn('SMTP_USER is not defined. Staff password recovery emails will fail.');
+}
+
 
 
 // Ensure upload directory exists
