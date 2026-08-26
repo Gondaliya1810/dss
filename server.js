@@ -32,8 +32,13 @@ app.use((req, res, next) => {
 
 // Function to initialize and verify SMTP transporter on startup (forces IPv4)
 async function verifySmtpOnStartup() {
+    if (process.env.RESEND_API_KEY) {
+        console.log('Resend API key is configured. Emails will be sent via Resend API.');
+        return;
+    }
+
     if (!process.env.SMTP_USER) {
-        console.warn('SMTP_USER is not defined. Staff password recovery emails will fail.');
+        console.warn('Neither RESEND_API_KEY nor SMTP_USER is defined. Staff password recovery emails will fail.');
         return;
     }
 
@@ -1544,7 +1549,41 @@ const otpStore = new Map();
 
 // Helper to send email
 const sendMail = async (to, subject, html) => {
+    // 1. If Resend API Key is defined, use Resend HTTP API (Bypasses SMTP port blocks)
+    if (process.env.RESEND_API_KEY) {
+        try {
+            console.log(`[sendMail] Sending email to ${to} using Resend API...`);
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    from: process.env.SMTP_FROM || 'onboarding@resend.dev',
+                    to: [to],
+                    subject: subject,
+                    html: html
+                })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                console.log(`[sendMail] Email sent successfully via Resend API to ${to}:`, data.id);
+                return true;
+            } else {
+                console.error(`[sendMail] Resend API Error:`, data);
+                throw new Error(data.message || 'Resend API failed to send email.');
+            }
+        } catch (err) {
+            console.error('[sendMail] Resend API send error:', err);
+            throw err;
+        }
+    }
+
+    // 2. Fallback: Use Nodemailer SMTP
     try {
+        console.log(`[sendMail] Resend API key not found. Falling back to SMTP for ${to}...`);
         const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
         let resolvedHost = smtpHost;
 
@@ -1581,7 +1620,7 @@ const sendMail = async (to, subject, html) => {
             html
         };
         await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${to}`);
+        console.log(`Email sent successfully to ${to} via SMTP`);
         return true;
     } catch (err) {
         console.error('Nodemailer send error:', err);
