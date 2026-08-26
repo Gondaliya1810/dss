@@ -2620,7 +2620,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="staffShiftTime" class="form-label text-white-50">Shift Time <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-dss" id="staffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" value="09:30 AM - 07:00 PM" readonly style="cursor: pointer;" onclick="openTimeRangePicker('staffShiftTime')" required>
+                                <input type="text" class="form-control form-control-dss" id="staffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" value="09:30 AM - 07:00 PM" required>
                             </div>
                         </div>
                     </div>
@@ -2669,7 +2669,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="editStaffShiftTime" class="form-label text-white-50">Shift Time <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-dss" id="editStaffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" readonly style="cursor: pointer;" onclick="openTimeRangePicker('editStaffShiftTime')" required>
+                                <input type="text" class="form-control form-control-dss" id="editStaffShiftTime" placeholder="e.g. 09:30 AM - 07:00 PM" required>
                             </div>
                         </div>
                     </div>
@@ -3046,65 +3046,7 @@
         </div>
     </div>
 
-    <!-- Time Range Picker Modal -->
-    <div class="modal fade" id="timeRangePickerModal" tabindex="-1" aria-labelledby="timeRangePickerModalLabel" aria-hidden="true" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 320px;">
-            <div class="modal-content custom-modal-content" style="background: #121216; border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,0.6);">
-                
-                <!-- Time Range Tabs Header -->
-                <div class="d-flex border-bottom" style="border-color: rgba(255,255,255,0.06) !important; background: rgba(0,0,0,0.2);">
-                    <button type="button" class="flex-grow-1 py-3 text-center border-0 bg-transparent text-white fw-bold active-time-tab" id="tabStartTime" style="font-size: 13px; opacity: 1; border-bottom: 2px solid var(--accent-color) !important; transition: all 0.2s;">
-                        START TIME
-                    </button>
-                    <button type="button" class="flex-grow-1 py-3 text-center border-0 bg-transparent text-white-50" id="tabEndTime" style="font-size: 13px; opacity: 0.6; transition: all 0.2s;">
-                        END TIME
-                    </button>
-                </div>
 
-                <div class="p-4 d-flex flex-column align-items-center">
-                    
-                    <!-- Time Display Header (Hours : Minutes + AM/PM) -->
-                    <div class="w-100 d-flex align-items-center justify-content-between mb-4 px-2" style="background: rgba(255,255,255,0.02); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.03);">
-                        <div class="d-flex align-items-center text-white" style="font-size: 32px; font-family: monospace; font-weight: 700;">
-                            <span id="displayHours" class="text-warning cursor-pointer select-active" style="cursor: pointer; transition: color 0.2s;">12</span>
-                            <span class="mx-1" style="opacity: 0.5;">:</span>
-                            <span id="displayMinutes" class="text-white-50 cursor-pointer" style="cursor: pointer; transition: color 0.2s;">00</span>
-                        </div>
-                        
-                        <!-- AM/PM Toggle Pill -->
-                        <div class="d-flex p-1" style="background: rgba(255,255,255,0.05); border-radius: 20px;">
-                            <button type="button" class="btn btn-sm btn-dark border-0 rounded-pill px-3 py-1 font-weight-bold" id="btnSetAM" style="font-size: 11px; background: var(--accent-color); color: #fff;">AM</button>
-                            <button type="button" class="btn btn-sm btn-dark border-0 rounded-pill px-3 py-1 text-white-50 bg-transparent" id="btnSetPM" style="font-size: 11px;">PM</button>
-                        </div>
-                    </div>
-
-                    <!-- Hours Grid Container -->
-                    <div class="w-100" id="hoursSection">
-                        <div class="text-white-50 small mb-2 fw-bold text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Hours</div>
-                        <div class="row g-2 mb-3" id="hoursGrid">
-                            <!-- JS will render 12 buttons here -->
-                        </div>
-                    </div>
-
-                    <!-- Minutes Grid Container -->
-                    <div class="w-100" id="minutesSection">
-                        <div class="text-white-50 small mb-2 fw-bold text-uppercase" style="font-size: 10px; letter-spacing: 1px;">Minutes</div>
-                        <div class="row g-2 mb-4" id="minutesGrid">
-                            <!-- JS will render 12 buttons here -->
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="w-100 d-flex gap-2">
-                        <button type="button" class="btn flex-grow-1 border-0" data-bs-dismiss="modal" style="background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); border-radius: 14px; font-weight: 600; padding: 10px; font-size: 13px;">Cancel</button>
-                        <button type="button" class="btn flex-grow-1 btn-warning fw-bold border-0" id="btnClockConfirm" style="border-radius: 14px; padding: 10px; font-size: 13px;">OK</button>
-                    </div>
-
-                </div>
-
-            </div>
-        </div>
-    </div>
 
     <!-- Swiper/Bootstrap/JS scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
