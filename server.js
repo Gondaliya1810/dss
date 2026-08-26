@@ -16,6 +16,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Redirect any path ending with /dss to /login.html
+app.use((req, res, next) => {
+    const cleanPath = req.path.replace(/\/$/, ''); // Remove trailing slash
+    if (cleanPath.endsWith('/dss')) {
+        return res.redirect('/login.html');
+    }
+    next();
+});
+
+
 // Ensure upload directory exists
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -1476,9 +1486,9 @@ app.delete('/api/reviews/:id', async (req, res) => {
     }
 });
 
-// Fallback: serve index.html for undefined routes
+// Fallback: redirect undefined routes to homepage
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.redirect('/');
 });
 
 app.listen(PORT, () => {
