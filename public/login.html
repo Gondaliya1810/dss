@@ -213,7 +213,7 @@
                         </div>
                     </div>
                     <div class="text-end mb-4">
-                        <a href="#" id="forgotPasswordBtn" class="text-decoration-none" style="font-size: 13px; color: var(--accent-color); font-weight: 500; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Forgot Password?</a>
+                        <a href="#" id="forgotPasswordBtn" class="text-decoration-none" style="font-size: 13px; color: var(--accent-color); font-weight: 500; transition: opacity 0.2s; display: none;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">Forgot Password?</a>
                     </div>
                     <button type="submit" class="btn btn-dss w-100" id="loginBtn">
                         <span>Sign In</span>
@@ -311,6 +311,7 @@
 
         function updateRoleUI(role) {
             activeRole = role;
+            const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
             if (role === 'admin') {
                 tabAdmin.classList.add('active');
                 tabStaff.classList.remove('active');
@@ -320,6 +321,7 @@
                 usernameInput.type = 'text';
                 usernameInput.placeholder = 'e.g. admin';
                 usernameInput.value = '';
+                if (forgotPasswordBtn) forgotPasswordBtn.style.display = 'none';
             } else {
                 tabStaff.classList.add('active');
                 tabAdmin.classList.remove('active');
@@ -329,6 +331,7 @@
                 usernameInput.type = 'email';
                 usernameInput.placeholder = 'e.g. staff@dss.com';
                 usernameInput.value = '';
+                if (forgotPasswordBtn) forgotPasswordBtn.style.display = 'inline-block';
             }
         }
 
