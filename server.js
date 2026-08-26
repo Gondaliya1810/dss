@@ -1181,7 +1181,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
         log.punchOut = now;
 
         // Calculate hours
-        const diffMs = now - log.punchIn;
+        const diffMs = now - new Date(log.punchIn);
         const diffHrs = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
         log.totalHours = diffHrs;
 
@@ -1750,6 +1750,36 @@ app.post('/api/staff/verify-otp', async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 });
+
+// Migration: Fix attendance logs where totalHours is 0 but punchOut is present
+async function migrateAttendanceLogs() {
+    try {
+        const logs = await Attendance.find({});
+        for (const log of logs) {
+            if (log.punchIn && log.punchOut && (!log.totalHours || log.totalHours === 0)) {
+                const pIn = new Date(log.punchIn);
+                const pOut = new Date(log.punchOut);
+                const diffMs = pOut - pIn;
+                const diffHrs = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+                
+                if (diffHrs > 0) {
+                    log.totalHours = diffHrs;
+                    // Also update status if needed
+                    if (diffHrs < 4.0) {
+                        log.status = 'half_day';
+                    }
+                    await log.save();
+                    console.log(`[Migration] Fixed attendance log ${log.id}: set totalHours to ${diffHrs}`);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[Migration] Failed to migrate attendance logs:', err.message);
+    }
+}
+
+// Run migration asynchronously after startup
+setTimeout(migrateAttendanceLogs, 5000);
 
 // Fallback: redirect undefined routes to homepage
 app.get(/.*/, (req, res) => {
