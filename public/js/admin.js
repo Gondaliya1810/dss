@@ -2349,38 +2349,65 @@ function renderCalendar() {
         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayTasks = tasksList.filter(t => t.deadline === dateString);
         
-        dayTasks.forEach(t => {
-            const tag = document.createElement('div');
-            tag.className = 'calendar-task-tag';
+        if (dayTasks.length > 0) {
+            const dotsContainer = document.createElement('div');
+            dotsContainer.className = 'calendar-dots-container d-flex flex-wrap gap-1 mt-2 justify-content-start';
             
-            let color = '#fa9d1c';
-            if (t.status === 'in_progress') color = '#00bbf9';
-            else if (t.status === 'under_review') color = '#9b5de5';
-            else if (t.status === 'completed') color = '#00e676';
-            
-            tag.style.background = color;
-            tag.textContent = t.title;
-            tag.title = `${t.title} (${t.assignedTo.name}) - Status: ${t.status.replace('_', ' ')}`;
-            tag.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                showTaskAlertDetails(t);
+            dayTasks.forEach(t => {
+                const dot = document.createElement('span');
+                dot.className = 'calendar-task-dot';
+                
+                let color = '#fa9d1c';
+                if (t.status === 'in_progress') color = '#00bbf9';
+                else if (t.status === 'under_review') color = '#9b5de5';
+                else if (t.status === 'completed') color = '#00e676';
+                
+                dot.style.display = 'inline-block';
+                dot.style.width = '8px';
+                dot.style.height = '8px';
+                dot.style.borderRadius = '50%';
+                dot.style.background = color;
+                dot.style.boxShadow = `0 0 8px ${color}`;
+                dot.title = `${t.title} (${t.assignedTo.name}) - Status: ${t.status.replace('_', ' ')}`;
+                dotsContainer.appendChild(dot);
             });
-            cell.appendChild(tag);
-        });
+            cell.appendChild(dotsContainer);
+        }
         
         cell.style.cursor = 'pointer';
         cell.addEventListener('click', () => {
-            const dateInput = document.getElementById('modalTaskDeadline');
-            if (dateInput) {
-                dateInput.value = dateString;
+            if (dayTasks.length > 0) {
+                showDayTasksModal(dateString, dayTasks);
+            } else {
+                const dateInput = document.getElementById('modalTaskDeadline');
+                if (dateInput) {
+                    dateInput.value = dateString;
+                }
+                const modalEl = document.getElementById('assignTaskModal');
+                let modalInst = bootstrap.Modal.getInstance(modalEl);
+                if (!modalInst) {
+                    modalInst = new bootstrap.Modal(modalEl);
+                }
+                modalInst.show();
             }
-            const modalEl = document.getElementById('assignTaskModal');
-            let modalInst = bootstrap.Modal.getInstance(modalEl);
-            if (!modalInst) {
-                modalInst = new bootstrap.Modal(modalEl);
-            }
-            modalInst.show();
         });
+        
+        const addBtn = cell.querySelector('.calendar-add-task-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                const dateInput = document.getElementById('modalTaskDeadline');
+                if (dateInput) {
+                    dateInput.value = dateString;
+                }
+                const modalEl = document.getElementById('assignTaskModal');
+                let modalInst = bootstrap.Modal.getInstance(modalEl);
+                if (!modalInst) {
+                    modalInst = new bootstrap.Modal(modalEl);
+                }
+                modalInst.show();
+            });
+        }
         
         grid.appendChild(cell);
     }
@@ -2395,6 +2422,106 @@ function renderCalendar() {
         grid.appendChild(cell);
     }
 }
+
+function showDayTasksModal(dateString, dayTasks) {
+    const existing = document.getElementById('day-tasks-modal-container');
+    if (existing) existing.remove();
+    
+    const formattedDate = new Date(dateString + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    
+    let tasksHtml = '';
+    dayTasks.forEach(t => {
+        let statusBadge = '';
+        if (t.status === 'pending') statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+        else if (t.status === 'in_progress') statusBadge = '<span class="badge bg-info text-dark">In Progress</span>';
+        else if (t.status === 'under_review') statusBadge = '<span class="badge bg-purple text-white" style="background:#9b5de5;">Under Review</span>';
+        else if (t.status === 'completed') statusBadge = '<span class="badge bg-success text-white">Completed</span>';
+        
+        tasksHtml += `
+            <div class="p-3 mb-2 rounded border" style="background: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
+                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                    <div>
+                        <h6 class="text-white fw-bold m-0" style="font-size: 15px;">${t.title}</h6>
+                        <small class="text-muted d-block mt-1">Client: ${t.client} | Assigned: ${t.assignedTo.name}</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        ${statusBadge}
+                        <button class="btn btn-sm btn-outline-info" onclick="viewTaskFromCalendar('${t.id}')" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    const wrapper = document.createElement('div');
+    wrapper.id = 'day-tasks-modal-container';
+    wrapper.innerHTML = `
+        <div class="modal fade" id="dayTasksModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                    <div class="modal-header custom-modal-header border-bottom d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
+                        <div>
+                            <h5 class="modal-title text-white fw-bold">Tasks List</h5>
+                            <small class="text-muted">${formattedDate}</small>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body custom-modal-body text-white p-4" style="max-height: 400px; overflow-y: auto;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="text-white-50 font-weight-bold">${dayTasks.length} Tasks Scheduled</span>
+                            <button class="btn btn-sm btn-dss" onclick="assignTaskFromCalendarDate('${dateString}')">
+                                <i class="fa-solid fa-circle-plus me-1"></i> Assign New
+                            </button>
+                        </div>
+                        ${tasksHtml}
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(wrapper);
+    const bsModal = new bootstrap.Modal(document.getElementById('dayTasksModal'));
+    bsModal.show();
+}
+
+function viewTaskFromCalendar(taskId) {
+    const dayModalEl = document.getElementById('dayTasksModal');
+    if (dayModalEl) {
+        const dayModal = bootstrap.Modal.getInstance(dayModalEl);
+        if (dayModal) dayModal.hide();
+    }
+    setTimeout(() => {
+        viewTaskDetails(taskId);
+    }, 450);
+}
+
+function assignTaskFromCalendarDate(dateString) {
+    const dayModalEl = document.getElementById('dayTasksModal');
+    if (dayModalEl) {
+        const dayModal = bootstrap.Modal.getInstance(dayModalEl);
+        if (dayModal) dayModal.hide();
+    }
+    setTimeout(() => {
+        const dateInput = document.getElementById('modalTaskDeadline');
+        if (dateInput) {
+            dateInput.value = dateString;
+        }
+        const modalEl = document.getElementById('assignTaskModal');
+        let modalInst = bootstrap.Modal.getInstance(modalEl);
+        if (!modalInst) {
+            modalInst = new bootstrap.Modal(modalEl);
+        }
+        modalInst.show();
+    }, 450);
+}
+
+window.showDayTasksModal = showDayTasksModal;
+window.viewTaskFromCalendar = viewTaskFromCalendar;
+window.assignTaskFromCalendarDate = assignTaskFromCalendarDate;
 
 function showTaskAlertDetails(t) {
     const existing = document.getElementById('task-detail-modal-container');
