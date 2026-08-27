@@ -1198,7 +1198,8 @@ app.post('/api/attendance/punch-in', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
         // Check if already punched in today
         let log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
@@ -1206,7 +1207,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Already punched in today.' });
         }
 
-        const timeStr = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+        const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
         const [hrs, mins] = timeStr.split(':').map(Number);
         const currentMinutes = hrs * 60 + mins;
 
