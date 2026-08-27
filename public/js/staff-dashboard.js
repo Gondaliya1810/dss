@@ -580,7 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="d-flex gap-2 mt-2">
                     <button class="modal-cancel-btn w-100" style="border-radius: 50px; font-weight: 600; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 12px 20px; transition: all 0.3s ease; cursor: pointer;">Cancel</button>
-                    <button class="modal-submit-btn w-100" style="border-radius: 50px; font-weight: 700; background: linear-gradient(135deg, #fa9d1c 0%, #ff5e3b 100%); border: none; color: #ffffff; padding: 12px 20px; transition: all 0.3s ease; cursor: pointer; box-shadow: 0 4px 15px rgba(250, 157, 28, 0.25);">Verify & Punch Out</button>
+                    <button class="modal-submit-btn w-100" style="border-radius: 50px; font-weight: 700; background: linear-gradient(135deg, #fa9d1c 0%, #ff5e3b 100%); border: none; color: #ffffff; padding: 12px 20px; transition: all 0.3s ease; cursor: pointer; box-shadow: 0 4px 15px rgba(250, 157, 28, 0.25);">Verify</button>
                 </div>
             </div>
         `;
@@ -648,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Connection error.', false);
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Verify & Punch Out';
+                submitBtn.innerHTML = 'Verify';
             }
         });
     }
