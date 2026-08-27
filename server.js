@@ -1210,6 +1210,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             }
             
             const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
+            console.log(`[Punch In Debug] clientIp: "${clientIp}", isLocal: ${isLocal}, allowedIps:`, allowedIps);
             if (!isLocal && !allowedIps.includes(clientIp)) {
                 return res.status(400).json({ 
                     success: false, 
@@ -1297,6 +1298,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
             }
             
             const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
+            console.log(`[Punch Out Debug] clientIp: "${clientIp}", isLocal: ${isLocal}, allowedIps:`, allowedIps);
             if (!isLocal && !allowedIps.includes(clientIp)) {
                 return res.status(400).json({ 
                     success: false, 
