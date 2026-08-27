@@ -521,6 +521,41 @@
             transform: scale(0.98) translateY(1px);
         }
 
+        .punch-btn:disabled {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: rgba(255, 255, 255, 0.3) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        /* Early leave button */
+        .btn-early-leave {
+            background: rgba(250, 157, 28, 0.06) !important;
+            color: #fa9d1c !important;
+            border: 1px solid rgba(250, 157, 28, 0.25) !important;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 12px 25px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(250, 157, 28, 0.05);
+        }
+
+        .btn-early-leave:hover {
+            background: rgba(250, 157, 28, 0.12) !important;
+            border-color: rgba(250, 157, 28, 0.4) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(250, 157, 28, 0.15);
+            color: #ffb74d !important;
+        }
+
+        .btn-early-leave:active {
+            transform: translateY(1px);
+        }
+
         /* Attendance list and tables */
         .custom-table {
             width: 100%;
@@ -808,7 +843,7 @@
                                 </div>
 
                                 <div id="earlyLeaveContainer" class="my-3" style="display: none;">
-                                    <button id="btnRequestEarlyLeave" class="btn btn-sm btn-outline-warning w-100 py-2" style="border-radius: 10px; font-weight: 600;">
+                                    <button id="btnRequestEarlyLeave" class="btn-early-leave w-100">
                                         <i class="fa-solid fa-envelope-open-text me-1"></i> Request Early Punch Out
                                     </button>
                                 </div>

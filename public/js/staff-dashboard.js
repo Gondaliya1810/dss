@@ -563,24 +563,24 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.transition = 'opacity 0.3s ease';
 
         modal.innerHTML = `
-            <div class="glass-card" style="max-width: 420px; width: 90%; padding: 30px; position: relative; border: 1px solid rgba(255,255,255,0.08); background: rgba(18, 18, 26, 0.95); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-                <button class="modal-close-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+            <div class="glass-card" style="max-width: 420px; width: 90%; padding: 30px; position: relative; border: 1px solid rgba(255,255,255,0.08); background: rgba(18, 18, 26, 0.95); border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); backdrop-filter: blur(15px);">
+                <button class="modal-close-btn" style="position: absolute; top: 18px; right: 18px; background: none; border: none; color: rgba(255,255,255,0.4); font-size: 24px; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">&times;</button>
                 <div class="text-center mb-4">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 193, 7, 0.1); border: 2px dashed #ffc107; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                        <i class="fa-solid fa-shield-halved text-warning" style="font-size: 24px;"></i>
+                    <div style="width: 65px; height: 65px; border-radius: 50%; background: rgba(250, 157, 28, 0.08); border: 2px dashed rgba(250, 157, 28, 0.4); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 0 20px rgba(250, 157, 28, 0.1);">
+                        <i class="fa-solid fa-shield-halved" style="font-size: 24px; color: #fa9d1c;"></i>
                     </div>
-                    <h5 class="text-white fw-bold">Verify Early Punch Out</h5>
-                    <p class="text-muted small">Ask Admin for the 4-digit code sent to their email to authorize your early leave.</p>
+                    <h5 class="text-white fw-bold mb-2" style="letter-spacing: 0.5px;">Verify Early Punch Out</h5>
+                    <p class="text-muted small px-2">Ask Admin for the 4-digit code sent to their email to authorize your early leave.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label text-muted small">Verification Code</label>
-                    <input type="text" id="earlyLeaveCodeInput" class="form-control text-center text-white" placeholder="Enter 4-digit Code" maxlength="4" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 20px; font-weight: 700; letter-spacing: 4px; padding: 12px;">
+                    <label class="form-label text-muted small mb-2" style="font-weight: 500; letter-spacing: 0.5px;">Verification Code</label>
+                    <input type="text" id="earlyLeaveCodeInput" class="form-control" placeholder="0 0 0 0" maxlength="4" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 6px; text-align: center; padding: 14px 10px; outline: none; transition: all 0.3s ease; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
                 </div>
 
-                <div class="d-flex gap-2">
-                    <button class="btn btn-secondary w-100 modal-cancel-btn" style="border-radius: 10px; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">Cancel</button>
-                    <button class="btn btn-warning w-100 modal-submit-btn" style="border-radius: 10px; font-weight: 600; color: #000;">Verify & Punch Out</button>
+                <div class="d-flex gap-2 mt-2">
+                    <button class="modal-cancel-btn w-100" style="border-radius: 50px; font-weight: 600; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); padding: 12px 20px; transition: all 0.3s ease; cursor: pointer;">Cancel</button>
+                    <button class="modal-submit-btn w-100" style="border-radius: 50px; font-weight: 700; background: linear-gradient(135deg, #fa9d1c 0%, #ff5e3b 100%); border: none; color: #ffffff; padding: 12px 20px; transition: all 0.3s ease; cursor: pointer; box-shadow: 0 4px 15px rgba(250, 157, 28, 0.25);">Verify & Punch Out</button>
                 </div>
             </div>
         `;
@@ -597,11 +597,23 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => modal.remove(), 300);
         };
 
-        modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
-        modal.querySelector('.modal-cancel-btn').addEventListener('click', closeModal);
+        const closeBtn = modal.querySelector('.modal-close-btn');
+        closeBtn.addEventListener('click', closeModal);
+        closeBtn.addEventListener('mouseover', () => { closeBtn.style.color = '#fff'; closeBtn.style.background = 'rgba(255,255,255,0.05)'; });
+        closeBtn.addEventListener('mouseout', () => { closeBtn.style.color = 'rgba(255,255,255,0.4)'; closeBtn.style.background = 'none'; });
+
+        const cancelBtn = modal.querySelector('.modal-cancel-btn');
+        cancelBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('mouseover', () => { cancelBtn.style.background = 'rgba(255,255,255,0.08)'; cancelBtn.style.color = '#fff'; });
+        cancelBtn.addEventListener('mouseout', () => { cancelBtn.style.background = 'rgba(255,255,255,0.04)'; cancelBtn.style.color = 'rgba(255,255,255,0.7)'; });
         
         const submitBtn = modal.querySelector('.modal-submit-btn');
+        submitBtn.addEventListener('mouseover', () => { submitBtn.style.transform = 'translateY(-2px)'; submitBtn.style.boxShadow = '0 6px 20px rgba(250, 157, 28, 0.4)'; });
+        submitBtn.addEventListener('mouseout', () => { submitBtn.style.transform = 'none'; submitBtn.style.boxShadow = '0 4px 15px rgba(250, 157, 28, 0.25)'; });
+
         const codeInput = modal.querySelector('#earlyLeaveCodeInput');
+        codeInput.addEventListener('focus', () => { codeInput.style.borderColor = '#fa9d1c'; codeInput.style.boxShadow = '0 0 15px rgba(250, 157, 28, 0.15)'; });
+        codeInput.addEventListener('blur', () => { codeInput.style.borderColor = 'rgba(255,255,255,0.08)'; codeInput.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.2)'; });
 
         submitBtn.addEventListener('click', async () => {
             const code = codeInput.value.trim();
