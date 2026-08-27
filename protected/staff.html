@@ -347,24 +347,46 @@
                 gap: 12px !important;
             }
             .custom-table thead {
-                display: none;
+                display: none !important;
+            }
+            .custom-table tbody, .custom-table tr, .custom-table td {
+                display: block !important;
+                width: 100% !important;
             }
             .custom-table tr {
-                display: block;
-                margin-bottom: 15px;
-                padding: 10px;
+                margin-bottom: 20px;
+                border-radius: 16px;
+                border: 1px solid var(--border-color) !important;
+                background: rgba(255, 255, 255, 0.02) !important;
+                padding: 12px 8px !important;
+                box-shadow: var(--card-shadow) !important;
             }
             .custom-table td {
+                text-align: right !important;
+                padding: 12px 15px !important;
+                position: relative;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
                 font-size: 13px !important;
-                padding: 8px 10px !important;
+                min-height: 45px;
+            }
+            .custom-table td:last-child {
+                border-bottom: none !important;
             }
             .custom-table td::before {
                 content: attr(data-label);
                 font-weight: 600;
-                color: var(--text-secondary);
-                float: left;
+                color: var(--text-muted);
+                position: absolute;
+                left: 15px;
+                top: 50%;
+                transform: translateY(-50%);
                 text-transform: uppercase;
                 font-size: 11px;
+                letter-spacing: 0.5px;
+            }
+            .custom-table td .d-flex {
+                justify-content: flex-end !important;
+                text-align: right !important;
             }
         }
 
