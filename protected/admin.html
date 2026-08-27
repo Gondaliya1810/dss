@@ -1014,6 +1014,23 @@
             .stat-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
+            .sticky-mobile-header-group {
+                position: fixed;
+                top: 80px;
+                left: 0;
+                right: 0;
+                z-index: 990;
+                background: var(--bg-dark);
+                padding: 10px 12px;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .tasks-filter-card {
+                margin-bottom: 0 !important;
+                border-radius: 12px !important;
+            }
+            .tasks-list-card {
+                margin-top: 140px !important; /* Tablet/landscape offset */
+            }
         }
 
         @media (max-width: 575.98px) {
@@ -1034,22 +1051,8 @@
                 grid-template-columns: 1fr;
                 gap: 12px !important;
             }
-            .sticky-mobile-header-group {
-                position: fixed;
-                top: 80px;
-                left: 0;
-                right: 0;
-                z-index: 990;
-                background: var(--bg-dark);
-                padding: 10px 12px;
-                border-bottom: 1px solid var(--border-color);
-            }
-            .tasks-filter-card {
-                margin-bottom: 0 !important;
-                border-radius: 12px !important;
-            }
             .tasks-list-card {
-                margin-top: 205px !important;
+                margin-top: 205px !important; /* Portrait phone offset */
             }
             .custom-table thead {
                 display: none !important;
