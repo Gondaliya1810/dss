@@ -900,8 +900,6 @@ app.delete('/api/staff/:id', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Staff member not found.' });
         }
 
-        // Delete tasks associated with this staff member to keep data consistent
-        await Task.deleteMany({ 'assignedTo.id': id });
 
         res.json({ success: true, message: 'Staff member deleted successfully.' });
     } catch (error) {
