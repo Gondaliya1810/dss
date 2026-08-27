@@ -230,6 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadProfileData();
                 } else if (targetTab === 'my-attendance') {
                     loadAttendanceHistory();
+                } else if (targetTab === 'calendar') {
+                    renderCalendar();
                 }
                 
                 // Close sidebar on mobile after clicking
@@ -1281,4 +1283,227 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     window.deleteStaffChatHistory = deleteStaffChatHistory;
+
+    // Calendar functions (View-Only for Staff)
+    let currentCalendarDate = new Date();
+
+    function changeMonth(dir) {
+        currentCalendarDate.setMonth(currentCalendarDate.getMonth() + dir);
+        renderCalendar();
+    }
+    window.changeMonth = changeMonth;
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGridDays');
+        const monthTitle = document.getElementById('calMonthTitle');
+        if (!grid || !monthTitle) return;
+        grid.innerHTML = '';
+        
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        monthTitle.textContent = currentCalendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        
+        const firstDay = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+        const prevMonthTotalDays = new Date(year, month, 0).getDate();
+        
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        // TRAILING PREVIOUS MONTH
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell inactive-month';
+            const dayNum = prevMonthTotalDays - i;
+            cell.innerHTML = `<div class="calendar-date-num">${dayNum}</div>`;
+            grid.appendChild(cell);
+        }
+        
+        // ACTIVE CURRENT MONTH DAYS
+        for (let day = 1; day <= totalDays; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            
+            const cellDate = new Date(year, month, day);
+            cellDate.setHours(0,0,0,0);
+            
+            if (cellDate.getTime() === today.getTime()) {
+                cell.classList.add('today-cell');
+            }
+            
+            cell.innerHTML = `
+                <div class="calendar-date-header d-flex justify-content-between align-items-center w-100 mb-1">
+                    <div class="calendar-date-num">${day}</div>
+                </div>
+            `;
+            
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayTasks = allTasks.filter(t => t.deadline === dateString);
+            
+            if (dayTasks.length > 0) {
+                const badge = document.createElement('div');
+                badge.className = 'calendar-task-badge mt-2';
+                badge.style.display = 'inline-flex';
+                badge.style.alignItems = 'center';
+                badge.style.justifyContent = 'center';
+                badge.style.width = '20px';
+                badge.style.height = '20px';
+                badge.style.borderRadius = '50%';
+                badge.style.background = 'linear-gradient(135deg, #fa9d1c, #ff7b00)';
+                badge.style.color = '#fff';
+                badge.style.fontSize = '10px';
+                badge.style.fontWeight = 'bold';
+                badge.style.boxShadow = '0 0 8px rgba(250,157,28,0.6)';
+                badge.textContent = dayTasks.length;
+                badge.title = `${dayTasks.length} Tasks Scheduled`;
+                
+                cell.appendChild(badge);
+            }
+            
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', () => {
+                if (dayTasks.length > 0) {
+                    showStaffDayTasksModal(dateString, dayTasks);
+                }
+            });
+            
+            grid.appendChild(cell);
+        }
+        
+        // LEADING NEXT MONTH DAYS
+        const totalRendered = firstDay + totalDays;
+        const remainder = (7 - (totalRendered % 7)) % 7;
+        for (let day = 1; day <= remainder; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell inactive-month';
+            cell.innerHTML = `<div class="calendar-date-num">${day}</div>`;
+            grid.appendChild(cell);
+        }
+    }
+    window.renderCalendar = renderCalendar;
+
+    function showStaffDayTasksModal(dateString, dayTasks) {
+        const existing = document.getElementById('day-tasks-modal-container');
+        if (existing) existing.remove();
+        
+        const formattedDate = new Date(dateString + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        let tasksHtml = '';
+        dayTasks.forEach(t => {
+            let statusBadge = '';
+            if (t.status === 'pending') statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+            else if (t.status === 'in_progress') statusBadge = '<span class="badge bg-info text-dark">In Progress</span>';
+            else if (t.status === 'under_review') statusBadge = '<span class="badge bg-purple text-white" style="background:#9b5de5;">Under Review</span>';
+            else if (t.status === 'completed') statusBadge = '<span class="badge bg-success text-white">Completed</span>';
+            
+            tasksHtml += `
+                <div class="p-3 mb-2 rounded border" style="background: rgba(255,255,255,0.02); border-color: var(--border-color) !important;">
+                    <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                        <div>
+                            <h6 class="text-white fw-bold m-0" style="font-size: 15px;">${t.title}</h6>
+                            <small class="text-muted d-block mt-1">Client: ${t.client}</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            ${statusBadge}
+                            <button class="btn btn-sm btn-outline-info" onclick="viewTaskFromCalendar('${t.id}')" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        const wrapper = document.createElement('div');
+        wrapper.id = 'day-tasks-modal-container';
+        wrapper.innerHTML = `
+            <div class="modal fade" id="dayTasksModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                        <div class="modal-header custom-modal-header border-bottom d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
+                            <div>
+                                <h5 class="modal-title text-white fw-bold">Tasks List</h5>
+                                <small class="text-muted">${formattedDate}</small>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body custom-modal-body text-white p-4" style="max-height: 400px; overflow-y: auto;">
+                            <div class="mb-3">
+                                <span class="text-white-50 font-weight-bold">${dayTasks.length} Tasks Scheduled</span>
+                            </div>
+                            ${tasksHtml}
+                        </div>
+                        <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                            <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(wrapper);
+        const bsModal = new bootstrap.Modal(document.getElementById('dayTasksModal'));
+        bsModal.show();
+    }
+    window.showStaffDayTasksModal = showStaffDayTasksModal;
+
+    function viewTaskFromCalendar(taskId) {
+        const dayModalEl = document.getElementById('dayTasksModal');
+        if (dayModalEl) {
+            const dayModal = bootstrap.Modal.getInstance(dayModalEl);
+            if (dayModal) dayModal.hide();
+        }
+        setTimeout(() => {
+            const t = allTasks.find(x => x.id === taskId);
+            if (t) showStaffTaskAlertDetails(t);
+        }, 450);
+    }
+    window.viewTaskFromCalendar = viewTaskFromCalendar;
+
+    function showStaffTaskAlertDetails(t) {
+        const existing = document.getElementById('task-detail-modal-container');
+        if (existing) existing.remove();
+        
+        const wrapper = document.createElement('div');
+        wrapper.id = 'task-detail-modal-container';
+        wrapper.innerHTML = `
+            <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                        <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                            <h5 class="modal-title text-white fw-bold">Task Parameters</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body custom-modal-body text-white p-4">
+                            <h4 class="text-warning fw-bold mb-2">${t.title}</h4>
+                            <div class="mb-3 d-flex gap-2 align-items-center">
+                                <span class="badge bg-info text-dark" style="font-size: 11px; padding: 6px 12px; border-radius: 8px;">${t.status.replace('_', ' ')}</span>
+                                <span class="priority-text text-danger" style="font-size: 11px;">${t.priority} Priority</span>
+                            </div>
+                            <hr style="border-color: var(--border-color); opacity: 0.1;">
+                            <div class="mb-3">
+                                <strong class="text-white-50 d-block small mb-1">Client:</strong>
+                                <span>${t.client}</span>
+                            </div>
+                            <div class="mb-3">
+                                <strong class="text-white-50 d-block small mb-1">Deadline Date:</strong>
+                                <span>${new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong class="text-white-50 d-block small mb-1">Task Guidelines:</strong>
+                                <p class="text-secondary small mt-1" style="background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">${t.description || 'No specific guidelines provided.'}</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                            <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(wrapper);
+        const bsModal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+        bsModal.show();
+    }
+    window.showStaffTaskAlertDetails = showStaffTaskAlertDetails;
 });

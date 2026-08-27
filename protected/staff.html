@@ -724,6 +724,44 @@
             transform: translateY(0);
             opacity: 1;
         }
+
+        /* Calendar Styles */
+        .calendar-cell {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 105px;
+            transition: transform 0.25s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+            position: relative;
+        }
+
+        .calendar-cell:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-cell.inactive-month {
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .calendar-cell.today-cell {
+            border: 2px solid var(--accent-color) !important;
+            box-shadow: 0 0 15px rgba(250, 157, 28, 0.25) !important;
+        }
+
+        .calendar-date-num {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
         
         h1, h2, h3, h4, h5, h6, span, p, a, i, td, th, select, input, button, div {
             transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
@@ -804,6 +842,12 @@
                         <div class="menu-link" data-tab="my-attendance" id="tabLinkMyAttendance">
                             <i class="fa-solid fa-business-time"></i>
                             <span>My Attendance</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="menu-link" data-tab="calendar" id="tabLinkCalendar">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span>Calendar</span>
                         </div>
                     </li>
                 </ul>
@@ -1126,6 +1170,38 @@
                         <div id="logsEmptyState" class="text-center py-5 text-muted" style="display: none;">
                             <i class="fa-solid fa-calendar-check mb-2" style="font-size: 30px;"></i>
                             <p class="mb-0">No attendance logs logged yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. CALENDAR TAB -->
+                <div class="tab-content-panel" id="tab-calendar" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div>
+                            <h2 class="text-white fw-bold m-0">Task Calendar</h2>
+                            <p class="text-muted mb-0">View all your tasks and deadlines in a monthly calendar view</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-dss btn-sm" id="calPrevBtn" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h4 class="text-white m-0 fw-bold" id="calMonthTitle" style="min-width: 140px; text-align: center;">August 2026</h4>
+                            <button class="btn btn-outline-dss btn-sm" id="calNextBtn" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="admin-card p-4">
+                        <!-- Calendar days header -->
+                        <div class="d-grid text-center text-white-50 fw-bold border-bottom pb-2 mb-2" style="grid-template-columns: repeat(7, 1fr); font-size: 13px;">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+                        <!-- Calendar grid days -->
+                        <div id="calendarGridDays" class="d-grid" style="grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(100px, auto); gap: 8px;">
+                            <!-- Rendered dynamically -->
                         </div>
                     </div>
                 </div>
