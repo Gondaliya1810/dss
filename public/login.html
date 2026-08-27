@@ -29,7 +29,13 @@
             border: 1px solid var(--border-color);
             border-radius: 20px;
             box-shadow: var(--card-shadow);
-            transition: transform var(--anim-normal), box-shadow var(--anim-normal);
+            transition: transform var(--anim-normal), box-shadow var(--anim-normal), border-color var(--anim-normal);
+        }
+
+        .admin-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: var(--glow-shadow);
+            transform: translateY(-4px);
         }
 
         .login-card {

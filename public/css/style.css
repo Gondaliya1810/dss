@@ -92,6 +92,54 @@ body {
     transition: background-color var(--anim-normal), color var(--anim-normal);
 }
 
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(250, 157, 28, 0.15);
+    border-radius: 10px;
+    border: 2px solid var(--bg-dark);
+    transition: all 0.3s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(250, 157, 28, 0.4);
+}
+
+/* Premium Bootstrap Input Overrides */
+.form-control, .form-select {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+    transition: all 0.3s ease-in-out !important;
+}
+
+.lightmode .form-control, .lightmode .form-select {
+    background-color: rgba(0, 0, 0, 0.02) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 15px rgba(250, 157, 28, 0.15) !important;
+    color: #ffffff !important;
+    outline: none !important;
+}
+
+.lightmode .form-control:focus, .lightmode .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 15px rgba(250, 157, 28, 0.08) !important;
+    color: var(--text-primary) !important;
+    outline: none !important;
+}
+
 /* Dynamic Moving Background Blobs */
 body::before,
 body::after {
