@@ -1034,6 +1034,20 @@
                 grid-template-columns: 1fr;
                 gap: 12px !important;
             }
+            .sticky-mobile-header-group {
+                position: sticky;
+                top: 80px;
+                z-index: 990;
+                background: var(--bg-dark);
+                padding-top: 10px;
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .tasks-filter-card {
+                margin-bottom: 0 !important;
+                border-radius: 12px !important;
+            }
             .custom-table thead {
                 display: none !important;
             }
@@ -1832,43 +1846,47 @@
 
             <!-- ALL TASKS TAB -->
             <section id="tab-all-tasks" class="tab-content" style="display: none;">
-                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-                    <h2 class="admin-title m-0">All Assigned Tasks</h2>
-                    <button class="btn btn-primary-gradient px-4 py-2 border-0 text-white font-weight-bold" onclick="switchTab('assign-task')" style="border-radius: 8px;">
-                        <i class="fa-solid fa-circle-plus me-2"></i>Assign New Task
-                    </button>
+                <div class="sticky-mobile-header-group">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                        <h2 class="admin-title m-0">All Assigned Tasks</h2>
+                        <button class="btn btn-primary-gradient px-4 py-2 border-0 text-white font-weight-bold" onclick="switchTab('assign-task')" style="border-radius: 8px;">
+                            <i class="fa-solid fa-circle-plus me-2"></i>Assign New Task
+                        </button>
+                    </div>
+                    
+                    <div class="admin-card mb-3 p-3 tasks-filter-card">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="d-flex gap-2 align-items-center">
+                                <span class="text-white-50" style="font-size: 14px;">Filters:</span>
+                            </div>
+                            <div class="d-flex flex-wrap flex-md-nowrap gap-2 align-items-center">
+                                <!-- Search -->
+                                <input type="text" class="form-control form-control-dss" id="allSearchTask" placeholder="Search task title or client..." style="max-width: 210px;">
+                                <!-- Status -->
+                                <select class="form-select form-control-dss" id="allFilterStatus" style="max-width: 130px;">
+                                    <option value="all">All Statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                                <!-- Staff -->
+                                <select class="form-select form-control-dss" id="allFilterStaff" style="max-width: 130px;">
+                                    <option value="all">All Staff</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <!-- Priority -->
+                                <select class="form-select form-control-dss" id="allFilterPriority" style="max-width: 120px;">
+                                    <option value="all">All Priorities</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="admin-card">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-                        <div class="d-flex gap-2 align-items-center">
-                            <span class="text-white-50" style="font-size: 14px;">Filters:</span>
-                        </div>
-                        <div class="d-flex flex-wrap flex-md-nowrap gap-2 align-items-center">
-                            <!-- Search -->
-                            <input type="text" class="form-control form-control-dss" id="allSearchTask" placeholder="Search task title or client..." style="max-width: 210px;">
-                            <!-- Status -->
-                            <select class="form-select form-control-dss" id="allFilterStatus" style="max-width: 130px;">
-                                <option value="all">All Statuses</option>
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                            <!-- Staff -->
-                            <select class="form-select form-control-dss" id="allFilterStaff" style="max-width: 130px;">
-                                <option value="all">All Staff</option>
-                                <!-- Populated dynamically -->
-                            </select>
-                            <!-- Priority -->
-                            <select class="form-select form-control-dss" id="allFilterPriority" style="max-width: 120px;">
-                                <option value="all">All Priorities</option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                    </div>
-
                     <div class="project-table-container">
                         <table class="custom-table">
                             <thead>
