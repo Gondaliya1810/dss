@@ -1910,7 +1910,7 @@ function renderAttendanceLogs(logs) {
     monthlyTbody.innerHTML = '';
 
     // 1. Render Daily punch logs (filter for today's date in local time)
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD format
     const todayLogs = logs.filter(l => l.date === todayStr);
 
     if (todayLogs.length === 0) {

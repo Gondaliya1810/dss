@@ -1183,7 +1183,7 @@ app.get('/api/attendance/status', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
         res.json({ success: true, log });
     } catch (err) {
@@ -1198,7 +1198,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
         // Check if already punched in today
         let log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
@@ -1206,12 +1206,14 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Already punched in today.' });
         }
 
+        const timeStr = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+        const [hrs, mins] = timeStr.split(':').map(Number);
+        const currentMinutes = hrs * 60 + mins;
+
         // Check shift start time restriction for all staff members based on their shiftTime
         if (staff.shiftTime) {
             const shiftStart = parseShiftStartTime(staff.shiftTime);
             if (shiftStart) {
-                const now = new Date();
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
                 const startMinutes = shiftStart.hours * 60 + shiftStart.minutes;
                 
                 if (currentMinutes < startMinutes) {
@@ -1224,20 +1226,17 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             }
         }
 
-        // Calculate status dynamically based on shift start time (with 30 min grace period)
-        const now = new Date();
+        // Calculate status dynamically based on shift start time (with 15 min grace period)
         let status = 'present';
         const shiftStart = parseShiftStartTime(staff.shiftTime);
         if (shiftStart) {
-            const shiftStartToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), shiftStart.hours, shiftStart.minutes, 0);
-            const graceTime = new Date(shiftStartToday.getTime() + 30 * 60 * 1000); // 30 minutes grace period
-            if (now > graceTime) {
+            const startMinutes = shiftStart.hours * 60 + shiftStart.minutes;
+            if (currentMinutes > startMinutes + 15) {
                 status = 'late';
             }
         } else {
-            // Fallback default
-            const startOfTodayTenAm = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0, 0);
-            if (now > startOfTodayTenAm) {
+            // Fallback default: standard start time is 10:00 AM, grace period of 15 min -> 10:15 AM
+            if (currentMinutes > 10 * 60 + 15) {
                 status = 'late';
             }
         }
@@ -1265,7 +1264,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
         const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
         if (!log) {
