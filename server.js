@@ -1198,6 +1198,26 @@ app.post('/api/attendance/punch-in', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
+        // Verify IP address restriction if configured
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP;
+        if (allowedIpEnv) {
+            const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
+            
+            const forwarded = req.headers['x-forwarded-for'];
+            let clientIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+            if (clientIp && clientIp.startsWith('::ffff:')) {
+                clientIp = clientIp.substring(7);
+            }
+            
+            const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
+            if (!isLocal && !allowedIps.includes(clientIp)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'You must be connected to the office WiFi (Airtal_DSS) to register attendance.' 
+                });
+            }
+        }
+
         const now = new Date();
         const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
@@ -1265,6 +1285,26 @@ app.post('/api/attendance/punch-out', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
+        // Verify IP address restriction if configured
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP;
+        if (allowedIpEnv) {
+            const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
+            
+            const forwarded = req.headers['x-forwarded-for'];
+            let clientIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+            if (clientIp && clientIp.startsWith('::ffff:')) {
+                clientIp = clientIp.substring(7);
+            }
+            
+            const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
+            if (!isLocal && !allowedIps.includes(clientIp)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'You must be connected to the office WiFi (Airtal_DSS) to register attendance.' 
+                });
+            }
+        }
+
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
         const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
