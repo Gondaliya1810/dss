@@ -1410,7 +1410,7 @@ app.post('/api/attendance/request-early-leave', async (req, res) => {
         });
 
         // Email details
-        const adminEmail = process.env.ADMIN_EMAIL || 'harsh@gmail.com';
+        const adminEmail = process.env.ADMIN_EMAIL || 'jatinygondaliya@gmail.com';
         const emailContent = `
             <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 25px; border: 1px solid #1a1a24; background-color: #0b0b10; color: #ffffff; border-radius: 12px;">
                 <h2 style="color: #ffc107; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #20202d; padding-bottom: 10px; font-size: 18px;">Early Leave Request</h2>
