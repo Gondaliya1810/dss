@@ -941,9 +941,6 @@ async function loadAdminLeads() {
                     <td data-label="Service">
                         <span class="badge-dss">${serviceLabel}</span>
                     </td>
-                    <td data-label="Message Snippet">
-                        <span class="text-muted" style="font-size: 14px;">${messageSnippet}</span>
-                    </td>
                     <td data-label="Status">
                         <span class="lead-status-badge status-${lead.status}" onclick="cycleLeadStatus('${lead.id}', '${lead.status}')">
                             <i class="fa-solid ${lead.status === 'pending' ? 'fa-clock' : lead.status === 'contacted' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
@@ -1116,17 +1113,17 @@ function viewLeadDetails(id) {
     // Actions panel
     const actionsContainer = document.getElementById('detailLeadActions');
     actionsContainer.innerHTML = `
-        <a class="lead-btn btn-whatsapp px-3" href="${getWhatsAppLink(lead.phone, lead.name, serviceLabel)}" target="_blank" style="width: auto; gap: 8px;">
+        <a class="btn btn-sm d-inline-flex align-items-center gap-2 text-white border-0" href="${getWhatsAppLink(lead.phone, lead.name, serviceLabel)}" target="_blank" style="background: #25d366; font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px; box-shadow: 0 4px 10px rgba(37,211,102,0.15);">
             <i class="fa-brands fa-whatsapp"></i> Chat on WhatsApp
         </a>
-        <a class="lead-btn px-3" href="mailto:${lead.email}" style="width: auto; gap: 8px;">
+        <a class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-2" href="mailto:${lead.email}" style="font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px;">
             <i class="fa-solid fa-envelope"></i> Email Client
         </a>
         ${lead.phone !== 'N/A' ? `
-        <a class="lead-btn px-3" href="tel:${lead.phone}" style="width: auto; gap: 8px;">
+        <a class="btn btn-sm btn-outline-info d-inline-flex align-items-center gap-2" href="tel:${lead.phone}" style="font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px;">
             <i class="fa-solid fa-phone"></i> Call Client
         </a>` : ''}
-        <button class="lead-btn btn-delete px-3 ms-2" onclick="confirmDeleteLead('${lead.id}')" style="width: auto; gap: 8px;">
+        <button class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-2" onclick="confirmDeleteLead('${lead.id}')" style="font-size: 12px; font-weight: 600; padding: 8px 12px; border-radius: 8px;">
             <i class="fa-solid fa-trash-can"></i> Delete
         </button>
     `;
