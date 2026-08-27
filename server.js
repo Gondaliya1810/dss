@@ -572,6 +572,28 @@ function parseShiftStartTime(shiftTimeStr) {
     return { hours, minutes };
 }
 
+function parseShiftEndTime(shiftTimeStr) {
+    if (!shiftTimeStr) return null;
+    const parts = shiftTimeStr.split('-');
+    if (parts.length < 2) return null;
+    
+    const endPart = parts[1].trim(); // e.g. "07:00 PM"
+    const match = endPart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if (!match) return null;
+    
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = match[3].toUpperCase();
+    
+    if (ampm === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (ampm === 'AM' && hours === 12) {
+        hours = 0;
+    }
+    
+    return { hours, minutes };
+}
+
 // ------------------------------------------------------------------------
 // TASK TRACKING API ENDPOINTS
 // ------------------------------------------------------------------------
@@ -1302,6 +1324,32 @@ app.post('/api/attendance/punch-out', async (req, res) => {
                     success: false, 
                     message: 'You must be connected to the office WiFi (Airtal_DSS) to register attendance.' 
                 });
+            }
+        }
+
+        // Check shift end time restriction (cannot punch out more than 1 hour before shift ends)
+        if (staff.shiftTime) {
+            const shiftEnd = parseShiftEndTime(staff.shiftTime);
+            if (shiftEnd) {
+                const timeStr = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                const [hrs, mins] = timeStr.split(':').map(Number);
+                const currentMinutes = hrs * 60 + mins;
+                const endMinutes = shiftEnd.hours * 60 + shiftEnd.minutes;
+                const unlockMinutes = endMinutes - 60;
+                
+                if (currentMinutes < unlockMinutes) {
+                    const unlockHrs = Math.floor(unlockMinutes / 60);
+                    const unlockMins = unlockMinutes % 60;
+                    const ampm = unlockHrs >= 12 ? 'PM' : 'AM';
+                    const displayHrs = unlockHrs % 12 === 0 ? 12 : unlockHrs % 12;
+                    const displayMins = String(unlockMins).padStart(2, '0');
+                    const unlockTimeDisplay = `${displayHrs}:${displayMins} ${ampm}`;
+                    
+                    return res.status(400).json({
+                        success: false,
+                        message: `You cannot punch-out yet. Punch-out will unlock 1 hour before your shift ends (at ${unlockTimeDisplay}).`
+                    });
+                }
             }
         }
 

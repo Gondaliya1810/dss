@@ -381,9 +381,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(timerInterval);
         if (!punchBtn) return;
         
+        const info = JSON.parse(localStorage.getItem('staffInfo'));
+        const shiftTime = info ? info.shiftTime : null;
+        
         if (!activeLog) {
             punchBtn.className = 'punch-btn punch-btn-in w-100';
             punchBtnText.textContent = 'Punch In';
+            punchBtn.disabled = false;
             if (shiftTimer) shiftTimer.textContent = '00:00:00';
             if (statShiftStatus) statShiftStatus.innerHTML = '<span class="text-muted">Offline</span>';
         } else if (activeLog.punchIn && !activeLog.punchOut) {
@@ -403,6 +407,41 @@ document.addEventListener('DOMContentLoaded', () => {
                         String(hrs).padStart(2, '0') + ':' + 
                         String(mins).padStart(2, '0') + ':' + 
                         String(secs).padStart(2, '0');
+                }
+                
+                // Real-time lock check
+                if (shiftTime) {
+                    const parts = shiftTime.split('-');
+                    if (parts.length >= 2) {
+                        const endPart = parts[1].trim();
+                        const match = endPart.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                        if (match) {
+                            let endHrs = parseInt(match[1], 10);
+                            const endMins = parseInt(match[2], 10);
+                            const ampm = match[3].toUpperCase();
+                            if (ampm === 'PM' && endHrs !== 12) endHrs += 12;
+                            else if (ampm === 'AM' && endHrs === 12) endHrs = 0;
+                            
+                            const endMinutes = endHrs * 60 + endMins;
+                            const unlockMinutes = endMinutes - 60;
+                            
+                            const now = new Date();
+                            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                            
+                            if (currentMinutes < unlockMinutes) {
+                                punchBtn.disabled = true;
+                                const unlockHrs = Math.floor(unlockMinutes / 60);
+                                const unlockMins = unlockMinutes % 60;
+                                const displayHrs = unlockHrs % 12 === 0 ? 12 : unlockHrs % 12;
+                                const displayMins = String(unlockMins).padStart(2, '0');
+                                const displayAmpm = unlockHrs >= 12 ? 'PM' : 'AM';
+                                punchBtnText.textContent = `Punch Out (Unlocks at ${displayHrs}:${displayMins} ${displayAmpm})`;
+                            } else {
+                                punchBtn.disabled = false;
+                                punchBtnText.textContent = 'Punch Out';
+                            }
+                        }
+                    }
                 }
             }
             tick();
