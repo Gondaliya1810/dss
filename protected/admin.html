@@ -720,6 +720,18 @@
             overflow-x: auto;
         }
 
+        .recent-tasks-container {
+            max-height: 310px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 991.98px) {
+            .recent-tasks-container {
+                max-height: 700px !important;
+                overflow-y: auto !important;
+            }
+        }
+
         .project-table-container::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -1829,7 +1841,7 @@
                         </div>
                     </div>
                     
-                    <div class="project-table-container">
+                    <div class="project-table-container recent-tasks-container">
                         <table class="custom-table">
                             <thead>
                                 <tr>
