@@ -1768,6 +1768,7 @@ async function loadTasks() {
             renderAllTasks();
             renderCalendar();
             updateStaffWiseReport();
+            renderStaffTable();
         }
     } catch (err) {
         console.error('Error loading tasks:', err);
