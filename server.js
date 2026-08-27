@@ -1383,6 +1383,120 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
 });
 
+// POST request early leave (generates and emails 4-digit code to admin)
+app.post('/api/attendance/request-early-leave', async (req, res) => {
+    const staff = await validateStaffAuth(req);
+    if (!staff) {
+        return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
+    }
+
+    try {
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+        const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
+        if (!log) {
+            return res.status(400).json({ success: false, message: 'Have not punched in today.' });
+        }
+        if (log.punchOut) {
+            return res.status(400).json({ success: false, message: 'Already punched out today.' });
+        }
+
+        // Generate 4-digit code
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        
+        // Save to cache (expires in 15 minutes)
+        earlyLeaveCodes.set(staff.id, { 
+            code, 
+            expiresAt: Date.now() + 15 * 60 * 1000 
+        });
+
+        // Email details
+        const adminEmail = process.env.ADMIN_EMAIL || 'harsh@gmail.com';
+        const emailContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; padding: 25px; border: 1px solid #1a1a24; background-color: #0b0b10; color: #ffffff; border-radius: 12px;">
+                <h2 style="color: #ffc107; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #20202d; padding-bottom: 10px; font-size: 18px;">Early Leave Request</h2>
+                <p style="font-size: 15px; color: #c9c9d4; line-height: 1.6;">
+                    Staff member <strong>${staff.name}</strong> (${staff.role}) is requesting authorization to punch out early.
+                </p>
+                <div style="background-color: #12121a; border: 1px solid #20202d; border-radius: 8px; padding: 15px; text-align: center; margin: 25px 0;">
+                    <div style="font-size: 11px; color: #888899; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">Authorization Code</div>
+                    <div style="font-size: 32px; font-weight: bold; color: #ff5e3b; letter-spacing: 4px;">${code}</div>
+                </div>
+                <p style="font-size: 13px; color: #888899; line-height: 1.5; margin-top: 20px;">
+                    This code is valid for 15 minutes. Share this code with ${staff.name} to allow them to punch out early.
+                </p>
+            </div>
+        `;
+
+        await sendMail(adminEmail, `Early Leave Authorization Code - ${staff.name}`, emailContent);
+
+        res.json({ success: true, message: 'Verification code sent to Admin. Please ask Admin for the code.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// POST verify early leave code and perform punch-out
+app.post('/api/attendance/verify-early-leave', async (req, res) => {
+    const staff = await validateStaffAuth(req);
+    if (!staff) {
+        return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
+    }
+
+    const { code } = req.body;
+    if (!code) {
+        return res.status(400).json({ success: false, message: 'Verification code is required.' });
+    }
+
+    try {
+        const entry = earlyLeaveCodes.get(staff.id);
+        if (!entry) {
+            return res.status(400).json({ success: false, message: 'No early leave request found or code expired.' });
+        }
+
+        if (Date.now() > entry.expiresAt) {
+            earlyLeaveCodes.delete(staff.id);
+            return res.status(400).json({ success: false, message: 'Code has expired. Please request a new one.' });
+        }
+
+        if (entry.code !== String(code).trim()) {
+            return res.status(400).json({ success: false, message: 'Invalid verification code.' });
+        }
+
+        // Code matches! Proceed to punch out
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+        const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
+        if (!log) {
+            return res.status(400).json({ success: false, message: 'Have not punched in today.' });
+        }
+        if (log.punchOut) {
+            return res.status(400).json({ success: false, message: 'Already punched out today.' });
+        }
+
+        const now = new Date();
+        log.punchOut = now;
+
+        // Calculate hours
+        const diffMs = now - new Date(log.punchIn);
+        const diffHrs = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+        log.totalHours = diffHrs;
+
+        // If total hours < 4, mark as half day
+        if (diffHrs < 4.0) {
+            log.status = 'half_day';
+        }
+
+        await log.save();
+        
+        // Remove code from cache
+        earlyLeaveCodes.delete(staff.id);
+
+        res.json({ success: true, message: 'Early punch-out approved and registered successfully.', log });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+
 // GET personal attendance logs for current staff
 app.get('/api/attendance/history', async (req, res) => {
     const staff = await validateStaffAuth(req);
@@ -1729,6 +1843,9 @@ app.delete('/api/reviews/:id', async (req, res) => {
 
 // In-memory store for OTPs
 const otpStore = new Map();
+
+// In-memory store for early leave authorization codes
+const earlyLeaveCodes = new Map();
 
 // Helper to send email
 const sendMail = async (to, subject, html) => {

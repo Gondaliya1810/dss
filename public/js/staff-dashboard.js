@@ -390,6 +390,9 @@ document.addEventListener('DOMContentLoaded', () => {
             punchBtn.disabled = false;
             if (shiftTimer) shiftTimer.textContent = '00:00:00';
             if (statShiftStatus) statShiftStatus.innerHTML = '<span class="text-muted">Offline</span>';
+            
+            const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+            if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
         } else if (activeLog.punchIn && !activeLog.punchOut) {
             punchBtn.className = 'punch-btn punch-btn-out w-100';
             punchBtnText.textContent = 'Punch Out';
@@ -436,12 +439,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const displayMins = String(unlockMins).padStart(2, '0');
                                 const displayAmpm = unlockHrs >= 12 ? 'PM' : 'AM';
                                 punchBtnText.textContent = `Punch Out (Unlocks at ${displayHrs}:${displayMins} ${displayAmpm})`;
+                                
+                                const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+                                if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'block';
                             } else {
                                 punchBtn.disabled = false;
                                 punchBtnText.textContent = 'Punch Out';
+                                
+                                const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+                                if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
                             }
                         }
                     }
+                } else {
+                    punchBtn.disabled = false;
+                    punchBtnText.textContent = 'Punch Out';
+                    const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+                    if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
                 }
             }
             tick();
@@ -459,6 +473,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     String(hrs).padStart(2, '0') + ':' + 
                     String(mins).padStart(2, '0') + ':00';
             }
+            
+            const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+            if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
         }
     }
 
@@ -491,6 +508,135 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Connection error.', false);
             } finally {
                 punchBtn.disabled = false;
+            }
+        });
+    }
+
+    // Bind Early Leave click trigger
+    const btnRequestEarlyLeave = document.getElementById('btnRequestEarlyLeave');
+    if (btnRequestEarlyLeave) {
+        btnRequestEarlyLeave.addEventListener('click', async () => {
+            btnRequestEarlyLeave.disabled = true;
+            btnRequestEarlyLeave.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Requesting...';
+            try {
+                const response = await fetch('/api/attendance/request-early-leave', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('staffToken')
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message, true);
+                    showEarlyLeaveVerificationModal();
+                } else {
+                    showToast(data.message || 'Failed to request early leave.', false);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Connection error.', false);
+            } finally {
+                btnRequestEarlyLeave.disabled = false;
+                btnRequestEarlyLeave.innerHTML = '<i class="fa-solid fa-envelope-open-text me-1"></i> Request Early Punch Out';
+            }
+        });
+    }
+
+    function showEarlyLeaveVerificationModal() {
+        const existing = document.getElementById('early-leave-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'early-leave-modal';
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(10, 10, 12, 0.85)';
+        modal.style.backdropFilter = 'blur(10px)';
+        modal.style.zIndex = '99999';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s ease';
+
+        modal.innerHTML = `
+            <div class="glass-card" style="max-width: 420px; width: 90%; padding: 30px; position: relative; border: 1px solid rgba(255,255,255,0.08); background: rgba(18, 18, 26, 0.95); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+                <button class="modal-close-btn" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                <div class="text-center mb-4">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255, 193, 7, 0.1); border: 2px dashed #ffc107; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                        <i class="fa-solid fa-shield-halved text-warning" style="font-size: 24px;"></i>
+                    </div>
+                    <h5 class="text-white fw-bold">Verify Early Punch Out</h5>
+                    <p class="text-muted small">Ask Admin for the 4-digit code sent to their email to authorize your early leave.</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label text-muted small">Verification Code</label>
+                    <input type="text" id="earlyLeaveCodeInput" class="form-control text-center text-white" placeholder="Enter 4-digit Code" maxlength="4" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-size: 20px; font-weight: 700; letter-spacing: 4px; padding: 12px;">
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary w-100 modal-cancel-btn" style="border-radius: 10px; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff;">Cancel</button>
+                    <button class="btn btn-warning w-100 modal-submit-btn" style="border-radius: 10px; font-weight: 600; color: #000;">Verify & Punch Out</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Fade in
+        setTimeout(() => {
+            modal.style.opacity = '1';
+        }, 50);
+
+        const closeModal = () => {
+            modal.style.opacity = '0';
+            setTimeout(() => modal.remove(), 300);
+        };
+
+        modal.querySelector('.modal-close-btn').addEventListener('click', closeModal);
+        modal.querySelector('.modal-cancel-btn').addEventListener('click', closeModal);
+        
+        const submitBtn = modal.querySelector('.modal-submit-btn');
+        const codeInput = modal.querySelector('#earlyLeaveCodeInput');
+
+        submitBtn.addEventListener('click', async () => {
+            const code = codeInput.value.trim();
+            if (!code || code.length !== 4) {
+                showToast('Please enter a valid 4-digit code.', false);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Verifying...';
+
+            try {
+                const response = await fetch('/api/attendance/verify-early-leave', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('staffToken')
+                    },
+                    body: JSON.stringify({ code })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message, true);
+                    closeModal();
+                    await checkTodayPunchStatus();
+                    await loadAttendanceHistory();
+                } else {
+                    showToast(data.message || 'Verification failed.', false);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Connection error.', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Verify & Punch Out';
             }
         });
     }
