@@ -2177,7 +2177,7 @@ function renderRecentTasksTable() {
             <td data-label="Client">${t.client}</td>
             <td data-label="Assigned To">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width: 26px; height: 26px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">
+                    <div style="width: 26px; height: 26px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">
                         ${t.assignedTo.name.charAt(0)}
                     </div>
                     <span class="text-white-50 small">${t.assignedTo.name}</span>
@@ -2253,7 +2253,7 @@ function renderAllTasks() {
             <td data-label="Client">${t.client}</td>
             <td data-label="Assigned To">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width: 26px; height: 26px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">
+                    <div style="width: 26px; height: 26px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">
                         ${t.assignedTo.name.charAt(0)}
                     </div>
                     <span class="text-white-50 small">${t.assignedTo.name}</span>
@@ -2419,7 +2419,7 @@ function showTaskAlertDetails(t) {
                         <div class="mb-3">
                             <strong class="text-white-50 d-block small mb-1">Assigned Staff:</strong>
                             <div class="d-flex align-items-center gap-2 mt-1">
-                                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: ${t.assignedTo.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0;">
                                     ${t.assignedTo.name.charAt(0)}
                                 </div>
                                 <span class="text-white-50">${t.assignedTo.name} (${t.assignedTo.role})</span>
@@ -2535,7 +2535,7 @@ function renderStaffTable() {
         row.innerHTML = `
             <td data-label="Staff Member">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: ${s.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: ${s.avatarColor || '#fa9d1c'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;">
                         ${s.name.charAt(0)}
                     </div>
                     <div>
@@ -3188,7 +3188,7 @@ function renderClientsTable(list = clientsList) {
         row.innerHTML = `
             <td data-label="Client Name">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #9b5de5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #9b5de5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;">
                         ${c.name.charAt(0).toUpperCase()}
                     </div>
                     <span class="fw-bold text-white">${c.name}</span>
@@ -3834,7 +3834,7 @@ function renderReviews() {
         tr.innerHTML = `
             <td>
                 <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-circle-dss d-flex align-items-center justify-content-center text-white font-weight-bold small" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));">
+                    <div class="avatar-circle-dss d-flex align-items-center justify-content-center text-white font-weight-bold small" style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); flex-shrink: 0;">
                         ${rev.avatarInitials || 'CL'}
                     </div>
                     <div>
