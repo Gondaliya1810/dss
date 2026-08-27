@@ -1035,18 +1035,21 @@
                 gap: 12px !important;
             }
             .sticky-mobile-header-group {
-                position: sticky;
+                position: fixed;
                 top: 80px;
+                left: 0;
+                right: 0;
                 z-index: 990;
                 background: var(--bg-dark);
-                padding-top: 10px;
-                padding-bottom: 10px;
-                margin-bottom: 15px;
+                padding: 10px 12px;
                 border-bottom: 1px solid var(--border-color);
             }
             .tasks-filter-card {
                 margin-bottom: 0 !important;
                 border-radius: 12px !important;
+            }
+            .tasks-list-card {
+                margin-top: 205px !important;
             }
             .custom-table thead {
                 display: none !important;
@@ -1886,7 +1889,7 @@
                     </div>
                 </div>
                 
-                <div class="admin-card">
+                <div class="admin-card tasks-list-card">
                     <div class="project-table-container">
                         <table class="custom-table">
                             <thead>
