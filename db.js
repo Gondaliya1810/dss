@@ -134,6 +134,21 @@ class SupabaseModel {
         return { deletedCount: 1 };
     }
 
+    async deleteMany(query = {}) {
+        let chain = supabase.from(this.tableName).delete();
+        for (const [key, val] of Object.entries(query)) {
+            if (key.includes('.')) {
+                const pgKey = key.replace('.', '->>');
+                chain = chain.eq(pgKey, val);
+            } else {
+                chain = chain.eq(key, val);
+            }
+        }
+        const { error } = await chain;
+        if (error) throw error;
+        return { deletedCount: 1 };
+    }
+
     async findOneAndUpdate(query = {}, updateObj = {}, options = {}) {
         const actualUpdate = updateObj.$set ? updateObj.$set : updateObj;
 
@@ -163,6 +178,7 @@ function createModel(tableName) {
     Model.findOne = (query) => modelInstance.findOne(query);
     Model.countDocuments = (query) => modelInstance.countDocuments(query);
     Model.deleteOne = (query) => modelInstance.deleteOne(query);
+    Model.deleteMany = (query) => modelInstance.deleteMany(query);
     Model.findOneAndUpdate = (query, update, options) => modelInstance.findOneAndUpdate(query, update, options);
 
     return Model;
