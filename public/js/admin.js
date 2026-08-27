@@ -2172,7 +2172,6 @@ function renderRecentTasksTable() {
         row.innerHTML = `
             <td data-label="Task Title">
                 <div class="fw-bold text-white">${t.title}</div>
-                <div class="text-muted small">${t.description ? t.description.slice(0, 45) + (t.description.length > 45 ? '...' : '') : 'No guidelines'}</div>
             </td>
             <td data-label="Client">${t.client}</td>
             <td data-label="Assigned To">
@@ -2189,7 +2188,10 @@ function renderRecentTasksTable() {
             </td>
             <td data-label="Priority"><span class="priority-text priority-${t.priority}">${t.priority}</span></td>
             <td data-label="Actions" class="text-center">
-                <button class="btn-action-dss btn-action-delete" onclick="confirmDeleteTask('${t.id}')" title="Delete Task"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="d-flex align-items-center justify-content-center gap-2">
+                    <button class="btn-action-dss btn-action-view" onclick="viewTaskDetails('${t.id}')" title="View Task"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn-action-dss btn-action-delete" onclick="confirmDeleteTask('${t.id}')" title="Delete Task"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -2248,7 +2250,6 @@ function renderAllTasks() {
         row.innerHTML = `
             <td data-label="Task Title">
                 <div class="fw-bold text-white">${t.title}</div>
-                <div class="text-muted small">${t.description || 'No specific guidelines.'}</div>
             </td>
             <td data-label="Client">${t.client}</td>
             <td data-label="Assigned To">
@@ -2265,7 +2266,10 @@ function renderAllTasks() {
             </td>
             <td data-label="Priority"><span class="priority-text priority-${t.priority}">${t.priority}</span></td>
             <td data-label="Actions" class="text-center">
-                <button class="btn-action-dss btn-action-delete" onclick="confirmDeleteTask('${t.id}')" title="Delete Task"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="d-flex align-items-center justify-content-center gap-2">
+                    <button class="btn-action-dss btn-action-view" onclick="viewTaskDetails('${t.id}')" title="View Task"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn-action-dss btn-action-delete" onclick="confirmDeleteTask('${t.id}')" title="Delete Task"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -2446,6 +2450,14 @@ function showTaskAlertDetails(t) {
     const bsModal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
     bsModal.show();
 }
+
+function viewTaskDetails(taskId) {
+    const task = tasksList.find(t => t.id === taskId);
+    if (task) {
+        showTaskAlertDetails(task);
+    }
+}
+window.viewTaskDetails = viewTaskDetails;
 
 function updateStaffWiseReport() {
     const reportSelect = document.getElementById('reportStaffSelector');
