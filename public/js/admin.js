@@ -2350,28 +2350,23 @@ function renderCalendar() {
         const dayTasks = tasksList.filter(t => t.deadline === dateString);
         
         if (dayTasks.length > 0) {
-            const dotsContainer = document.createElement('div');
-            dotsContainer.className = 'calendar-dots-container d-flex flex-wrap gap-1 mt-2 justify-content-start';
+            const badge = document.createElement('div');
+            badge.className = 'calendar-task-badge mt-2';
+            badge.style.display = 'inline-flex';
+            badge.style.alignItems = 'center';
+            badge.style.justifyContent = 'center';
+            badge.style.width = '20px';
+            badge.style.height = '20px';
+            badge.style.borderRadius = '50%';
+            badge.style.background = 'linear-gradient(135deg, #fa9d1c, #ff7b00)';
+            badge.style.color = '#fff';
+            badge.style.fontSize = '10px';
+            badge.style.fontWeight = 'bold';
+            badge.style.boxShadow = '0 0 8px rgba(250,157,28,0.6)';
+            badge.textContent = dayTasks.length;
+            badge.title = `${dayTasks.length} Tasks Scheduled`;
             
-            dayTasks.forEach(t => {
-                const dot = document.createElement('span');
-                dot.className = 'calendar-task-dot';
-                
-                let color = '#fa9d1c';
-                if (t.status === 'in_progress') color = '#00bbf9';
-                else if (t.status === 'under_review') color = '#9b5de5';
-                else if (t.status === 'completed') color = '#00e676';
-                
-                dot.style.display = 'inline-block';
-                dot.style.width = '8px';
-                dot.style.height = '8px';
-                dot.style.borderRadius = '50%';
-                dot.style.background = color;
-                dot.style.boxShadow = `0 0 8px ${color}`;
-                dot.title = `${t.title} (${t.assignedTo.name}) - Status: ${t.status.replace('_', ' ')}`;
-                dotsContainer.appendChild(dot);
-            });
-            cell.appendChild(dotsContainer);
+            cell.appendChild(badge);
         }
         
         cell.style.cursor = 'pointer';
@@ -2457,7 +2452,7 @@ function showDayTasksModal(dateString, dayTasks) {
     wrapper.id = 'day-tasks-modal-container';
     wrapper.innerHTML = `
         <div class="modal fade" id="dayTasksModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
                     <div class="modal-header custom-modal-header border-bottom d-flex justify-content-between align-items-center" style="border-color: var(--border-color) !important;">
                         <div>
