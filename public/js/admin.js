@@ -3436,10 +3436,10 @@ function renderPackagesTable(list = packagesList) {
             <td data-label="Price / Rate">
                 <span class="badge bg-success" style="font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 8px;">${p.price}</span>
             </td>
-            <td data-label="Description"><span class="text-white-50 small">${p.description || '<span class="text-muted italic">No scope specified</span>'}</span></td>
             <td data-label="Package ID"><code class="text-white-50" style="font-size: 11px;">${p.id}</code></td>
             <td data-label="Actions" class="text-center">
                 <div class="d-flex align-items-center justify-content-center gap-2">
+                    <button class="btn btn-sm btn-outline-info" onclick="viewPackageDetails('${p.id}')" title="View Package"><i class="fa-solid fa-eye"></i></button>
                     <button class="btn btn-sm btn-outline-warning" onclick="openEditPackageModal('${p.id}')" title="Edit Package"><i class="fa-solid fa-pen"></i></button>
                     ${['starter', 'growth', 'enterprise'].includes(p.id)
                         ? `<button class="btn btn-sm btn-outline-secondary opacity-50" disabled title="System Package (Cannot Delete)"><i class="fa-solid fa-trash-can"></i></button>`
@@ -3451,6 +3451,49 @@ function renderPackagesTable(list = packagesList) {
         tbody.appendChild(row);
     });
 }
+
+function viewPackageDetails(pkgId) {
+    const pkg = packagesList.find(p => p.id === pkgId);
+    if (!pkg) return;
+    
+    const existing = document.getElementById('package-detail-modal-container');
+    if (existing) existing.remove();
+    
+    const wrapper = document.createElement('div');
+    wrapper.id = 'package-detail-modal-container';
+    wrapper.innerHTML = `
+        <div class="modal fade" id="packageDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content custom-modal-content" style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 16px;">
+                    <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                        <h5 class="modal-title text-white fw-bold">Package Parameters</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body custom-modal-body text-white p-4">
+                        <h4 class="text-warning fw-bold mb-2">${pkg.name}</h4>
+                        <div class="mb-3 d-flex gap-2 align-items-center">
+                            <span class="badge bg-success" style="font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 8px;">${pkg.price}</span>
+                            <code class="text-white-50" style="font-size: 11px;">ID: ${pkg.id}</code>
+                        </div>
+                        <hr style="border-color: var(--border-color); opacity: 0.1;">
+                        <div class="mb-2">
+                            <strong class="text-white-50 d-block small mb-1">Package Scope:</strong>
+                            <p class="text-secondary small mt-1" style="background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); white-space: pre-line;">${pkg.description || 'No specific scope specified.'}</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(wrapper);
+    const bsModal = new bootstrap.Modal(document.getElementById('packageDetailModal'));
+    bsModal.show();
+}
+window.viewPackageDetails = viewPackageDetails;
 window.renderPackagesTable = renderPackagesTable;
 
 function openAddPackageModal() {
