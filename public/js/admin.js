@@ -2266,6 +2266,7 @@ function renderAllTasks() {
             <td data-label="Actions" class="text-center">
                 <div class="d-flex align-items-center justify-content-center gap-2">
                     <button class="btn-action-dss btn-action-view" onclick="viewTaskDetails('${t.id}')" title="View Task"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn-action-dss btn-action-edit" onclick="openEditTaskModal('${t.id}')" title="Edit Task" style="background: rgba(250, 157, 28, 0.1); color: var(--accent-color); border: 1px solid rgba(250, 157, 28, 0.2);"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn-action-dss btn-action-delete" onclick="confirmDeleteTask('${t.id}')" title="Delete Task"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </td>
@@ -2878,6 +2879,93 @@ function initTaskTrackerForm() {
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-2"></i> Assign Task';
+            }
+        });
+    }
+
+    function openEditTaskModal(taskId) {
+        const task = tasksList.find(t => t.id === taskId);
+        if (!task) return;
+        
+        // Populate Client selects in Edit Task form
+        const editTaskClientSelect = document.getElementById('editTaskClient');
+        if (editTaskClientSelect) {
+            editTaskClientSelect.innerHTML = '<option value="" disabled>Select Client</option>';
+            clientsList.forEach(c => {
+                editTaskClientSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        }
+        
+        // Populate Assignee selects in Edit Task form
+        const editTaskAssigneeSelect = document.getElementById('editTaskAssignee');
+        if (editTaskAssigneeSelect) {
+            editTaskAssigneeSelect.innerHTML = '<option value="" disabled>Select Staff Member</option>';
+            staffList.forEach(s => {
+                editTaskAssigneeSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.role})</option>`;
+            });
+        }
+        
+        document.getElementById('editTaskId').value = task.id;
+        document.getElementById('editTaskTitle').value = task.title;
+        document.getElementById('editTaskClient').value = task.client;
+        document.getElementById('editTaskAssignee').value = task.assignedTo.id;
+        document.getElementById('editTaskDeadline').value = task.deadline;
+        document.getElementById('editTaskPriority').value = task.priority;
+        document.getElementById('editTaskStatus').value = task.status;
+        document.getElementById('editTaskDescription').value = task.description || '';
+        
+        const modalEl = document.getElementById('editTaskModal');
+        const modalInst = new bootstrap.Modal(modalEl);
+        modalInst.show();
+    }
+    window.openEditTaskModal = openEditTaskModal;
+
+    // Modal Edit Task form submit
+    const modalEditForm = document.getElementById('modalEditTaskForm');
+    if (modalEditForm) {
+        modalEditForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const taskId = document.getElementById('editTaskId').value;
+            const title = document.getElementById('editTaskTitle').value.trim();
+            const client = document.getElementById('editTaskClient').value.trim();
+            const assignedToId = document.getElementById('editTaskAssignee').value;
+            const deadline = document.getElementById('editTaskDeadline').value;
+            const priority = document.getElementById('editTaskPriority').value;
+            const status = document.getElementById('editTaskStatus').value;
+            const description = document.getElementById('editTaskDescription').value.trim();
+            
+            const submitBtn = document.getElementById('modalEditTaskSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+            
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                    },
+                    body: JSON.stringify({ title, client, assignedToId, deadline, priority, status, description })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Task updated successfully!', true);
+                    
+                    // Close Bootstrap Modal
+                    const modalEl = document.getElementById('editTaskModal');
+                    const modalInst = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInst) modalInst.hide();
+                    
+                    await loadTasks();
+                } else {
+                    showToast(data.message || 'Failed to update task.', false);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Connection failed.', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> Save Changes';
             }
         });
     }
