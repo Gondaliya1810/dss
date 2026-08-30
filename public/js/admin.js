@@ -4560,4 +4560,88 @@ function deleteAdminChatHistory() {
 }
 window.deleteAdminChatHistory = deleteAdminChatHistory;
 
+function openManualPunchModal() {
+    const dateInput = document.getElementById('manualPunchDate');
+    if (dateInput) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    const staffSelect = document.getElementById('manualPunchStaff');
+    if (staffSelect) {
+        staffSelect.innerHTML = '<option value="" disabled selected>Select Staff</option>';
+        staffList.forEach(s => {
+            staffSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.role})</option>`;
+        });
+    }
+
+    document.getElementById('modalManualPunchForm').reset();
+    if (dateInput) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    const modalEl = document.getElementById('manualPunchModal');
+    const modalInst = new bootstrap.Modal(modalEl);
+    modalInst.show();
+}
+window.openManualPunchModal = openManualPunchModal;
+
+// Manual punch form submit listener
+document.addEventListener('DOMContentLoaded', () => {
+    const manualPunchForm = document.getElementById('modalManualPunchForm');
+    if (manualPunchForm) {
+        manualPunchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const staffId = document.getElementById('manualPunchStaff').value;
+            const date = document.getElementById('manualPunchDate').value;
+            const punchIn = document.getElementById('manualPunchInTime').value;
+            const punchOut = document.getElementById('manualPunchOutTime').value;
+            const status = document.getElementById('manualPunchStatus').value;
+
+            const submitBtn = document.getElementById('modalManualPunchSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+
+            try {
+                const response = await fetch('/api/admin/attendance/manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                    },
+                    body: JSON.stringify({ staffId, date, punchIn, punchOut, status })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Attendance record saved successfully!', true);
+                    manualPunchForm.reset();
+
+                    // Close Modal
+                    const modalEl = document.getElementById('manualPunchModal');
+                    const modalInst = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInst) modalInst.hide();
+
+                    // Reload Logs
+                    await loadAttendanceLogs();
+                } else {
+                    showToast(data.message || 'Failed to save attendance record.', false);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Connection failed.', false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> Save Entry';
+            }
+        });
+    }
+});
+
 

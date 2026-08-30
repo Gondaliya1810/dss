@@ -2211,7 +2211,14 @@
 
             <!-- STAFF ATTENDANCE TAB -->
             <section id="tab-staff-attendance" class="tab-content" style="display: none;">
-                <h2 class="admin-title mb-4">Staff Attendance Logs</h2>
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <div>
+                        <h2 class="admin-title m-0">Staff Attendance Logs</h2>
+                    </div>
+                    <button class="btn btn-warning text-dark fw-bold d-flex align-items-center gap-2" onclick="openManualPunchModal()">
+                        <i class="fa-solid fa-fingerprint"></i> Manual Punch Entry
+                    </button>
+                </div>
 
                 <div class="row g-4 mb-4">
                     <!-- Daily Punch Logs -->
@@ -3120,6 +3127,58 @@
                         <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="modalEditTaskSubmitBtn">
                             <i class="fa-solid fa-floppy-disk me-2"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Punch Modal (Popup Form) -->
+    <div class="modal fade" id="manualPunchModal" tabindex="-1" aria-labelledby="manualPunchModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
+                <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
+                    <h5 class="modal-title text-white fw-bold" id="manualPunchModalLabel"><i class="fa-solid fa-fingerprint text-warning me-2"></i> Manual Attendance Entry</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="modalManualPunchForm">
+                    <div class="modal-body custom-modal-body p-4 text-white">
+                        <div class="mb-3">
+                            <label for="manualPunchStaff" class="form-label text-white-50">Select Staff Member <span class="text-danger">*</span></label>
+                            <select class="form-select form-control-dss" id="manualPunchStaff" required>
+                                <option value="" disabled selected>Select Staff</option>
+                                <!-- Dynamically loaded -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="manualPunchDate" class="form-label text-white-50">Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control form-control-dss" id="manualPunchDate" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6 mb-3">
+                                <label for="manualPunchInTime" class="form-label text-white-50">Punch In Time</label>
+                                <input type="time" class="form-control form-control-dss" id="manualPunchInTime">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="manualPunchOutTime" class="form-label text-white-50">Punch Out Time</label>
+                                <input type="time" class="form-control form-control-dss" id="manualPunchOutTime">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="manualPunchStatus" class="form-label text-white-50">Status <span class="text-danger">*</span></label>
+                            <select class="form-select form-control-dss" id="manualPunchStatus" required>
+                                <option value="present">Present (On Time)</option>
+                                <option value="late">Late (Punch-In delayed)</option>
+                                <option value="half_day">Half Day</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer custom-modal-footer border-top" style="border-color: var(--border-color) !important;">
+                        <button type="button" class="btn btn-outline-dss" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn-primary-gradient border-0 px-4 py-2 text-white font-weight-bold" style="border-radius: 8px;" id="modalManualPunchSubmitBtn">
+                            <i class="fa-solid fa-floppy-disk me-2"></i> Save Entry
                         </button>
                     </div>
                 </form>

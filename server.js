@@ -1383,6 +1383,73 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
 });
 
+// POST manual punch entry by admin
+app.post('/api/admin/attendance/manual', async (req, res) => {
+    if (!validateAdminAuth(req)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+    }
+    const { staffId, date, punchIn, punchOut, status } = req.body;
+
+    try {
+        const staff = await Staff.findOne({ id: staffId });
+        if (!staff) {
+            return res.status(404).json({ success: false, message: 'Staff member not found.' });
+        }
+
+        // Find if record already exists for this staff and date
+        let log = await Attendance.findOne({ staffId, date });
+        
+        let inDate = null;
+        if (punchIn) {
+            inDate = new Date(`${date}T${punchIn}:00`);
+        }
+        
+        let outDate = null;
+        if (punchOut) {
+            outDate = new Date(`${date}T${punchOut}:00`);
+        }
+        
+        let totalHours = null;
+        if (inDate && outDate) {
+            const diffMs = outDate - inDate;
+            if (diffMs > 0) {
+                totalHours = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+            }
+        }
+
+        if (log) {
+            // Update existing log
+            if (punchIn) log.punchIn = inDate;
+            if (punchOut) {
+                log.punchOut = outDate;
+                log.totalHours = totalHours;
+            } else {
+                log.punchOut = null;
+                log.totalHours = null;
+            }
+            log.status = status;
+            await log.save();
+        } else {
+            // Create new log
+            log = new Attendance({
+                id: 'att-' + Date.now(),
+                staffId: staff.id,
+                staffName: staff.name,
+                date,
+                punchIn: inDate,
+                punchOut: outDate,
+                totalHours: punchOut ? totalHours : null,
+                status
+            });
+            await log.save();
+        }
+
+        res.json({ success: true, message: 'Attendance record updated successfully.', log });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // POST request early leave (generates and emails 4-digit code to admin)
 app.post('/api/attendance/request-early-leave', async (req, res) => {
     const staff = await validateStaffAuth(req);
