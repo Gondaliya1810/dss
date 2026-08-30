@@ -1605,6 +1605,9 @@ const getCookie = (req, name) => {
 
 // Serve staff workspace at /staff route
 app.get('/staff', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const token = getCookie(req, 'staffToken');
     if (token && token.startsWith('staff-token-')) {
         res.sendFile(path.join(__dirname, 'protected', 'staff.html'));
@@ -1620,6 +1623,9 @@ app.get('/staff.html', (req, res) => {
 
 // Serve admin dashboard at /admin route
 app.get('/admin', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const token = getCookie(req, 'adminToken');
     if (token && token.startsWith('dss-token-')) {
         res.sendFile(path.join(__dirname, 'protected', 'admin.html'));
