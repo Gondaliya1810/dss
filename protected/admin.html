@@ -2362,7 +2362,7 @@
                                 </div>
                             </div>
                             <!-- Contacts list -->
-                            <div class="flex-grow-1 overflow-auto" id="chatContactsList" style="max-height: 400px;">
+                            <div class="flex-grow-1 overflow-auto chat-messages-scroll" id="chatContactsList" style="height: 100%;">
                                 <!-- Loaded dynamically -->
                                 <div class="text-center py-5 text-muted">
                                     <i class="fa-solid fa-spinner fa-spin mb-2" style="font-size: 24px;"></i>
@@ -2374,7 +2374,7 @@
 
                     <!-- Right Panel: Chat Window -->
                     <div class="col-lg-8 col-md-7 h-100 mobile-hide" id="chatWindowPanel">
-                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" id="chatWindowPlaceholder" style="background: var(--bg-surface-glass); height: 500px;">
+                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden" id="chatWindowPlaceholder" style="background: var(--bg-surface-glass); height: 100%;">
                             <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-center text-muted p-5">
                                 <i class="fa-regular fa-comments mb-3" style="font-size: 60px; color: var(--border-color);"></i>
                                 <h4 class="text-white fw-bold mb-1">Select a Staff Member</h4>
@@ -2382,7 +2382,7 @@
                             </div>
                         </div>
 
-                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden d-none" id="chatActiveWindow" style="height: 500px;">
+                        <div class="admin-card h-100 p-0 d-flex flex-column overflow-hidden d-none" id="chatActiveWindow" style="height: 100%;">
                             <!-- Chat Header -->
                             <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="border-color: var(--border-color) !important; background: rgba(255,255,255,0.01);">
                                 <div class="d-flex align-items-center gap-3">
@@ -2401,7 +2401,7 @@
                                 </button>
                             </div>
                             <!-- Chat messages list -->
-                            <div class="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-2 chat-messages-scroll" id="chatMessagesContainer" style="background: rgba(10, 10, 12, 0.15); height: 370px;">
+                            <div class="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-2 chat-messages-scroll" id="chatMessagesContainer" style="background: rgba(10, 10, 12, 0.15);">
                                 <!-- Messages loaded dynamically -->
                             </div>
                             <!-- Chat Input -->
