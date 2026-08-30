@@ -2697,7 +2697,7 @@ function renderStaffTable() {
             <td data-label="Actions" class="text-center">
                 <div class="d-flex align-items-center justify-content-center gap-2">
                     <button class="btn btn-sm btn-outline-info" onclick="viewStaffDetails('${s.id}')" title="View Details"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="openEditStaffModal('${s.id}')" title="Edit Staff"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="openEditStaffModal('${s.id}')" title="Edit Staff"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteStaff('${s.id}')" title="Delete Staff"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </td>
@@ -3419,7 +3419,7 @@ function renderClientsTable(list = clientsList) {
             <td data-label="Status">${statusBadge}</td>
             <td data-label="Actions" class="text-center">
                 <div class="d-flex align-items-center justify-content-center gap-2">
-                    <button class="btn btn-sm btn-outline-warning" onclick="openEditClientModal('${c.id}')" title="Edit Client"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="openEditClientModal('${c.id}')" title="Edit Client"><i class="fa-solid fa-pen-to-square"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteClient('${c.id}')" title="Delete Client"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </td>
@@ -3647,7 +3647,7 @@ function renderPackagesTable(list = packagesList) {
             <td data-label="Actions" class="text-center">
                 <div class="d-flex align-items-center justify-content-center gap-2">
                     <button class="btn btn-sm btn-outline-info" onclick="viewPackageDetails('${p.id}')" title="View Package"><i class="fa-solid fa-eye"></i></button>
-                    <button class="btn btn-sm btn-outline-warning" onclick="openEditPackageModal('${p.id}')" title="Edit Package"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="openEditPackageModal('${p.id}')" title="Edit Package"><i class="fa-solid fa-pen-to-square"></i></button>
                     ${['starter', 'growth', 'enterprise'].includes(p.id)
                         ? `<button class="btn btn-sm btn-outline-secondary opacity-50" disabled title="System Package (Cannot Delete)"><i class="fa-solid fa-trash-can"></i></button>`
                         : `<button class="btn btn-sm btn-outline-danger" onclick="confirmDeletePackage('${p.id}')" title="Delete Package"><i class="fa-solid fa-trash-can"></i></button>`
@@ -4111,7 +4111,7 @@ function renderReviews() {
             <td class="text-center">
                 <div class="d-flex justify-content-center gap-2">
                     <button class="btn btn-sm btn-outline-warning" onclick="editReview('${rev.id}')">
-                        <i class="fa-solid fa-edit"></i>
+                        <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteReview('${rev.id}')">
                         <i class="fa-solid fa-trash"></i>
