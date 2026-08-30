@@ -748,16 +748,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error formatting deadline date:', e);
             }
 
-            // Action Buttons
-            let actionBtnHTML = `<div class="d-flex align-items-center justify-content-center gap-2 flex-nowrap">`;
-            actionBtnHTML += `<button class="btn btn-sm btn-outline-info" onclick="showStaffTaskAlertDetailsById('${t.id}')" title="View Guidelines" style="border-radius:6px; padding: 4px 8px;"><i class="fa-solid fa-eye"></i></button>`;
-            
+            // View Button (Separate Column)
+            const viewBtnHTML = `<button class="btn btn-sm btn-outline-info" onclick="showStaffTaskAlertDetailsById('${t.id}')" title="View Guidelines" style="border-radius:6px; padding: 4px 8px;"><i class="fa-solid fa-eye"></i></button>`;
+
+            // Action Button (Separate Column)
+            let actionBtnHTML = '';
             if (t.status === 'pending') {
-                actionBtnHTML += `<button class="btn btn-sm btn-success px-2 py-1 font-weight-bold d-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="updateTaskStatus('${t.id}', 'in_progress')"><i class="fa-solid fa-play" style="font-size: 10px;"></i>Start</button>`;
+                actionBtnHTML = `<button class="btn btn-sm btn-success px-2 py-1 font-weight-bold d-inline-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="updateTaskStatus('${t.id}', 'in_progress')"><i class="fa-solid fa-play" style="font-size: 10px;"></i>Start</button>`;
             } else if (t.status === 'in_progress') {
-                actionBtnHTML += `<button class="btn btn-sm btn-danger px-2 py-1 font-weight-bold d-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-stop" style="font-size: 10px;"></i>End</button>`;
+                actionBtnHTML = `<button class="btn btn-sm btn-danger px-2 py-1 font-weight-bold d-inline-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-stop" style="font-size: 10px;"></i>End</button>`;
+            } else {
+                actionBtnHTML = `<span class="text-white-50 small">-</span>`;
             }
-            actionBtnHTML += `</div>`;
 
             tr.innerHTML = `
                 <td data-label="Task Title">
@@ -767,6 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td data-label="Deadline" style="white-space: nowrap;"><i class="fa-regular fa-calendar-days text-danger me-1"></i>${dateFormatted}</td>
                 <td data-label="Priority">${priorityBadge}</td>
                 <td data-label="Status">${statusBadge}</td>
+                <td data-label="View" class="text-center">${viewBtnHTML}</td>
                 <td data-label="Action" class="text-center">${actionBtnHTML}</td>
             `;
             tasksTableBody.appendChild(tr);
