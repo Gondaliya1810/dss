@@ -265,6 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timeVal = info.shiftTime || '10:00 AM - 07:00 PM';
                 staffShiftInfo.innerHTML = `<i class="fa-solid fa-clock me-1"></i> ${shiftVal} (${timeVal})`;
             }
+            const latePunchNotice = document.getElementById('latePunchNotice');
+            if (latePunchNotice) {
+                const shiftTime = info.shiftTime || '10:00 AM - 07:00 PM';
+                const startTime = shiftTime.split('-')[0].trim();
+                latePunchNotice.innerHTML = `<i class="fa-solid fa-circle-info me-1"></i> Late punches (after ${startTime}) are flagged automatically.`;
+            }
         }
     }
 
