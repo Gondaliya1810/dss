@@ -1219,7 +1219,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
     }
     try {
         // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56';
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56, 219.100.37.233';
         if (allowedIpEnv) {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
@@ -1307,7 +1307,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
     try {
         // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56';
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56, 219.100.37.233';
         if (allowedIpEnv) {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
