@@ -4383,19 +4383,15 @@ async function loadChatHistory() {
             data.history.forEach(m => {
                 const isMe = m.senderId === 'admin';
                 const msgDiv = document.createElement('div');
-                msgDiv.className = `d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}`;
+                msgDiv.className = `d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'} mb-1`;
                 
                 const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 msgDiv.innerHTML = `
-                    <div style="max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; 
-                        background: ${isMe ? 'var(--accent-color)' : 'rgba(255,255,255,0.06)'}; 
-                        color: ${isMe ? '#fff' : 'var(--text-primary)'};
-                        border-bottom-right-radius: ${isMe ? '2px' : '12px'};
-                        border-bottom-left-radius: ${isMe ? '12px' : '2px'};">
+                    <div class="chat-message-bubble ${isMe ? 'me' : 'other'}">
                         ${escapeHTML(m.message)}
                     </div>
-                    <span class="text-muted mt-1" style="font-size: 9px;">${timeStr}</span>
+                    <span class="chat-message-time"><i class="fa-regular fa-clock" style="font-size: 8px;"></i> ${timeStr}</span>
                 `;
                 container.appendChild(msgDiv);
             });
