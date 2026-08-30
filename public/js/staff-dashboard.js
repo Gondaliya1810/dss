@@ -736,23 +736,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusBadge = '<span class="badge bg-success">Completed</span>';
             }
 
-            // Action Button
-            let actionBtnHTML = '';
-            if (t.status === 'pending') {
-                actionBtnHTML = `<button class="btn btn-sm btn-success px-3 py-1 font-weight-bold" style="border-radius:6px; font-size:12px;" onclick="updateTaskStatus('${t.id}', 'in_progress')"><i class="fa-solid fa-play me-1"></i>Start</button>`;
-            } else if (t.status === 'in_progress') {
-                actionBtnHTML = `<button class="btn btn-sm btn-danger px-3 py-1 font-weight-bold" style="border-radius:6px; font-size:12px;" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-stop me-1"></i>End</button>`;
-            } else {
-                actionBtnHTML = `<span class="text-white-50 small">-</span>`;
+            // Date formatting to prevent wrapping and look cleaner
+            let dateFormatted = t.deadline;
+            try {
+                const dParts = t.deadline.split('-');
+                if (dParts.length === 3) {
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    dateFormatted = `${dParts[2]} ${months[parseInt(dParts[1]) - 1]} ${dParts[0]}`;
+                }
+            } catch (e) {
+                console.error('Error formatting deadline date:', e);
             }
+
+            // Action Buttons
+            let actionBtnHTML = `<div class="d-flex align-items-center justify-content-center gap-2 flex-nowrap">`;
+            actionBtnHTML += `<button class="btn btn-sm btn-outline-info" onclick="showStaffTaskAlertDetailsById('${t.id}')" title="View Guidelines" style="border-radius:6px; padding: 4px 8px;"><i class="fa-solid fa-eye"></i></button>`;
+            
+            if (t.status === 'pending') {
+                actionBtnHTML += `<button class="btn btn-sm btn-success px-2 py-1 font-weight-bold d-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="updateTaskStatus('${t.id}', 'in_progress')"><i class="fa-solid fa-play" style="font-size: 10px;"></i>Start</button>`;
+            } else if (t.status === 'in_progress') {
+                actionBtnHTML += `<button class="btn btn-sm btn-danger px-2 py-1 font-weight-bold d-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-stop" style="font-size: 10px;"></i>End</button>`;
+            }
+            actionBtnHTML += `</div>`;
 
             tr.innerHTML = `
                 <td data-label="Task Title">
-                    <span class="fw-bold text-white">${t.title}</span>
-                    <div class="text-white-50 small mt-1"><i class="fa-solid fa-user-tie text-warning me-1"></i>Client: ${t.client}</div>
-                    ${t.description ? `<div class="text-muted small mt-1 italic" style="font-size:11px;">${t.description}</div>` : ''}
+                    <span class="fw-bold text-white" style="font-size: 14px;">${t.title}</span>
+                    <div class="text-white-50 small mt-1" style="font-size: 12px;"><i class="fa-solid fa-user-tie text-warning me-1"></i>Client: ${t.client}</div>
                 </td>
-                <td data-label="Deadline"><i class="fa-regular fa-calendar-days text-danger me-1"></i>${t.deadline}</td>
+                <td data-label="Deadline" style="white-space: nowrap;"><i class="fa-regular fa-calendar-days text-danger me-1"></i>${dateFormatted}</td>
                 <td data-label="Priority">${priorityBadge}</td>
                 <td data-label="Status">${statusBadge}</td>
                 <td data-label="Action" class="text-center">${actionBtnHTML}</td>
@@ -1506,4 +1518,11 @@ document.addEventListener('DOMContentLoaded', () => {
         bsModal.show();
     }
     window.showStaffTaskAlertDetails = showStaffTaskAlertDetails;
+
+    function showStaffTaskAlertDetailsById(taskId) {
+        const t = allTasks.find(x => x.id === taskId);
+        if (t) showStaffTaskAlertDetails(t);
+    }
+    window.showStaffTaskAlertDetailsById = showStaffTaskAlertDetailsById;
 });
+
