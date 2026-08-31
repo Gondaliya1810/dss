@@ -31,6 +31,118 @@
             background: transparent !important;
         }
 
+        /* Status & Priority Badges */
+        .badge-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: capitalize;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            border: 1px solid transparent;
+        }
+
+        .badge-status.status-pending {
+            background: rgba(250, 157, 28, 0.1);
+            color: #fa9d1c;
+            border-color: rgba(250, 157, 28, 0.2);
+        }
+
+        .badge-status.status-in_progress {
+            background: rgba(0, 187, 249, 0.1);
+            color: #00bbf9;
+            border-color: rgba(0, 187, 249, 0.2);
+        }
+
+        .badge-status.status-under_review {
+            background: rgba(155, 93, 229, 0.1);
+            color: #9b5de5;
+            border-color: rgba(155, 93, 229, 0.2);
+        }
+
+        .badge-status.status-completed {
+            background: rgba(0, 230, 118, 0.1);
+            color: #00e676;
+            border-color: rgba(0, 230, 118, 0.2);
+        }
+
+        .priority-text {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: capitalize;
+        }
+
+        .priority-high {
+            color: #e63946;
+        }
+
+        .priority-medium {
+            color: #ffb703;
+        }
+
+        .priority-low {
+            color: #00e676;
+        }
+
+        /* Premium Action Buttons in Tables */
+        .btn-action-dss {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+            padding: 0;
+            outline: none;
+        }
+
+        .lightmode .btn-action-dss {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .btn-action-dss i {
+            font-size: 13px;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-action-dss:hover i {
+            transform: scale(1.1);
+        }
+
+        /* View Button Hover */
+        .btn-action-view:hover {
+            background: rgba(0, 187, 249, 0.1) !important;
+            border-color: #00bbf9 !important;
+            color: #00bbf9 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 187, 249, 0.15);
+        }
+
+        /* Start/Play Button Hover */
+        .btn-action-start:hover {
+            background: rgba(0, 230, 118, 0.1) !important;
+            border-color: #00e676 !important;
+            color: #00e676 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 230, 118, 0.15);
+        }
+
+        /* Delete/Stop Button Hover */
+        .btn-action-delete:hover {
+            background: rgba(230, 57, 70, 0.1) !important;
+            border-color: #e63946 !important;
+            color: #e63946 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(230, 57, 70, 0.15);
+        }
+
         /* Sidebar layout styling for staff workspace */
         .admin-sidebar {
             width: 260px;
@@ -1071,11 +1183,11 @@
                                 <thead>
                                     <tr>
                                         <th>Task Title</th>
+                                        <th>Client</th>
                                         <th>Deadline</th>
-                                        <th>Priority</th>
                                         <th>Status</th>
-                                        <th class="text-center" style="width: 80px;">View</th>
-                                        <th class="text-center">Action</th>
+                                        <th>Priority</th>
+                                        <th class="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tasksTableBody">
@@ -1311,6 +1423,6 @@
 
     <!-- Bootstrap & FontAwesome JS dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="./js/staff-dashboard.js?v=2.3"></script>
+    <script src="./js/staff-dashboard.js?v=2.4"></script>
 </body>
 </html>

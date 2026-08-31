@@ -745,48 +745,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const tr = document.createElement('tr');
             
-            let priorityBadge = '';
-            if (t.priority === 'high') {
-                priorityBadge = '<span class="badge bg-danger">High</span>';
-            } else if (t.priority === 'medium') {
-                priorityBadge = '<span class="badge bg-warning text-dark" style="color:#000 !important;">Medium</span>';
-            } else {
-                priorityBadge = '<span class="badge bg-success">Low</span>';
-            }
+            let priorityHTML = `<span class="priority-text priority-${t.priority}">${t.priority}</span>`;
 
             // Task Status Badge
-            let statusBadge = '';
-            if (t.status === 'pending') {
-                statusBadge = '<span class="badge bg-secondary">Pending</span>';
-            } else if (t.status === 'in_progress') {
-                statusBadge = '<span class="badge bg-info text-dark" style="color:#000 !important;">In Progress</span>';
-            } else if (t.status === 'under_review') {
-                statusBadge = '<span class="badge bg-warning text-dark" style="color:#000 !important;">Under Review</span>';
-            } else if (t.status === 'completed') {
-                statusBadge = '<span class="badge bg-success">Completed</span>';
-            }
+            let statusHTML = `<span class="badge-status status-${t.status}">${t.status.replace('_', ' ')}</span>`;
 
-            // Date formatting to prevent wrapping and look cleaner
-            let dateFormatted = t.deadline;
-            try {
-                const dParts = t.deadline.split('-');
-                if (dParts.length === 3) {
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    dateFormatted = `${dParts[2]} ${months[parseInt(dParts[1]) - 1]} ${dParts[0]}`;
-                }
-            } catch (e) {
-                console.error('Error formatting deadline date:', e);
+            // Date formatting
+            let dateFormatted = 'No Deadline';
+            if (t.deadline) {
+                dateFormatted = new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
             }
 
             // View Button (Separate Column)
-            const viewBtnHTML = `<button class="btn btn-sm btn-outline-info" onclick="showStaffTaskAlertDetailsById('${t.id}')" title="View Guidelines" style="border-radius:6px; padding: 4px 8px;"><i class="fa-solid fa-eye"></i></button>`;
+            const viewBtnHTML = `<button class="btn-action-dss btn-action-view" onclick="showStaffTaskAlertDetailsById('${t.id}')" title="View Guidelines"><i class="fa-solid fa-eye"></i></button>`;
 
             // Action Button (Separate Column)
             let actionBtnHTML = '';
             if (t.status === 'pending') {
-                actionBtnHTML = `<button class="btn btn-sm btn-success px-2 py-1 font-weight-bold d-inline-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="updateTaskStatus('${t.id}', 'in_progress')"><i class="fa-solid fa-play" style="font-size: 10px;"></i>Start</button>`;
+                actionBtnHTML = `<button class="btn-action-dss btn-action-start" style="background: rgba(0, 230, 118, 0.1); color: var(--success-color); border: 1px solid rgba(0, 230, 118, 0.2);" onclick="updateTaskStatus('${t.id}', 'in_progress')" title="Start Task"><i class="fa-solid fa-play"></i></button>`;
             } else if (t.status === 'in_progress') {
-                actionBtnHTML = `<button class="btn btn-sm btn-danger px-2 py-1 font-weight-bold d-inline-flex align-items-center gap-1" style="border-radius:6px; font-size:11px;" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')"><i class="fa-solid fa-stop" style="font-size: 10px;"></i>End</button>`;
+                actionBtnHTML = `<button class="btn-action-dss btn-action-delete" style="background: rgba(230, 57, 70, 0.1); color: var(--error-color); border: 1px solid rgba(230, 57, 70, 0.2);" onclick="endTaskDirectly('${t.id}', '${t.title.replace(/'/g, "\\'")}')" title="End Task"><i class="fa-solid fa-square"></i></button>`;
             } else {
                 actionBtnHTML = `<span class="text-white-50 small">-</span>`;
             }
@@ -794,13 +772,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tr.innerHTML = `
                 <td data-label="Task Title">
                     <span class="fw-bold text-white" style="font-size: 14px;">${t.title}</span>
-                    <div class="text-white-50 small mt-1" style="font-size: 12px;"><i class="fa-solid fa-user-tie text-warning me-1"></i>Client: ${t.client}</div>
                 </td>
-                <td data-label="Deadline" style="white-space: nowrap;"><i class="fa-regular fa-calendar-days text-danger me-1"></i>${dateFormatted}</td>
-                <td data-label="Priority">${priorityBadge}</td>
-                <td data-label="Status">${statusBadge}</td>
-                <td data-label="View" class="text-center">${viewBtnHTML}</td>
-                <td data-label="Action" class="text-center">${actionBtnHTML}</td>
+                <td data-label="Client">${t.client}</td>
+                <td data-label="Deadline" style="white-space: nowrap;">${dateFormatted}</td>
+                <td data-label="Status">${statusHTML}</td>
+                <td data-label="Priority">${priorityHTML}</td>
+                <td data-label="Actions" class="text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        ${viewBtnHTML}
+                        ${actionBtnHTML}
+                    </div>
+                </td>
             `;
             tasksTableBody.appendChild(tr);
         });
