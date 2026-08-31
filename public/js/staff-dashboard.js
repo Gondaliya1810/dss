@@ -718,7 +718,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (tasksEmptyState) tasksEmptyState.style.display = 'none';
 
+        // Sort tasks by assignment date (createdAt) descending (latest date first)
+        allTasks.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+        });
+
+        let lastDate = null;
+
         allTasks.forEach(t => {
+            // Group header if assignment date changes (extract YYYY-MM-DD from ISO createdAt string)
+            const assignDateStr = t.createdAt ? t.createdAt.split('T')[0] : 'No Date';
+            if (assignDateStr !== lastDate) {
+                const headerRow = document.createElement('tr');
+                headerRow.className = 'table-date-group-header';
+                const assignDateFormatted = t.createdAt ? new Date(t.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown Date';
+                headerRow.innerHTML = `
+                    <td colspan="6">
+                        <i class="fa-solid fa-calendar-plus me-2 text-warning"></i>Assigned On: ${assignDateFormatted}
+                    </td>
+                `;
+                tasksTableBody.appendChild(headerRow);
+                lastDate = assignDateStr;
+            }
+
             const tr = document.createElement('tr');
             
             let priorityBadge = '';
