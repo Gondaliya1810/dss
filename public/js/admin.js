@@ -2224,10 +2224,10 @@ function renderAllTasks() {
         filtered = filtered.filter(t => t.priority === priorityFilter);
     }
     
-    // Sort tasks by deadline descending (latest date first)
+    // Sort tasks by assignment date (createdAt) descending (latest date first)
     filtered.sort((a, b) => {
-        const dateA = a.deadline ? new Date(a.deadline + 'T00:00:00').getTime() : 0;
-        const dateB = b.deadline ? new Date(b.deadline + 'T00:00:00').getTime() : 0;
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
     });
 
@@ -2243,18 +2243,19 @@ function renderAllTasks() {
     let lastDate = null;
     
     filtered.forEach(t => {
-        // Group header if deadline date changes
-        if (t.deadline !== lastDate) {
+        // Group header if assignment date changes (extract YYYY-MM-DD from ISO createdAt string)
+        const assignDateStr = t.createdAt ? t.createdAt.split('T')[0] : 'No Date';
+        if (assignDateStr !== lastDate) {
             const headerRow = document.createElement('tr');
             headerRow.className = 'table-date-group-header';
-            const deadlineDateFormatted = t.deadline ? new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No Deadline';
+            const assignDateFormatted = t.createdAt ? new Date(t.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown Date';
             headerRow.innerHTML = `
                 <td colspan="7">
-                    <i class="fa-solid fa-calendar-day me-2 text-warning"></i>Deadline: ${deadlineDateFormatted}
+                    <i class="fa-solid fa-calendar-plus me-2 text-warning"></i>Assigned On: ${assignDateFormatted}
                 </td>
             `;
             tbody.appendChild(headerRow);
-            lastDate = t.deadline;
+            lastDate = assignDateStr;
         }
 
         const row = document.createElement('tr');
