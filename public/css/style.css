@@ -5,16 +5,16 @@
     --global-font: 'Plus Jakarta Sans', 'Quicksand', sans-serif;
 
     /* Theme - Dark Mode (Default) */
-    --bg-dark: #07070a;
-    --bg-surface: #0f0f15;
-    --bg-surface-glass: rgba(15, 15, 21, 0.6);
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-glow: rgba(250, 157, 28, 0.2);
+    --bg-dark: #0e0e11;
+    --bg-surface: #16161a;
+    --bg-surface-glass: rgba(22, 22, 26, 0.95);
+    --border-color: #232329;
+    --border-glow: #32323b;
 
     /* Text Colors */
     --text-primary: #ffffff;
-    --text-secondary: #9a9ab0;
-    --text-muted: #62627a;
+    --text-secondary: #90909c;
+    --text-muted: #5e5e6a;
 
     /* Accents & Gradients */
     --accent-color: #fa9d1c;
