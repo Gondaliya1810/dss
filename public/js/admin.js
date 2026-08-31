@@ -2224,26 +2224,41 @@ function renderAllTasks() {
         filtered = filtered.filter(t => t.priority === priorityFilter);
     }
     
+    // Sort tasks by deadline descending (latest date first)
+    filtered.sort((a, b) => {
+        const dateA = a.deadline ? new Date(a.deadline + 'T00:00:00').getTime() : 0;
+        const dateB = b.deadline ? new Date(b.deadline + 'T00:00:00').getTime() : 0;
+        return dateB - dateA;
+    });
+
     const totalCount = filtered.length;
-    const pageCount = Math.ceil(totalCount / allTasksPageSize);
     
-    if (allTasksCurrentPage > pageCount) allTasksCurrentPage = Math.max(1, pageCount);
-    
-    const start = (allTasksCurrentPage - 1) * allTasksPageSize;
-    const end = Math.min(start + allTasksPageSize, totalCount);
-    
-    const paginated = filtered.slice(start, end);
-    
-    if (paginated.length === 0) {
+    if (totalCount === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No tasks found matching filters.</td></tr>`;
-        document.getElementById('allPaginationInfo').textContent = 'Showing 0 to 0 of 0 tasks';
+        document.getElementById('allPaginationInfo').textContent = 'Showing 0 tasks';
         document.getElementById('allPaginationControls').innerHTML = '';
         return;
     }
     
-    paginated.forEach(t => {
+    let lastDate = null;
+    
+    filtered.forEach(t => {
+        // Group header if deadline date changes
+        if (t.deadline !== lastDate) {
+            const headerRow = document.createElement('tr');
+            headerRow.className = 'table-date-group-header';
+            const deadlineDateFormatted = t.deadline ? new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No Deadline';
+            headerRow.innerHTML = `
+                <td colspan="7">
+                    <i class="fa-solid fa-calendar-day me-2 text-warning"></i>Deadline: ${deadlineDateFormatted}
+                </td>
+            `;
+            tbody.appendChild(headerRow);
+            lastDate = t.deadline;
+        }
+
         const row = document.createElement('tr');
-        const formattedDate = new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        const formattedDate = t.deadline ? new Date(t.deadline + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'No Deadline';
         
         row.innerHTML = `
             <td data-label="Task Title">
@@ -2274,26 +2289,8 @@ function renderAllTasks() {
         tbody.appendChild(row);
     });
     
-    document.getElementById('allPaginationInfo').textContent = `Showing ${start + 1} to ${end} of ${totalCount} tasks`;
-    
-    const controls = document.getElementById('allPaginationControls');
-    controls.innerHTML = '';
-    
-    if (pageCount > 1) {
-        for (let i = 1; i <= pageCount; i++) {
-            const btn = document.createElement('button');
-            btn.className = `btn btn-sm ${i === allTasksCurrentPage ? 'btn-warning text-dark fw-bold' : 'btn-outline-dss text-white'}`;
-            btn.style.width = '30px';
-            btn.style.height = '30px';
-            btn.style.borderRadius = '50%';
-            btn.textContent = i;
-            btn.addEventListener('click', () => {
-                allTasksCurrentPage = i;
-                renderAllTasks();
-            });
-            controls.appendChild(btn);
-        }
-    }
+    document.getElementById('allPaginationInfo').textContent = `Showing ${totalCount} tasks`;
+    document.getElementById('allPaginationControls').innerHTML = '';
 }
 
 function renderCalendar() {
