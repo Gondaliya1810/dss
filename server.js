@@ -1211,6 +1211,27 @@ app.get('/api/attendance/status', async (req, res) => {
     }
 });
 
+// Helper to verify if client IP is allowed
+function isIpAllowed(clientIp, allowedIps) {
+    if (!clientIp) return false;
+    const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
+    if (isLocal) return true;
+    
+    return allowedIps.some(allowed => {
+        allowed = allowed.trim();
+        if (!allowed) return false;
+        if (allowed === '*' || allowed === clientIp) return true;
+        if (allowed.includes('*')) {
+            const prefix = allowed.replace(/\*+$/, '');
+            return clientIp.startsWith(prefix);
+        }
+        if (allowed.endsWith('.')) {
+            return clientIp.startsWith(allowed);
+        }
+        return false;
+    });
+}
+
 // POST punch-in
 app.post('/api/attendance/punch-in', async (req, res) => {
     const staff = await validateStaffAuth(req);
@@ -1219,7 +1240,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
     }
     try {
         // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56, 219.100.37.233';
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.163.237, 171.61.165.56, 171.61.*, 219.100.37.233';
         if (allowedIpEnv) {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
@@ -1229,12 +1250,12 @@ app.post('/api/attendance/punch-in', async (req, res) => {
                 clientIp = clientIp.substring(7);
             }
             
-            const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
-            console.log(`[Punch In Debug] clientIp: "${clientIp}", isLocal: ${isLocal}, allowedIps:`, allowedIps);
-            if (!isLocal && !allowedIps.includes(clientIp)) {
+            const allowed = isIpAllowed(clientIp, allowedIps);
+            console.log(`[Punch In Debug] clientIp: "${clientIp}", allowed: ${allowed}, allowedIps:`, allowedIps);
+            if (!allowed) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'You must be connected to the office WiFi (Airtal_DSS) to register attendance.' 
+                    message: 'You must be connected to the office WiFi (Airtel_DSS) to register attendance.' 
                 });
             }
         }
@@ -1307,7 +1328,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
     try {
         // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.165.56, 219.100.37.233';
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.163.237, 171.61.165.56, 171.61.*, 219.100.37.233';
         if (allowedIpEnv) {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
@@ -1317,12 +1338,12 @@ app.post('/api/attendance/punch-out', async (req, res) => {
                 clientIp = clientIp.substring(7);
             }
             
-            const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === 'localhost';
-            console.log(`[Punch Out Debug] clientIp: "${clientIp}", isLocal: ${isLocal}, allowedIps:`, allowedIps);
-            if (!isLocal && !allowedIps.includes(clientIp)) {
+            const allowed = isIpAllowed(clientIp, allowedIps);
+            console.log(`[Punch Out Debug] clientIp: "${clientIp}", allowed: ${allowed}, allowedIps:`, allowedIps);
+            if (!allowed) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'You must be connected to the office WiFi (Airtal_DSS) to register attendance.' 
+                    message: 'You must be connected to the office WiFi (Airtel_DSS) to register attendance.' 
                 });
             }
         }
