@@ -439,20 +439,45 @@
         .form-control-dss {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border-color);
-            color: var(--text-white) !important;
+            color: var(--text-primary) !important;
             padding: 12px 16px;
             border-radius: 10px;
+            color-scheme: dark;
             transition: all var(--anim-normal);
         }
         
         .lightmode .form-control-dss {
             background: rgba(0, 0, 0, 0.02);
             color: var(--text-primary) !important;
+            color-scheme: light;
         }
 
-        .form-control-dss option {
-            background-color: var(--bg-surface) !important;
-            color: var(--text-primary) !important;
+        select.form-control-dss,
+        select.form-select,
+        select {
+            color-scheme: dark;
+        }
+
+        .lightmode select.form-control-dss,
+        .lightmode select.form-select,
+        .lightmode select {
+            color-scheme: light;
+        }
+
+        .form-control-dss option,
+        select option,
+        .form-select option,
+        option {
+            background-color: #16161a !important;
+            color: #ffffff !important;
+        }
+
+        .lightmode .form-control-dss option,
+        .lightmode select option,
+        .lightmode .form-select option,
+        .lightmode option {
+            background-color: #ffffff !important;
+            color: #0f0f15 !important;
         }
 
         /* Style native date picker calendar icon to be visible in both themes */

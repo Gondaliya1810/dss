@@ -986,6 +986,58 @@
             background: rgba(250, 157, 28, 0.2);
             border-radius: 10px;
         }
+
+        /* Custom Inputs & Dropdown Styling */
+        .form-control-dss {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary) !important;
+            padding: 10px 14px;
+            border-radius: 10px;
+            color-scheme: dark;
+            transition: all var(--anim-normal);
+        }
+        
+        .lightmode .form-control-dss {
+            background: rgba(0, 0, 0, 0.02);
+            color: var(--text-primary) !important;
+            color-scheme: light;
+        }
+
+        select.form-control-dss,
+        select.form-select,
+        select {
+            color-scheme: dark;
+        }
+
+        .lightmode select.form-control-dss,
+        .lightmode select.form-select,
+        .lightmode select {
+            color-scheme: light;
+        }
+
+        .form-control-dss option,
+        select option,
+        .form-select option,
+        option {
+            background-color: #16161a !important;
+            color: #ffffff !important;
+        }
+
+        .lightmode .form-control-dss option,
+        .lightmode select option,
+        .lightmode .form-select option,
+        .lightmode option {
+            background-color: #ffffff !important;
+            color: #0f0f15 !important;
+        }
+
+        .form-control-dss:focus {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(250, 157, 28, 0.15);
+            outline: none;
+        }
     </style>
 </head>
 <body style="background-color: var(--bg-dark); color: var(--text-secondary); transition: background-color var(--anim-normal);">
