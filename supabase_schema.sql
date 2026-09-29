@@ -89,6 +89,10 @@ CREATE TABLE tasks (
     description TEXT,
     "submissionLink" TEXT DEFAULT '',
     "submissionComment" TEXT DEFAULT '',
+    "videoName" TEXT DEFAULT '',
+    "conceptName" TEXT DEFAULT '',
+    "reelNo" VARCHAR(50) DEFAULT '',
+    "completedAt" TIMESTAMP WITH TIME ZONE,
     "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

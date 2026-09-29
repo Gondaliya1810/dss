@@ -1642,29 +1642,116 @@ app.put('/api/staff/tasks/:id/status', async (req, res) => {
     }
 });
 
-// PUT submit task by staff
+// PUT submit task by staff (with optional reel/video name validation)
 app.put('/api/staff/tasks/:id/submit', async (req, res) => {
     const staff = await validateStaffAuth(req);
     if (!staff) {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     const { id } = req.params;
-    const { submissionLink, submissionComment } = req.body;
+    const { submissionLink, submissionComment, videoName, conceptName, reelNo } = req.body;
 
     try {
+        const cleanVideoName = videoName ? String(videoName).trim() : '';
+
+        // If videoName is provided, verify uniqueness across all tasks to prevent duplicates among editors
+        if (cleanVideoName) {
+            const allTasks = await Task.find({});
+            const existingWithSameName = allTasks.find(t => 
+                t.id !== id && 
+                t.videoName && 
+                t.videoName.trim().toLowerCase() === cleanVideoName.toLowerCase()
+            );
+
+            if (existingWithSameName) {
+                const editorName = existingWithSameName.assignedTo ? existingWithSameName.assignedTo.name : 'another editor';
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Name "${cleanVideoName}" is already taken by task "${existingWithSameName.title}" (${existingWithSameName.client}) assigned to ${editorName}! Please choose a unique Reel No. or Concept.` 
+                });
+            }
+        }
+
+        const updateData = {
+            status: 'completed',
+            submissionLink: submissionLink || 'Completed',
+            submissionComment: submissionComment || 'Work completed by staff.',
+            completedAt: new Date().toISOString()
+        };
+
+        if (cleanVideoName) updateData.videoName = cleanVideoName;
+        if (conceptName) updateData.conceptName = String(conceptName).trim();
+        if (reelNo) updateData.reelNo = String(reelNo).trim();
+
         const task = await Task.findOneAndUpdate(
             { id, 'assignedTo.id': staff.id },
-            { 
-                status: 'completed',
-                submissionLink: submissionLink || 'Completed',
-                submissionComment: submissionComment || 'Work completed by staff.'
-            },
+            updateData,
             { new: true }
         );
         if (!task) {
             return res.status(404).json({ success: false, message: 'Task not found or not assigned to you.' });
         }
         res.json({ success: true, task });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET all registered reel / video names grouped client-wise
+app.get('/api/staff/reel-registry', async (req, res) => {
+    const staff = await validateStaffAuth(req);
+    if (!staff) {
+        return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
+    }
+    try {
+        const tasks = await Task.find({}).sort({ createdAt: -1 });
+        const reelTasks = tasks.filter(t => t.videoName && t.videoName.trim().length > 0);
+        
+        const clients = await Client.find({});
+        const clientNames = clients.map(c => c.name);
+
+        res.json({ 
+            success: true, 
+            reels: reelTasks, 
+            clients: clientNames,
+            totalCount: reelTasks.length
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// GET check if a reel name is available in real-time
+app.get('/api/staff/check-reel-name', async (req, res) => {
+    const staff = await validateStaffAuth(req);
+    if (!staff) {
+        return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
+    }
+    const { videoName, taskId } = req.query;
+    if (!videoName || !videoName.trim()) {
+        return res.json({ success: true, available: true });
+    }
+    try {
+        const queryName = videoName.trim().toLowerCase();
+        const tasks = await Task.find({});
+        const conflict = tasks.find(t => 
+            t.id !== taskId && 
+            t.videoName && 
+            t.videoName.trim().toLowerCase() === queryName
+        );
+        if (conflict) {
+            return res.json({ 
+                success: true, 
+                available: false, 
+                conflict: {
+                    title: conflict.title,
+                    client: conflict.client,
+                    videoName: conflict.videoName,
+                    editor: conflict.assignedTo ? conflict.assignedTo.name : 'Another Staff'
+                }
+            });
+        }
+        res.json({ success: true, available: true });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

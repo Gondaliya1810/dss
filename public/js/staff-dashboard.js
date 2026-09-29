@@ -224,6 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (targetTab === 'my-submissions') {
                     loadStaffTasks(); // Reload to populate dropdown
                     renderSubmissionsTable();
+                } else if (targetTab === 'reel-registry') {
+                    loadReelRegistry();
                 } else if (targetTab === 'messages') {
                     startStaffChat();
                 } else if (targetTab === 'profile-settings') {
@@ -238,6 +240,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (adminSidebar) adminSidebar.classList.remove('show');
             });
         });
+
+        // Initialize reel event listeners
+        const reelNoInput = document.getElementById('reelNoInput');
+        const reelConceptInput = document.getElementById('reelConceptInput');
+        if (reelNoInput) reelNoInput.addEventListener('input', updateReelLivePreview);
+        if (reelConceptInput) reelConceptInput.addEventListener('input', updateReelLivePreview);
+
+        const reelSearchInput = document.getElementById('reelRegistrySearch');
+        const reelClientFilter = document.getElementById('reelRegistryClientFilter');
+        if (reelSearchInput) reelSearchInput.addEventListener('input', renderReelRegistry);
+        if (reelClientFilter) reelClientFilter.addEventListener('change', renderReelRegistry);
+
+        // Preload reel registry in background for quick validation & suggestion
+        loadReelRegistry();
     }
 
     // Live Date/Time Tracker
@@ -813,8 +829,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.updateTaskStatus = updateTaskStatus;
 
+    function getCurrentStaffRole() {
+        try {
+            const info = JSON.parse(localStorage.getItem('staffInfo')) || {};
+            if (info.role) return info.role;
+        } catch(e) {}
+        const roleEl = document.getElementById('staffRole');
+        if (roleEl && roleEl.textContent) return roleEl.textContent;
+        return '';
+    }
+
+    function isVideoEditor() {
+        const role = getCurrentStaffRole().toLowerCase();
+        return role.includes('video') || role.includes('reel') || role.includes('editer') || role.includes('editor');
+    }
+
     // Direct task completion from Action button
     async function endTaskDirectly(taskId, taskTitle) {
+        const task = allTasks.find(t => t.id === taskId);
+
+        // If current staff is Video / Reel Editor or task is video-related, require unique Reel Name
+        if (isVideoEditor()) {
+            openReelCompletionModal(task || { id: taskId, title: taskTitle, client: 'Client' });
+            return;
+        }
+
         const isConfirmed = confirm(`Work complete thay gayu che?\n"${taskTitle}"`);
         if (!isConfirmed) return;
 
@@ -1535,5 +1574,438 @@ document.addEventListener('DOMContentLoaded', () => {
         if (t) showStaffTaskAlertDetails(t);
     }
     window.showStaffTaskAlertDetailsById = showStaffTaskAlertDetailsById;
+
+    // ==========================================
+    // REEL / VIDEO TASK COMPLETION & REGISTRY
+    // ==========================================
+    let allReelRegistry = [];
+    let reelCheckDebounceTimeout = null;
+
+    // Open Modal for Video / Reel Editors to complete task & name reel
+    function openReelCompletionModal(task) {
+        const modalEl = document.getElementById('completeReelModal');
+        if (!modalEl) return;
+
+        const reelTaskId = document.getElementById('reelTaskId');
+        const reelTaskTitle = document.getElementById('reelTaskTitle');
+        const reelClientBadge = document.getElementById('reelClientBadge');
+        const reelNoInput = document.getElementById('reelNoInput');
+        const reelConceptInput = document.getElementById('reelConceptInput');
+        const reelSubmissionLink = document.getElementById('reelSubmissionLink');
+        const reelSubmissionComment = document.getElementById('reelSubmissionComment');
+        const reelNoSuggestion = document.getElementById('reelNoSuggestion');
+        const btnSubmitReelEnd = document.getElementById('btnSubmitReelEnd');
+
+        if (reelTaskId) reelTaskId.value = task.id;
+        if (reelTaskTitle) reelTaskTitle.textContent = task.title;
+        if (reelClientBadge) reelClientBadge.textContent = task.client;
+        if (reelSubmissionLink) reelSubmissionLink.value = '';
+        if (reelSubmissionComment) reelSubmissionComment.value = '';
+        if (btnSubmitReelEnd) {
+            btnSubmitReelEnd.disabled = false;
+            btnSubmitReelEnd.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> Complete Task & Save Name';
+        }
+
+        // Pre-fill concept name from task title if appropriate
+        let cleanConcept = (task.title || '').replace(/reel/gi, '').replace(/video/gi, '').trim();
+        if (cleanConcept.startsWith('-') || cleanConcept.startsWith(':') || cleanConcept.startsWith('_')) {
+            cleanConcept = cleanConcept.slice(1).trim();
+        }
+        if (reelConceptInput) reelConceptInput.value = cleanConcept || task.title;
+
+        // Calculate next Reel No for this client
+        const clientReels = allReelRegistry.filter(r => r.client && r.client.trim().toLowerCase() === (task.client || '').trim().toLowerCase());
+        let maxNum = 0;
+        clientReels.forEach(r => {
+            if (r.reelNo) {
+                const match = r.reelNo.match(/\d+/);
+                if (match) {
+                    const n = parseInt(match[0], 10);
+                    if (n > maxNum) maxNum = n;
+                }
+            } else if (r.videoName) {
+                const match = r.videoName.match(/(\d+)/);
+                if (match) {
+                    const n = parseInt(match[0], 10);
+                    if (n > maxNum) maxNum = n;
+                }
+            }
+        });
+
+        const nextNum = maxNum + 1;
+        const suggestedReelNo = nextNum < 10 ? `0${nextNum}` : `${nextNum}`;
+        if (reelNoInput) reelNoInput.value = suggestedReelNo;
+        if (reelNoSuggestion) {
+            reelNoSuggestion.innerHTML = maxNum > 0 
+                ? `<i class="fa-solid fa-lightbulb text-warning me-1"></i>Client currently has <strong>${maxNum}</strong> reels. Suggested: <strong>${suggestedReelNo}</strong>` 
+                : `<i class="fa-solid fa-lightbulb text-warning me-1"></i>First reel for this client. Suggested: <strong>01</strong>`;
+        }
+
+        updateReelLivePreview();
+
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        bsModal.show();
+    }
+    window.openReelCompletionModal = openReelCompletionModal;
+
+    // Live formatted Reel Name generator & Duplicate checker
+    function updateReelLivePreview() {
+        const reelNoInput = document.getElementById('reelNoInput');
+        const reelConceptInput = document.getElementById('reelConceptInput');
+        const reelClientBadge = document.getElementById('reelClientBadge');
+        const reelFinalNamePreview = document.getElementById('reelFinalNamePreview');
+        const reelLiveStatusBadge = document.getElementById('reelLiveStatusBadge');
+        const reelNameValidationFeedback = document.getElementById('reelNameValidationFeedback');
+        const btnSubmitReelEnd = document.getElementById('btnSubmitReelEnd');
+        const reelTaskId = document.getElementById('reelTaskId');
+
+        const reelNo = (reelNoInput ? reelNoInput.value : '').trim();
+        const concept = (reelConceptInput ? reelConceptInput.value : '').trim();
+        const client = (reelClientBadge ? reelClientBadge.textContent : '').trim();
+        const currentTaskId = reelTaskId ? reelTaskId.value : '';
+
+        if (!reelNo || !concept) {
+            if (reelFinalNamePreview) reelFinalNamePreview.value = `${reelNo || 'Reel No.'}_${concept || 'Concept'}_${client || 'Client'}`;
+            if (reelLiveStatusBadge) {
+                reelLiveStatusBadge.className = 'badge bg-secondary';
+                reelLiveStatusBadge.textContent = 'Incomplete';
+            }
+            if (reelNameValidationFeedback) reelNameValidationFeedback.style.display = 'none';
+            if (btnSubmitReelEnd) btnSubmitReelEnd.disabled = true;
+            return;
+        }
+
+        // Format: Reel No._Concept Name_Client Name
+        const fullName = `${reelNo}_${concept}_${client}`;
+        if (reelFinalNamePreview) reelFinalNamePreview.value = fullName;
+
+        // Check local cache first for instant warning
+        const conflict = allReelRegistry.find(r => 
+            r.id !== currentTaskId && 
+            r.videoName && 
+            r.videoName.trim().toLowerCase() === fullName.trim().toLowerCase()
+        );
+
+        if (conflict) {
+            const editorName = conflict.assignedTo ? conflict.assignedTo.name : 'another editor';
+            if (reelLiveStatusBadge) {
+                reelLiveStatusBadge.className = 'badge bg-danger';
+                reelLiveStatusBadge.textContent = '❌ Already Taken';
+            }
+            if (reelNameValidationFeedback) {
+                reelNameValidationFeedback.style.display = 'block';
+                reelNameValidationFeedback.className = 'mt-2 text-danger small';
+                reelNameValidationFeedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Name is already assigned to task <strong>"${conflict.title}"</strong> by <strong>${editorName}</strong>. Please change Reel No. or Concept!`;
+            }
+            if (btnSubmitReelEnd) btnSubmitReelEnd.disabled = true;
+            return;
+        }
+
+        // Real-time server uniqueness validation with debounce
+        if (reelLiveStatusBadge) {
+            reelLiveStatusBadge.className = 'badge bg-info text-dark';
+            reelLiveStatusBadge.textContent = 'Checking...';
+        }
+        if (reelNameValidationFeedback) reelNameValidationFeedback.style.display = 'none';
+
+        clearTimeout(reelCheckDebounceTimeout);
+        reelCheckDebounceTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/staff/check-reel-name?videoName=${encodeURIComponent(fullName)}&taskId=${encodeURIComponent(currentTaskId)}`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+                });
+                const data = await res.json();
+                if (data.available) {
+                    if (reelLiveStatusBadge) {
+                        reelLiveStatusBadge.className = 'badge bg-success';
+                        reelLiveStatusBadge.textContent = '✓ Unique & Available';
+                    }
+                    if (reelNameValidationFeedback) {
+                        reelNameValidationFeedback.style.display = 'block';
+                        reelNameValidationFeedback.className = 'mt-2 text-success small';
+                        reelNameValidationFeedback.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Perfect! This name is unique and ready to save.`;
+                    }
+                    if (btnSubmitReelEnd) btnSubmitReelEnd.disabled = false;
+                } else {
+                    const conflictInfo = data.conflict || {};
+                    if (reelLiveStatusBadge) {
+                        reelLiveStatusBadge.className = 'badge bg-danger';
+                        reelLiveStatusBadge.textContent = '❌ Already Taken';
+                    }
+                    if (reelNameValidationFeedback) {
+                        reelNameValidationFeedback.style.display = 'block';
+                        reelNameValidationFeedback.className = 'mt-2 text-danger small';
+                        reelNameValidationFeedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation me-1"></i> Name is already assigned to task <strong>"${conflictInfo.title || ''}"</strong> (${conflictInfo.client || ''}) by <strong>${conflictInfo.editor || 'Another Staff'}</strong>.`;
+                    }
+                    if (btnSubmitReelEnd) btnSubmitReelEnd.disabled = true;
+                }
+            } catch (err) {
+                console.error(err);
+                if (btnSubmitReelEnd) btnSubmitReelEnd.disabled = false;
+            }
+        }, 300);
+    }
+    window.updateReelLivePreview = updateReelLivePreview;
+
+    function copyModalReelName() {
+        const preview = document.getElementById('reelFinalNamePreview');
+        if (preview && preview.value) {
+            navigator.clipboard.writeText(preview.value);
+            showToast('Reel name copied to clipboard!', true);
+        }
+    }
+    window.copyModalReelName = copyModalReelName;
+
+    // Submit Reel Task Completion
+    async function submitReelTaskCompletion() {
+        const reelTaskId = document.getElementById('reelTaskId');
+        const reelNoInput = document.getElementById('reelNoInput');
+        const reelConceptInput = document.getElementById('reelConceptInput');
+        const reelFinalNamePreview = document.getElementById('reelFinalNamePreview');
+        const reelSubmissionLink = document.getElementById('reelSubmissionLink');
+        const reelSubmissionComment = document.getElementById('reelSubmissionComment');
+        const btnSubmitReelEnd = document.getElementById('btnSubmitReelEnd');
+
+        const taskId = reelTaskId ? reelTaskId.value : '';
+        const reelNo = reelNoInput ? reelNoInput.value.trim() : '';
+        const concept = reelConceptInput ? reelConceptInput.value.trim() : '';
+        const videoName = reelFinalNamePreview ? reelFinalNamePreview.value.trim() : '';
+        const submissionLink = reelSubmissionLink ? reelSubmissionLink.value.trim() : '';
+        const submissionComment = reelSubmissionComment ? reelSubmissionComment.value.trim() : '';
+
+        if (!taskId || !reelNo || !concept || !videoName) {
+            showToast('Please fill all required fields (Reel No & Concept Name).', false);
+            return;
+        }
+
+        if (btnSubmitReelEnd) {
+            btnSubmitReelEnd.disabled = true;
+            btnSubmitReelEnd.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Saving...';
+        }
+
+        try {
+            const response = await fetch(`/api/staff/tasks/${taskId}/submit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('staffToken')
+                },
+                body: JSON.stringify({
+                    videoName,
+                    conceptName: concept,
+                    reelNo,
+                    submissionLink: submissionLink || 'Completed',
+                    submissionComment: submissionComment || `Reel Name: ${videoName}`
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast(`Task completed! Assigned Reel Name: ${videoName}`, true);
+                
+                const modalEl = document.getElementById('completeReelModal');
+                if (modalEl) {
+                    const bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+                }
+
+                await loadStaffTasks();
+                await loadReelRegistry();
+            } else {
+                showToast(data.message || 'Failed to complete task.', false);
+                if (btnSubmitReelEnd) {
+                    btnSubmitReelEnd.disabled = false;
+                    btnSubmitReelEnd.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> Complete Task & Save Name';
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Connection error.', false);
+            if (btnSubmitReelEnd) {
+                btnSubmitReelEnd.disabled = false;
+                btnSubmitReelEnd.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> Complete Task & Save Name';
+            }
+        }
+    }
+    window.submitReelTaskCompletion = submitReelTaskCompletion;
+
+    // Load & Render Reel Registry
+    async function loadReelRegistry() {
+        try {
+            const response = await fetch('/api/staff/reel-registry', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('staffToken') }
+            });
+            const data = await response.json();
+            if (data.success) {
+                allReelRegistry = data.reels || [];
+                
+                // Populate client filter dropdown
+                const clientSelect = document.getElementById('reelRegistryClientFilter');
+                if (clientSelect) {
+                    const currentVal = clientSelect.value;
+                    const clients = data.clients ? [...data.clients] : [];
+                    
+                    // Also gather any clients present in reel tasks
+                    allReelRegistry.forEach(r => {
+                        if (r.client && !clients.includes(r.client)) clients.push(r.client);
+                    });
+
+                    clientSelect.innerHTML = '<option value="all">All Clients</option>' + 
+                        clients.map(c => `<option value="${c}">${c}</option>`).join('');
+                    if (currentVal && clients.includes(currentVal)) {
+                        clientSelect.value = currentVal;
+                    }
+                }
+
+                renderReelRegistry();
+            }
+        } catch (err) {
+            console.error('Error loading reel registry:', err);
+        }
+    }
+    window.loadReelRegistry = loadReelRegistry;
+
+    function renderReelRegistry() {
+        const container = document.getElementById('reelRegistryContainer');
+        const emptyState = document.getElementById('reelRegistryEmptyState');
+        const totalReelsCount = document.getElementById('totalReelsCount');
+        const searchInput = document.getElementById('reelRegistrySearch');
+        const clientFilter = document.getElementById('reelRegistryClientFilter');
+
+        if (!container) return;
+
+        const searchQuery = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        const selectedClient = clientFilter ? clientFilter.value : 'all';
+
+        // Filter reels
+        const filtered = allReelRegistry.filter(r => {
+            // Client filter
+            if (selectedClient !== 'all' && (r.client || '').toLowerCase() !== selectedClient.toLowerCase()) {
+                return false;
+            }
+            // Search query filter
+            if (searchQuery) {
+                const matchName = (r.videoName || '').toLowerCase().includes(searchQuery);
+                const matchConcept = (r.conceptName || '').toLowerCase().includes(searchQuery);
+                const matchReelNo = (r.reelNo || '').toLowerCase().includes(searchQuery);
+                const matchTitle = (r.title || '').toLowerCase().includes(searchQuery);
+                const matchClient = (r.client || '').toLowerCase().includes(searchQuery);
+                const matchEditor = (r.assignedTo && r.assignedTo.name ? r.assignedTo.name : '').toLowerCase().includes(searchQuery);
+                return matchName || matchConcept || matchReelNo || matchTitle || matchClient || matchEditor;
+            }
+            return true;
+        });
+
+        if (totalReelsCount) totalReelsCount.textContent = filtered.length;
+
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Group filtered reels by client
+        const grouped = {};
+        filtered.forEach(r => {
+            const cName = r.client || 'Other Clients';
+            if (!grouped[cName]) grouped[cName] = [];
+            grouped[cName].push(r);
+        });
+
+        // Build HTML
+        let html = '';
+        Object.keys(grouped).sort().forEach(cName => {
+            const reels = grouped[cName];
+            
+            // Sort reels by reel number or completion date
+            reels.sort((a, b) => {
+                const numA = (a.reelNo || a.videoName || '').match(/\d+/);
+                const numB = (b.reelNo || b.videoName || '').match(/\d+/);
+                if (numA && numB) return parseInt(numA[0], 10) - parseInt(numB[0], 10);
+                return new Date(b.completedAt || b.createdAt || 0) - new Date(a.completedAt || a.createdAt || 0);
+            });
+
+            const rowsHtml = reels.map(r => {
+                const editorName = r.assignedTo ? r.assignedTo.name : 'Editor';
+                const editorColor = r.assignedTo && r.assignedTo.avatarColor ? r.assignedTo.avatarColor : '#fa9d1c';
+                const editorInitial = editorName.charAt(0).toUpperCase();
+                const dateFormatted = r.completedAt 
+                    ? new Date(r.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : (r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-');
+
+                const safeVideoName = (r.videoName || '').replace(/'/g, "\\'");
+
+                return `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                        <td style="padding: 12px 16px;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-bold text-warning" style="font-size: 13.5px; letter-spacing: 0.3px;">${r.videoName}</span>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px; border-radius: 6px;" onclick="copyReelText('${safeVideoName}')" title="Copy Reel Name">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td style="padding: 12px 16px; color: #fff;">
+                            <span>${r.conceptName || r.title || '-'}</span>
+                        </td>
+                        <td style="padding: 12px 16px;">
+                            <span class="text-white-50 small">${r.title}</span>
+                        </td>
+                        <td style="padding: 12px 16px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div style="width: 26px; height: 26px; border-radius: 50%; background: ${editorColor}; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    ${editorInitial}
+                                </div>
+                                <span class="text-white small">${editorName}</span>
+                            </div>
+                        </td>
+                        <td style="padding: 12px 16px; white-space: nowrap;">
+                            <span class="text-muted small">${dateFormatted}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            html += `
+                <div class="admin-card p-0 overflow-hidden" style="border: 1px solid var(--border-color); border-radius: 14px;">
+                    <div class="p-3 px-4 d-flex justify-content-between align-items-center" style="background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border-color);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-folder-closed text-warning" style="font-size: 16px;"></i>
+                            <h5 class="text-white fw-bold mb-0">${cName}</h5>
+                        </div>
+                        <span class="badge bg-secondary px-3 py-1" style="font-size: 12px;">
+                            ${reels.length} ${reels.length === 1 ? 'Reel' : 'Reels'}
+                        </span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table mb-0 text-white" style="font-size: 13px;">
+                            <thead>
+                                <tr style="background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;">
+                                    <th style="padding: 10px 16px;">Reel / Video Name</th>
+                                    <th style="padding: 10px 16px;">Concept</th>
+                                    <th style="padding: 10px 16px;">Task Title</th>
+                                    <th style="padding: 10px 16px;">Editor</th>
+                                    <th style="padding: 10px 16px;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function copyReelText(text) {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        showToast(`Copied: "${text}"`, true);
+    }
+    window.copyReelText = copyReelText;
 });
 
