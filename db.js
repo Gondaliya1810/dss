@@ -21,14 +21,29 @@ class SupabaseModel {
         const instance = {
             ...data,
             save: async function() {
-                // If there's an id, upsert it. Otherwise insert.
-                const { data: savedData, error } = await supabase
-                    .from(tableName)
-                    .upsert(this)
-                    .select()
-                    .single();
-                if (error) throw new Error(error.message);
-                Object.assign(this, savedData);
+                let payload = { ...this };
+                delete payload.save;
+                let attempts = 0;
+                while (attempts < 6) {
+                    attempts++;
+                    const { data: savedData, error } = await supabase
+                        .from(tableName)
+                        .upsert(payload)
+                        .select()
+                        .maybeSingle();
+                    if (error) {
+                        if (error.message && error.message.includes('Could not find the') && error.message.includes('column of')) {
+                            const match = error.message.match(/Could not find the '([^']+)' column/);
+                            if (match && match[1] && payload.hasOwnProperty(match[1])) {
+                                delete payload[match[1]];
+                                continue;
+                            }
+                        }
+                        throw new Error(error.message);
+                    }
+                    if (savedData) Object.assign(this, savedData);
+                    return this;
+                }
                 return this;
             }
         };
@@ -150,19 +165,45 @@ class SupabaseModel {
     }
 
     async findOneAndUpdate(query = {}, updateObj = {}, options = {}) {
-        const actualUpdate = updateObj.$set ? updateObj.$set : updateObj;
+        let actualUpdate = updateObj.$set ? { ...updateObj.$set } : { ...updateObj };
 
-        let chain = supabase.from(this.tableName).update(actualUpdate);
-        for (const [key, val] of Object.entries(query)) {
-            if (key.includes('.')) {
-                const pgKey = key.replace('.', '->>');
-                chain = chain.eq(pgKey, val);
+        let data = null;
+        let lastError = null;
+        let attempts = 0;
+        const maxAttempts = 6;
+
+        while (attempts < maxAttempts) {
+            attempts++;
+            let chain = supabase.from(this.tableName).update(actualUpdate);
+            for (const [key, val] of Object.entries(query)) {
+                if (key.includes('.')) {
+                    const pgKey = key.replace('.', '->>');
+                    chain = chain.eq(pgKey, val);
+                } else {
+                    chain = chain.eq(key, val);
+                }
+            }
+            const res = await chain.select().maybeSingle();
+            if (res.error) {
+                lastError = res.error;
+                // If error is about a missing column in Supabase schema cache
+                if (res.error.message && res.error.message.includes('Could not find the') && res.error.message.includes('column of')) {
+                    const match = res.error.message.match(/Could not find the '([^']+)' column/);
+                    if (match && match[1] && actualUpdate.hasOwnProperty(match[1])) {
+                        console.warn(`[Supabase] Column "${match[1]}" not found in table "${this.tableName}". Retrying update without it...`);
+                        delete actualUpdate[match[1]];
+                        continue;
+                    }
+                }
+                throw res.error;
             } else {
-                chain = chain.eq(key, val);
+                data = res.data;
+                lastError = null;
+                break;
             }
         }
-        const { data, error } = await chain.select().maybeSingle();
-        if (error) throw error;
+
+        if (lastError) throw lastError;
         return data ? this.createInstance(data) : null;
     }
 }
