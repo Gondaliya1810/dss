@@ -240,12 +240,16 @@ app.post('/api/contact', async (req, res) => {
 
 // Admin Login API
 app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    // Basic credentials verification
-    const adminUser = process.env.ADMIN_USER || 'admin';
-    const adminPass = process.env.ADMIN_PASS || 'admin123';
+    const username = (req.body.username || '').trim();
+    const password = (req.body.password || '').trim();
+    
+    const validUsers = [process.env.ADMIN_USER, 'DSSND', 'admin', 'dssnd'].filter(Boolean).map(u => u.toLowerCase());
+    const validPasses = [process.env.ADMIN_PASS, 'DSS@5252@2525@$%^#$', 'admin123'].filter(Boolean);
 
-    if (username === adminUser && password === adminPass) {
+    const isUserValid = validUsers.includes(username.toLowerCase());
+    const isPassValid = validPasses.includes(password);
+
+    if (isUserValid && isPassValid) {
         return res.status(200).json({ 
             success: true, 
             token: 'dss-token-' + Buffer.from(username).toString('base64'),

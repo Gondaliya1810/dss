@@ -1,6 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap');
 
+html {
+    color-scheme: dark;
+}
+
+html.lightmode, body.lightmode {
+    color-scheme: light;
+}
+
 :root {
+    color-scheme: dark;
     /* Fonts */
     --global-font: 'Plus Jakarta Sans', 'Quicksand', sans-serif;
 
@@ -40,6 +49,7 @@
 
 /* Light Mode Overrides */
 .lightmode {
+    color-scheme: light;
     --bg-dark: #f8f9fc;
     --bg-surface: #ffffff;
     --bg-surface-glass: rgba(255, 255, 255, 0.8);
@@ -142,14 +152,14 @@ body {
     outline: none !important;
 }
 
-/* Global Select Option Styling for Dark and Light Modes */
+/* Global Select Option Styling - dark text ensures 100% visibility in native select dropdown popups */
 select option,
 .form-select option,
 .form-control option,
 .form-control-dss option,
 option {
-    background-color: #16161a !important;
-    color: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
 }
 
 .lightmode select option,
@@ -158,7 +168,7 @@ option {
 .lightmode .form-control-dss option,
 .lightmode option {
     background-color: #ffffff !important;
-    color: #0f0f15 !important;
+    color: #111111 !important;
 }
 
 /* Dynamic Moving Background Blobs */
