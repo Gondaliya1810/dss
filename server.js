@@ -608,7 +608,8 @@ app.get('/api/tasks', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized access.' });
     }
     try {
-        const tasks = await Task.find({}).sort({ createdAt: -1 });
+        const rawTasks = await Task.find({}).sort({ createdAt: -1 });
+        const tasks = rawTasks.map(enrichTaskWithReelInfo);
         res.json({ success: true, tasks });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1610,7 +1611,8 @@ app.get('/api/staff/tasks', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const tasks = await Task.find({ 'assignedTo.id': staff.id }).sort({ createdAt: -1 });
+        const rawTasks = await Task.find({ 'assignedTo.id': staff.id }).sort({ createdAt: -1 });
+        const tasks = rawTasks.map(enrichTaskWithReelInfo);
         res.json({ success: true, tasks });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -1646,6 +1648,70 @@ app.put('/api/staff/tasks/:id/status', async (req, res) => {
     }
 });
 
+// Helper to parse and enrich tasks with reel info
+function enrichTaskWithReelInfo(task) {
+    if (!task) return task;
+    const t = typeof task.toObject === 'function' ? task.toObject() : { ...task };
+
+    // 1. Explicit videoName
+    if (t.videoName && typeof t.videoName === 'string' && t.videoName.trim()) {
+        t.videoName = t.videoName.trim();
+        if (!t.reelNo || !t.conceptName) {
+            const parts = t.videoName.split('_');
+            if (parts.length >= 3) {
+                t.reelNo = t.reelNo || parts[0];
+                t.conceptName = t.conceptName || parts[1];
+            } else {
+                const noMatch = t.videoName.match(/^(\d+|Reel\s*\d+)/i);
+                t.reelNo = t.reelNo || (noMatch ? noMatch[0] : '');
+                t.conceptName = t.conceptName || t.videoName;
+            }
+        }
+        return t;
+    }
+
+    // 2. Extracted from submissionComment (e.g. "Reel Name: 01_Rakhi Post_TransGlobe Education Surat")
+    if (t.submissionComment && typeof t.submissionComment === 'string') {
+        const match = t.submissionComment.match(/Reel Name:\s*([^\r\n|]+)/i);
+        if (match && match[1]) {
+            const parsedName = match[1].trim();
+            if (parsedName) {
+                t.videoName = parsedName;
+                const parts = parsedName.split('_');
+                if (parts.length >= 3) {
+                    t.reelNo = parts[0];
+                    t.conceptName = parts[1];
+                } else {
+                    const noMatch = parsedName.match(/^(\d+|Reel\s*\d+)/i);
+                    t.reelNo = noMatch ? noMatch[0] : '';
+                    t.conceptName = parsedName;
+                }
+                return t;
+            }
+        }
+    }
+
+    // 3. Extracted from completed Video / Reel tasks
+    const titleLower = (t.title || '').toLowerCase();
+    const isReelTitle = titleLower.includes('reel') || titleLower.includes('video') || titleLower.includes('shoot') || titleLower.includes('edit');
+    const roleLower = (t.assignedTo && t.assignedTo.role ? t.assignedTo.role : '').toLowerCase();
+    const isEditorRole = roleLower.includes('video') || roleLower.includes('reel') || roleLower.includes('editor');
+
+    if (t.status === 'completed' && (isReelTitle || isEditorRole)) {
+        const numMatch = (t.title || '').match(/(\d+)/);
+        const num = numMatch ? (parseInt(numMatch[1], 10) < 10 ? '0' + parseInt(numMatch[1], 10) : String(parseInt(numMatch[1], 10))) : '01';
+        let cleanConcept = (t.title || '').replace(/reel/gi, '').replace(/video/gi, '').replace(/[-_:]/g, ' ').trim();
+        if (!cleanConcept) cleanConcept = t.title || 'Concept';
+        cleanConcept = cleanConcept.replace(/\s+/g, ' ');
+        t.reelNo = num;
+        t.conceptName = cleanConcept;
+        t.videoName = `${num}_${cleanConcept}_${t.client || 'Client'}`;
+        return t;
+    }
+
+    return t;
+}
+
 // PUT submit task by staff (with optional reel/video name validation)
 app.put('/api/staff/tasks/:id/submit', async (req, res) => {
     const staff = await validateStaffAuth(req);
@@ -1660,7 +1726,8 @@ app.put('/api/staff/tasks/:id/submit', async (req, res) => {
 
         // If videoName is provided, verify uniqueness across all tasks to prevent duplicates among editors
         if (cleanVideoName) {
-            const allTasks = await Task.find({});
+            const rawTasks = await Task.find({});
+            const allTasks = rawTasks.map(enrichTaskWithReelInfo);
             const existingWithSameName = allTasks.find(t => 
                 t.id !== id && 
                 t.videoName && 
@@ -1676,10 +1743,18 @@ app.put('/api/staff/tasks/:id/submit', async (req, res) => {
             }
         }
 
+        // Keep Reel Name format clearly in submissionComment so it's always preserved in database
+        let finalComment = submissionComment || '';
+        if (cleanVideoName) {
+            finalComment = `Reel Name: ${cleanVideoName}` + (submissionComment && submissionComment !== `Reel Name: ${cleanVideoName}` ? ` | Note: ${submissionComment}` : '');
+        } else if (!finalComment) {
+            finalComment = 'Work completed by staff.';
+        }
+
         const updateData = {
             status: 'completed',
             submissionLink: submissionLink || 'Completed',
-            submissionComment: submissionComment || 'Work completed by staff.',
+            submissionComment: finalComment,
             completedAt: new Date().toISOString()
         };
 
@@ -1695,7 +1770,7 @@ app.put('/api/staff/tasks/:id/submit', async (req, res) => {
         if (!task) {
             return res.status(404).json({ success: false, message: 'Task not found or not assigned to you.' });
         }
-        res.json({ success: true, task });
+        res.json({ success: true, task: enrichTaskWithReelInfo(task) });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -1708,7 +1783,8 @@ app.get('/api/staff/reel-registry', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        const tasks = await Task.find({}).sort({ createdAt: -1 });
+        const rawTasks = await Task.find({}).sort({ createdAt: -1 });
+        const tasks = rawTasks.map(enrichTaskWithReelInfo);
         const reelTasks = tasks.filter(t => t.videoName && t.videoName.trim().length > 0);
         
         const clients = await Client.find({});
@@ -1737,7 +1813,8 @@ app.get('/api/staff/check-reel-name', async (req, res) => {
     }
     try {
         const queryName = videoName.trim().toLowerCase();
-        const tasks = await Task.find({});
+        const rawTasks = await Task.find({});
+        const tasks = rawTasks.map(enrichTaskWithReelInfo);
         const conflict = tasks.find(t => 
             t.id !== taskId && 
             t.videoName && 

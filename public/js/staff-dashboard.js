@@ -839,9 +839,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return '';
     }
 
-    function isVideoEditor() {
+    function isVideoEditor(task) {
         const role = getCurrentStaffRole().toLowerCase();
-        return role.includes('video') || role.includes('reel') || role.includes('editer') || role.includes('editor');
+        const isRole = role.includes('video') || role.includes('reel') || role.includes('editer') || role.includes('editor');
+        if (task && task.title) {
+            const titleLower = task.title.toLowerCase();
+            if (titleLower.includes('reel') || titleLower.includes('video') || titleLower.includes('shoot') || titleLower.includes('edit')) {
+                return true;
+            }
+        }
+        return isRole;
     }
 
     // Direct task completion from Action button
@@ -849,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const task = allTasks.find(t => t.id === taskId);
 
         // If current staff is Video / Reel Editor or task is video-related, require unique Reel Name
-        if (isVideoEditor()) {
+        if (isVideoEditor(task || { id: taskId, title: taskTitle })) {
             openReelCompletionModal(task || { id: taskId, title: taskTitle, client: 'Client' });
             return;
         }
@@ -2003,8 +2010,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function copyReelText(text) {
         if (!text) return;
-        navigator.clipboard.writeText(text);
-        showToast(`Copied: "${text}"`, true);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`Copied: "${text}"`, true);
+            }).catch(() => {
+                fallbackCopyReel(text);
+            });
+        } else {
+            fallbackCopyReel(text);
+        }
+    }
+    function fallbackCopyReel(text) {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.select();
+        try {
+            document.execCommand('copy');
+            showToast(`Copied: "${text}"`, true);
+        } catch(e) {
+            showToast('Failed to copy', false);
+        }
+        document.body.removeChild(el);
     }
     window.copyReelText = copyReelText;
 });
