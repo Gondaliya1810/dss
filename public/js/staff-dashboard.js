@@ -1893,12 +1893,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Search query filter
             if (searchQuery) {
                 const matchName = (r.videoName || '').toLowerCase().includes(searchQuery);
-                const matchConcept = (r.conceptName || '').toLowerCase().includes(searchQuery);
                 const matchReelNo = (r.reelNo || '').toLowerCase().includes(searchQuery);
                 const matchTitle = (r.title || '').toLowerCase().includes(searchQuery);
                 const matchClient = (r.client || '').toLowerCase().includes(searchQuery);
                 const matchEditor = (r.assignedTo && r.assignedTo.name ? r.assignedTo.name : '').toLowerCase().includes(searchQuery);
-                return matchName || matchConcept || matchReelNo || matchTitle || matchClient || matchEditor;
+                return matchName || matchReelNo || matchTitle || matchClient || matchEditor;
             }
             return true;
         });
@@ -1944,56 +1943,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 const safeVideoName = (r.videoName || '').replace(/'/g, "\\'");
 
                 return `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
-                        <td style="padding: 12px 16px;">
+                    <tr class="reel-table-row">
+                        <td class="reel-col-name">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="fw-bold text-warning" style="font-size: 13.5px; letter-spacing: 0.3px;">${r.videoName}</span>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px; border-radius: 6px;" onclick="copyReelText('${safeVideoName}')" title="Copy Reel Name">
+                                <span class="fw-bold reel-name-text">${r.videoName}</span>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2 btn-copy-reel" style="font-size: 11px; border-radius: 6px;" onclick="copyReelText('${safeVideoName}')" title="Copy Reel Name">
                                     <i class="fa-regular fa-copy"></i>
                                 </button>
                             </div>
                         </td>
-                        <td style="padding: 12px 16px; color: #fff;">
-                            <span>${r.conceptName || r.title || '-'}</span>
+                        <td class="reel-col-title">
+                            <span class="reel-task-title-text" title="${(r.title || '').replace(/"/g, '&quot;')}">${r.title || '-'}</span>
                         </td>
-                        <td style="padding: 12px 16px;">
-                            <span class="text-white-50 small">${r.title}</span>
-                        </td>
-                        <td style="padding: 12px 16px;">
+                        <td class="reel-col-editor">
                             <div class="d-flex align-items-center gap-2">
-                                <div style="width: 26px; height: 26px; border-radius: 50%; background: ${editorColor}; color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <div class="reel-editor-avatar" style="background: ${editorColor};">
                                     ${editorInitial}
                                 </div>
-                                <span class="text-white small">${editorName}</span>
+                                <span class="reel-editor-name">${editorName}</span>
                             </div>
                         </td>
-                        <td style="padding: 12px 16px; white-space: nowrap;">
-                            <span class="text-muted small">${dateFormatted}</span>
+                        <td class="reel-col-date text-end">
+                            <span class="reel-date-text">${dateFormatted}</span>
                         </td>
                     </tr>
                 `;
             }).join('');
 
             html += `
-                <div class="admin-card p-0 overflow-hidden" style="border: 1px solid var(--border-color); border-radius: 14px;">
-                    <div class="p-3 px-4 d-flex justify-content-between align-items-center" style="background: rgba(255, 255, 255, 0.02); border-bottom: 1px solid var(--border-color);">
+                <div class="admin-card reel-group-card p-0 overflow-hidden mb-4">
+                    <div class="p-3 px-4 d-flex justify-content-between align-items-center reel-group-header">
                         <div class="d-flex align-items-center gap-2">
                             <i class="fa-solid fa-folder-closed text-warning" style="font-size: 16px;"></i>
-                            <h5 class="text-white fw-bold mb-0">${cName}</h5>
+                            <h5 class="fw-bold mb-0 reel-group-title">${cName}</h5>
                         </div>
-                        <span class="badge bg-secondary px-3 py-1" style="font-size: 12px;">
+                        <span class="badge bg-secondary px-3 py-1" style="font-size: 12px; border-radius: 6px;">
                             ${reels.length} ${reels.length === 1 ? 'Reel' : 'Reels'}
                         </span>
                     </div>
                     <div class="table-responsive">
-                        <table class="table mb-0 text-white" style="font-size: 13px;">
+                        <table class="reel-registry-table mb-0">
                             <thead>
-                                <tr style="background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;">
-                                    <th style="padding: 10px 16px;">Reel / Video Name</th>
-                                    <th style="padding: 10px 16px;">Concept</th>
-                                    <th style="padding: 10px 16px;">Task Title</th>
-                                    <th style="padding: 10px 16px;">Editor</th>
-                                    <th style="padding: 10px 16px;">Date</th>
+                                <tr>
+                                    <th class="reel-col-name">Reel / Video Name</th>
+                                    <th class="reel-col-title">Task Title</th>
+                                    <th class="reel-col-editor">Editor</th>
+                                    <th class="reel-col-date text-end">Date</th>
                                 </tr>
                             </thead>
                             <tbody>
