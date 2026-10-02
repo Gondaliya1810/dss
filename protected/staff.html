@@ -1413,10 +1413,16 @@
 
                 <!-- 3. MY SUBMISSION TAB -->
                 <div class="tab-content-panel" id="tab-my-submissions" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
                         <div>
-                            <h2 class="text-white fw-bold">Work Submission Portal</h2>
+                            <h2 class="text-white fw-bold m-0">Work Submission Portal</h2>
                             <p class="text-muted mb-0">Submit working files or links for Admin approval</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="submissionsMonthFilter" class="small fw-bold text-muted text-nowrap"><i class="fa-solid fa-filter me-1"></i>Month:</label>
+                            <select id="submissionsMonthFilter" class="form-select form-control-dss" style="min-width: 160px; font-size: 13px;">
+                                <!-- Populated dynamically -->
+                            </select>
                         </div>
                     </div>
 
@@ -1424,13 +1430,17 @@
                         <!-- Previous Submissions Table -->
                         <div class="col-12">
                             <div class="admin-card p-4">
-                                <h5 class="text-white fw-bold mb-4"><i class="fa-solid fa-clock-rotate-left text-warning me-2"></i> Submission History</h5>
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="text-white fw-bold m-0"><i class="fa-solid fa-clock-rotate-left text-warning me-2"></i> Submission History</h5>
+                                    <span id="submissionsMonthlyCountBadge" class="badge bg-secondary">0 Submissions</span>
+                                </div>
                                 <div class="table-responsive">
                                     <table class="custom-table text-white mb-0">
                                         <thead>
                                             <tr>
                                                 <th>Task Title</th>
                                                 <th>Client</th>
+                                                <th>Submitted On</th>
                                                 <th>Status</th>
                                             </tr>
                                         </thead>
@@ -1441,7 +1451,7 @@
                                 </div>
                                 <div id="submissionsEmptyState" class="text-center py-4 text-muted" style="display: none;">
                                     <i class="fa-solid fa-file-invoice mb-2" style="font-size: 30px;"></i>
-                                    <p class="mb-0">No submissions done yet.</p>
+                                    <p class="mb-0">No submissions found for selected month.</p>
                                 </div>
                             </div>
                         </div>
@@ -1557,10 +1567,53 @@
 
                 <!-- 6. MY ATTENDANCE TAB -->
                 <div class="tab-content-panel" id="tab-my-attendance" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
                         <div>
-                            <h2 class="text-white fw-bold">My Attendance Records</h2>
-                            <p class="text-muted mb-0">Review all your daily punches and hours logged</p>
+                            <h2 class="text-white fw-bold m-0">My Attendance Records</h2>
+                            <p class="text-muted mb-0">Review your monthly attendance, punches and hours logged</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="attendanceMonthFilter" class="small fw-bold text-muted text-nowrap"><i class="fa-solid fa-calendar-days me-1"></i>Month:</label>
+                            <select id="attendanceMonthFilter" class="form-select form-control-dss" style="min-width: 170px; font-size: 13px;">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Stats Summary -->
+                    <div class="row g-3 mb-4" id="attendanceMonthlyStatsRow">
+                        <div class="col-md-4 col-sm-6">
+                            <div class="stat-card-new p-3">
+                                <div>
+                                    <div class="stat-title">Present Days</div>
+                                    <div class="stat-num fs-4" id="monthlyPresentCount">0</div>
+                                </div>
+                                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 36px; height: 36px; font-size: 15px;">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="stat-card-new p-3">
+                                <div>
+                                    <div class="stat-title">Total Hours Logged</div>
+                                    <div class="stat-num fs-4" id="monthlyTotalHours">0h 0m</div>
+                                </div>
+                                <div class="stat-icon" style="background: rgba(250, 157, 28, 0.1); color: #fa9d1c; width: 36px; height: 36px; font-size: 15px;">
+                                    <i class="fa-solid fa-hourglass-half"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 col-sm-12">
+                            <div class="stat-card-new p-3">
+                                <div>
+                                    <div class="stat-title">Late Punches</div>
+                                    <div class="stat-num fs-4" id="monthlyLateCount">0</div>
+                                </div>
+                                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 36px; height: 36px; font-size: 15px;">
+                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1583,7 +1636,7 @@
                         </div>
                         <div id="logsEmptyState" class="text-center py-5 text-muted" style="display: none;">
                             <i class="fa-solid fa-calendar-check mb-2" style="font-size: 30px;"></i>
-                            <p class="mb-0">No attendance logs logged yet.</p>
+                            <p class="mb-0">No attendance records found for this month.</p>
                         </div>
                     </div>
                 </div>

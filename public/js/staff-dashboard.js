@@ -944,7 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keep no-op to prevent references error if called anywhere else
     function populateSubmissionsDropdown() {}
 
-    // Render Submissions Table
+    // Render Submissions Table (Grouped & Filterable by Month)
     function renderSubmissionsTable() {
         if (!submissionsTableBody) return;
         submissionsTableBody.innerHTML = '';
@@ -952,37 +952,106 @@ document.addEventListener('DOMContentLoaded', () => {
         // Filter tasks that have submission data
         const submissions = allTasks.filter(t => t.submissionLink || t.status === 'under_review' || t.status === 'completed');
         
-        if (submissions.length === 0) {
+        const monthFilter = document.getElementById('submissionsMonthFilter');
+        const countBadge = document.getElementById('submissionsMonthlyCountBadge');
+
+        // Extract available months from submissions
+        const monthMap = {};
+        submissions.forEach(s => {
+            const rawD = s.completedAt || s.updatedAt || s.createdAt || s.deadline;
+            if (rawD) {
+                const ym = String(rawD).slice(0, 7); // e.g. "2026-10"
+                if (ym && ym.length === 7) {
+                    const dateObj = new Date(ym + '-01');
+                    const label = !isNaN(dateObj.getTime())
+                        ? dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                        : ym;
+                    monthMap[ym] = label;
+                }
+            }
+        });
+
+        const currentYM = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
+        if (!monthMap[currentYM]) {
+            const curDate = new Date();
+            monthMap[currentYM] = curDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        const sortedMonths = Object.keys(monthMap).sort().reverse();
+
+        if (monthFilter) {
+            const currentSelected = monthFilter.value;
+            let optionsHTML = '<option value="all">All Months</option>';
+            sortedMonths.forEach(ym => {
+                optionsHTML += `<option value="${ym}">${monthMap[ym]}</option>`;
+            });
+            monthFilter.innerHTML = optionsHTML;
+
+            if (currentSelected && (currentSelected === 'all' || sortedMonths.includes(currentSelected))) {
+                monthFilter.value = currentSelected;
+            } else {
+                monthFilter.value = currentYM; // Default to current month
+            }
+
+            if (!monthFilter.dataset.bound) {
+                monthFilter.dataset.bound = 'true';
+                monthFilter.addEventListener('change', renderSubmissionsTable);
+            }
+        }
+
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        // Filter submissions for selected month
+        const filtered = submissions.filter(s => {
+            if (selectedMonth === 'all') return true;
+            const rawD = s.completedAt || s.updatedAt || s.createdAt || s.deadline;
+            if (!rawD) return false;
+            return String(rawD).startsWith(selectedMonth);
+        });
+
+        if (countBadge) {
+            countBadge.textContent = `${filtered.length} Submissions`;
+        }
+
+        if (filtered.length === 0) {
             if (submissionsEmptyState) submissionsEmptyState.style.display = 'block';
             return;
         }
         if (submissionsEmptyState) submissionsEmptyState.style.display = 'none';
 
-        submissions.forEach(s => {
+        filtered.forEach(s => {
             const tr = document.createElement('tr');
             
             let statusBadge = '';
             if (s.status === 'under_review') {
-                statusBadge = '<span class="badge bg-warning text-dark" style="color:#000 !important;">Under Review</span>';
+                statusBadge = '<span class="badge bg-info">Under Review</span>';
             } else if (s.status === 'completed') {
                 statusBadge = '<span class="badge bg-success">Completed</span>';
             } else {
                 statusBadge = `<span class="badge bg-secondary">${s.status}</span>`;
             }
 
+            const rawDate = s.completedAt || s.updatedAt || s.createdAt;
+            const formattedDate = rawDate 
+                ? new Date(rawDate).toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', year: 'numeric' })
+                : '-';
+
             const isValidUrl = s.submissionLink && (s.submissionLink.startsWith('http://') || s.submissionLink.startsWith('https://'));
             const workLinkHTML = isValidUrl 
-                ? `<div class="mt-1"><a href="${s.submissionLink}" target="_blank" class="text-warning small text-decoration-underline"><i class="fa-solid fa-up-right-from-square me-1"></i>View Work Link</a></div>`
+                ? `<div class="mt-1"><a href="${s.submissionLink}" target="_blank" class="fw-bold small text-decoration-underline" style="color: #ea580c;"><i class="fa-solid fa-up-right-from-square me-1"></i>View Work Link</a></div>`
                 : '';
 
             tr.innerHTML = `
                 <td data-label="Task Title">
-                    <span class="fw-bold text-white">${s.title}</span>
+                    <span class="fw-bold" style="color: #0f172a;">${s.title}</span>
                     ${workLinkHTML}
-                    ${s.submissionComment ? `<div class="text-white-50 small mt-1 italic">Note: ${s.submissionComment}</div>` : ''}
+                    ${s.submissionComment ? `<div class="small mt-1 fst-italic" style="color: #475569;">Note: ${s.submissionComment}</div>` : ''}
                 </td>
                 <td data-label="Client">
-                    <span class="text-white-50 small"><i class="fa-solid fa-user-tie text-warning me-1"></i>${s.client}</span>
+                    <span class="small fw-semibold" style="color: #334155;"><i class="fa-solid fa-user-tie text-warning me-1"></i>${s.client}</span>
+                </td>
+                <td data-label="Submitted On">
+                    <span class="small" style="color: #64748b;"><i class="fa-regular fa-calendar me-1"></i>${formattedDate}</span>
                 </td>
                 <td data-label="Status">${statusBadge}</td>
             `;
@@ -1097,9 +1166,84 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Render attendance logs list rows
+    // Render attendance logs list rows (Monthly Filter & Stats)
     function renderAttendanceHistory() {
-        // Since we have multiple tables in different tabs referencing logs, let's find all log bodies
+        const monthFilter = document.getElementById('attendanceMonthFilter');
+        const presentCountEl = document.getElementById('monthlyPresentCount');
+        const totalHoursEl = document.getElementById('monthlyTotalHours');
+        const lateCountEl = document.getElementById('monthlyLateCount');
+
+        // Extract available months from attendanceLogs
+        const monthMap = {};
+        attendanceLogs.forEach(l => {
+            if (l.date && l.date.length >= 7) {
+                const ym = l.date.slice(0, 7); // "2026-10"
+                const dateObj = new Date(ym + '-01');
+                const label = !isNaN(dateObj.getTime())
+                    ? dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                    : ym;
+                monthMap[ym] = label;
+            }
+        });
+
+        const currentYM = new Date().toISOString().slice(0, 7); // e.g. "2026-10"
+        if (!monthMap[currentYM]) {
+            const curDate = new Date();
+            monthMap[currentYM] = curDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        }
+
+        const sortedMonths = Object.keys(monthMap).sort().reverse();
+
+        if (monthFilter) {
+            const currentSelected = monthFilter.value;
+            let optionsHTML = '<option value="all">All Months</option>';
+            sortedMonths.forEach(ym => {
+                optionsHTML += `<option value="${ym}">${monthMap[ym]}</option>`;
+            });
+            monthFilter.innerHTML = optionsHTML;
+
+            if (currentSelected && (currentSelected === 'all' || sortedMonths.includes(currentSelected))) {
+                monthFilter.value = currentSelected;
+            } else {
+                monthFilter.value = currentYM; // Default to current month
+            }
+
+            if (!monthFilter.dataset.bound) {
+                monthFilter.dataset.bound = 'true';
+                monthFilter.addEventListener('change', renderAttendanceHistory);
+            }
+        }
+
+        const selectedMonth = monthFilter ? monthFilter.value : 'all';
+
+        // Filter logs for selected month
+        const filteredLogs = attendanceLogs.filter(l => {
+            if (selectedMonth === 'all') return true;
+            return l.date && l.date.startsWith(selectedMonth);
+        });
+
+        // Compute monthly summary stats
+        let presentDays = 0;
+        let totalLoggedHours = 0;
+        let latePunches = 0;
+
+        filteredLogs.forEach(l => {
+            if (l.status === 'present' || l.status === 'late' || l.status === 'half_day') {
+                presentDays++;
+            }
+            if (l.status === 'late') {
+                latePunches++;
+            }
+            if (l.totalHours && !isNaN(l.totalHours)) {
+                totalLoggedHours += Number(l.totalHours);
+            }
+        });
+
+        if (presentCountEl) presentCountEl.textContent = presentDays;
+        if (totalHoursEl) totalHoursEl.textContent = formatHours(totalLoggedHours);
+        if (lateCountEl) lateCountEl.textContent = latePunches;
+
+        // Render table
         const logBodies = document.querySelectorAll('#logsTableBody');
         const emptyStates = document.querySelectorAll('#logsEmptyState');
         
@@ -1107,40 +1251,42 @@ document.addEventListener('DOMContentLoaded', () => {
             body.innerHTML = '';
             const emptyState = emptyStates[idx];
             
-            if (attendanceLogs.length === 0) {
+            if (filteredLogs.length === 0) {
                 if (emptyState) emptyState.style.display = 'block';
                 return;
             }
             if (emptyState) emptyState.style.display = 'none';
 
-            attendanceLogs.forEach(l => {
+            filteredLogs.forEach(l => {
                 const tr = document.createElement('tr');
                 
                 const punchInTime = l.punchIn 
                     ? new Date(l.punchIn).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
-                    : '<span class="text-muted italic">-</span>';
+                    : '<span class="text-muted fst-italic">-</span>';
                 const punchOutTime = l.punchOut 
                     ? new Date(l.punchOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
-                    : '<span class="text-warning italic">Working...</span>';
+                    : '<span class="badge bg-warning fst-italic">Working...</span>';
                 
                 const duration = l.punchOut 
                     ? formatHours(l.totalHours)
-                    : '<span class="text-warning italic">Active</span>';
+                    : '<span class="badge bg-warning">Active</span>';
 
                 let statusBadge = '';
                 if (l.status === 'present') {
-                    statusBadge = '<span class="badge bg-success" style="font-weight: 600; padding: 4px 8px; color: #ffffff !important;">Present</span>';
+                    statusBadge = '<span class="badge bg-success">Present</span>';
                 } else if (l.status === 'late') {
-                    statusBadge = '<span class="badge bg-warning text-dark" style="font-weight: 600; padding: 4px 8px; color: #000000 !important;">Late Punch</span>';
+                    statusBadge = '<span class="badge bg-warning">Late Punch</span>';
                 } else if (l.status === 'half_day') {
-                    statusBadge = '<span class="badge bg-danger" style="font-weight: 600; padding: 4px 8px; color: #ffffff !important;">Half Day</span>';
+                    statusBadge = '<span class="badge bg-danger">Half Day</span>';
+                } else {
+                    statusBadge = `<span class="badge bg-secondary">${l.status || 'Logged'}</span>`;
                 }
 
                 tr.innerHTML = `
-                    <td data-label="Date" class="fw-bold text-white">${l.date}</td>
-                    <td data-label="Punch In">${punchInTime}</td>
-                    <td data-label="Punch Out">${punchOutTime}</td>
-                    <td data-label="Duration">${duration}</td>
+                    <td data-label="Date" class="fw-bold" style="color: #0f172a;">${l.date}</td>
+                    <td data-label="Punch In" style="color: #1e293b; font-weight: 600;">${punchInTime}</td>
+                    <td data-label="Punch Out" style="color: #1e293b; font-weight: 600;">${punchOutTime}</td>
+                    <td data-label="Duration" style="color: #334155; font-weight: 600;">${duration}</td>
                     <td data-label="Status">${statusBadge}</td>
                 `;
                 body.appendChild(tr);
@@ -1897,7 +2043,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (data.success) {
-                allReelRegistry = data.reels || [];
+                // Filter to only display reels starting from 1/10/2026 onwards
+                const cutoff = '2026-10-01';
+                allReelRegistry = (data.reels || []).filter(r => {
+                    const rawDate = r.completedAt || r.createdAt || r.date;
+                    if (!rawDate) return false;
+                    const dStr = String(rawDate).slice(0, 10);
+                    return dStr >= cutoff;
+                });
                 
                 // Populate client filter dropdown
                 const clientSelect = document.getElementById('reelRegistryClientFilter');
