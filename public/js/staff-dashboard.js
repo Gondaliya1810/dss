@@ -182,6 +182,20 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadAttendanceHistory();
         await loadStaffTasks();
         
+        // Auto-sync attendance & dashboard stats every 8 seconds (reflects admin changes in real time)
+        setInterval(async () => {
+            await checkTodayPunchStatus();
+            await loadAttendanceHistory();
+        }, 8000);
+
+        // Immediate refresh when tab becomes active/visible
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                await checkTodayPunchStatus();
+                await loadAttendanceHistory();
+            }
+        });
+
         // Start polling for unread chat messages
         updateStaffChatBadge();
         setInterval(updateStaffChatBadge, 10000);
@@ -395,6 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeLog = null;
             }
             updatePunchConsoleUI();
+            updateDashboardStats();
         } catch (err) {
             console.error(err);
         }
@@ -435,6 +450,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         String(hrs).padStart(2, '0') + ':' + 
                         String(mins).padStart(2, '0') + ':' + 
                         String(secs).padStart(2, '0');
+                }
+
+                if (secs === 0) {
+                    updateDashboardStats();
                 }
 
                 // Real-time lock check (unlocks 1 hour before shift end time)
@@ -721,6 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let sumHours = 0;
         let presentCount = 0;
+        let hasActiveLogCounted = false;
 
         attendanceLogs.forEach(l => {
             if (l.date && l.date.startsWith(currentMonthPrefix)) {
@@ -729,9 +749,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (l.totalHours) {
                     sumHours += Number(l.totalHours);
+                } else if (l.punchIn && !l.punchOut) {
+                    // Ongoing punch-in from attendanceLogs list
+                    const diffMs = now - new Date(l.punchIn);
+                    if (diffMs > 0) {
+                        sumHours += diffMs / (1000 * 60 * 60);
+                    }
+                    hasActiveLogCounted = true;
                 }
             }
         });
+
+        // If activeLog is present and not yet in attendanceLogs or unclosed
+        if (!hasActiveLogCounted && activeLog && activeLog.punchIn && !activeLog.punchOut) {
+            const logDate = activeLog.date || now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+            if (logDate.startsWith(currentMonthPrefix)) {
+                const diffMs = now - new Date(activeLog.punchIn);
+                if (diffMs > 0) {
+                    sumHours += diffMs / (1000 * 60 * 60);
+                }
+            }
+        }
 
         if (statMonthlyHours) statMonthlyHours.textContent = formatHours(sumHours);
         if (statPresentDays) statPresentDays.textContent = presentCount + ' days';

@@ -1496,20 +1496,27 @@ app.put('/api/admin/attendance/:id', async (req, res) => {
         }
         if (punchOut) {
             log.punchOut = new Date(`${targetDate}T${punchOut.length === 5 ? punchOut + ':00' : punchOut}`);
-            if (log.punchIn) {
-                const diffMs = log.punchOut - log.punchIn;
-                log.totalHours = diffMs > 0 ? Number((diffMs / (1000 * 60 * 60)).toFixed(2)) : 0;
-            }
         } else if (punchOut === '' || punchOut === null) {
             log.punchOut = null;
             log.totalHours = null;
+        }
+
+        if (log.punchIn && log.punchOut) {
+            const diffMs = new Date(log.punchOut) - new Date(log.punchIn);
+            log.totalHours = diffMs > 0 ? Number((diffMs / (1000 * 60 * 60)).toFixed(2)) : 0;
         }
 
         if (totalHours !== undefined && totalHours !== null && totalHours !== '') {
             log.totalHours = Number(totalHours);
         }
 
-        if (status) log.status = status;
+        if (status) {
+            log.status = status;
+        } else if (log.totalHours !== null && log.totalHours < 4.0) {
+            log.status = 'half_day';
+        } else if (log.punchIn) {
+            log.status = 'present';
+        }
 
         await log.save();
         res.json({ success: true, message: 'Attendance record updated successfully.', log });
