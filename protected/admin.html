@@ -1844,7 +1844,22 @@
             
             <!-- DASHBOARD (OVERVIEW) TAB -->
             <section id="tab-overview" class="tab-content">
-                <h2 class="admin-title">Dashboard Overview</h2>
+                <!-- Premium Dashboard Topbar -->
+                <div class="dashboard-topbar">
+                    <div class="topbar-greeting">
+                        <h3>Hey, Admin 👋</h3>
+                        <p>Welcome back! Here's your studio overview today.</p>
+                    </div>
+                    <div class="topbar-actions">
+                        <div class="topbar-badge d-none d-sm-inline-flex">
+                            <span class="status-dot-pulse green"></span>
+                            <span>Live System Active</span>
+                        </div>
+                        <button class="btn btn-sm btn-dss d-flex align-items-center gap-2" onclick="switchTab('assign-task')" style="font-size: 13px; padding: 7px 16px;">
+                            <i class="fa-solid fa-circle-plus"></i> Assign Task
+                        </button>
+                    </div>
+                </div>
                 
                 <!-- Stats Grid -->
                 <div class="stat-grid mb-4">

@@ -1281,13 +1281,20 @@
                 
                 <!-- 1. DASHBOARD TAB -->
                 <div class="tab-content-panel" id="tab-dashboard" style="display: block;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2 class="text-white fw-bold">Dashboard Overview</h2>
-                            <p class="text-muted mb-0">Welcome back to your workspace!</p>
+                    <!-- Premium Staff Dashboard Topbar -->
+                    <div class="dashboard-topbar">
+                        <div class="topbar-greeting">
+                            <h3 id="staffGreetingHeader">Hey, Staff 👋</h3>
+                            <p>Welcome back to your workspace! Here's your task summary.</p>
                         </div>
-                        <div class="text-muted text-end d-none d-sm-block">
-                            <span class="small" id="currentDateTime">Saturday, August 22, 2026</span>
+                        <div class="topbar-actions">
+                            <div class="topbar-badge d-none d-sm-inline-flex">
+                                <span class="status-dot-pulse green"></span>
+                                <span id="currentDateTime">Saturday, 02 Oct 2026</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-dss d-flex align-items-center gap-2" onclick="switchStaffTab('my-tasks')" style="font-size: 13px; padding: 7px 16px;">
+                                <i class="fa-solid fa-list-check text-warning"></i> View Tasks
+                            </button>
                         </div>
                     </div>
 
