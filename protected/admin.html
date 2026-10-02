@@ -2270,8 +2270,16 @@
                     <!-- Daily Punch Logs -->
                     <div class="col-12">
                         <div class="admin-card">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                 <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-calendar-day text-warning me-2"></i> Daily Punch Sheets</h4>
+                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                    <input type="date" class="form-control form-control-dss" id="adminAttendanceDateFilter" style="width: 155px; font-size: 13px;">
+                                    <select class="form-select form-control-dss" id="adminAttendanceStaffFilter" style="width: 170px; font-size: 13px;">
+                                        <option value="all">All Staff Members</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-dss" id="adminAttendanceTodayBtn" onclick="setAttendanceFilterToday()">Today</button>
+                                    <button class="btn btn-sm btn-outline-dss" id="adminAttendanceAllDatesBtn" onclick="setAttendanceFilterAllDates()">All Records</button>
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="custom-table text-white">
@@ -2283,6 +2291,7 @@
                                             <th>Punch Out</th>
                                             <th>Duration</th>
                                             <th>Status</th>
+                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="adminAttendanceTableBody">
@@ -2292,7 +2301,7 @@
                             </div>
                             <div id="adminAttendanceEmptyState" class="text-center py-4 text-muted" style="display: none;">
                                 <i class="fa-solid fa-clock mb-2" style="font-size: 30px;"></i>
-                                <p class="mb-0">No attendance logs registered today yet.</p>
+                                <p class="mb-0">No attendance logs found for the selected filter.</p>
                             </div>
                         </div>
                     </div>
@@ -2300,7 +2309,12 @@
                     <!-- Monthly Working Hours Aggregation -->
                     <div class="col-12">
                         <div class="admin-card">
-                            <h4 class="text-white fw-bold mb-3"><i class="fa-solid fa-business-time text-warning me-2"></i> Monthly Hours Aggregation</h4>
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                <h4 class="text-white fw-bold m-0"><i class="fa-solid fa-business-time text-warning me-2"></i> Monthly Hours Aggregation</h4>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="month" class="form-control form-control-dss" id="adminMonthlyHoursMonthFilter" style="width: 170px; font-size: 13px;">
+                                </div>
+                            </div>
                             <div class="table-responsive">
                                 <table class="custom-table text-white">
                                     <thead>
@@ -3185,10 +3199,11 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content custom-modal-content" style="background: var(--bg-surface-glass); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--border-color); border-radius: 20px;">
                 <div class="modal-header custom-modal-header border-bottom" style="border-color: var(--border-color) !important;">
-                    <h5 class="modal-title text-white fw-bold" id="manualPunchModalLabel"><i class="fa-solid fa-fingerprint text-warning me-2"></i> Manual Attendance Entry</h5>
+                    <h5 class="modal-title text-white fw-bold" id="manualPunchModalLabel"><i class="fa-solid fa-fingerprint text-warning me-2"></i> <span id="manualPunchModalTitle">Manual Attendance Entry</span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="modalManualPunchForm">
+                    <input type="hidden" id="manualPunchId">
                     <div class="modal-body custom-modal-body p-4 text-white">
                         <div class="mb-3">
                             <label for="manualPunchStaff" class="form-label text-white-50">Select Staff Member <span class="text-danger">*</span></label>

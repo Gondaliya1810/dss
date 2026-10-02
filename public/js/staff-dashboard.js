@@ -405,8 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(timerInterval);
         if (!punchBtn) return;
         
-        const info = JSON.parse(localStorage.getItem('staffInfo'));
-        const shiftTime = info ? info.shiftTime : null;
+        const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
+        if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
         
         if (!activeLog) {
             punchBtn.className = 'punch-btn punch-btn-in w-100';
@@ -414,15 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
             punchBtn.disabled = false;
             if (shiftTimer) shiftTimer.textContent = '00:00:00';
             if (statShiftStatus) statShiftStatus.innerHTML = '<span class="text-muted">Offline</span>';
-            
-            const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
-            if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
         } else if (activeLog.punchIn && !activeLog.punchOut) {
             punchBtn.className = 'punch-btn punch-btn-out w-100';
             punchBtnText.textContent = 'Punch Out';
+            punchBtn.disabled = false;
             if (statShiftStatus) statShiftStatus.innerHTML = '<span class="text-success blink-fast">● Working</span>';
             
             const punchInTime = new Date(activeLog.punchIn);
+            const info = JSON.parse(localStorage.getItem('staffInfo')) || {};
+            const shiftTime = info.shiftTime || '10:00 AM - 07:00 PM';
+
             function tick() {
                 const diff = new Date() - punchInTime;
                 if (diff < 0) return;
@@ -435,8 +436,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         String(mins).padStart(2, '0') + ':' + 
                         String(secs).padStart(2, '0');
                 }
-                
-                // Real-time lock check
+
+                // Real-time lock check (unlocks 1 hour before shift end time)
                 if (shiftTime) {
                     const parts = shiftTime.split('-');
                     if (parts.length >= 2) {
@@ -462,15 +463,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const displayHrs = unlockHrs % 12 === 0 ? 12 : unlockHrs % 12;
                                 const displayMins = String(unlockMins).padStart(2, '0');
                                 const displayAmpm = unlockHrs >= 12 ? 'PM' : 'AM';
-                                punchBtnText.textContent = `Punch Out (Unlocks at ${displayHrs}:${displayMins} ${displayAmpm})`;
+                                punchBtnText.textContent = `Punch Out (Locked until ${displayHrs}:${displayMins} ${displayAmpm})`;
                                 
-                                const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
                                 if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'block';
                             } else {
                                 punchBtn.disabled = false;
                                 punchBtnText.textContent = 'Punch Out';
                                 
-                                const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
                                 if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
                             }
                         }
@@ -478,7 +477,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     punchBtn.disabled = false;
                     punchBtnText.textContent = 'Punch Out';
-                    const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
                     if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
                 }
             }
@@ -490,16 +488,13 @@ document.addEventListener('DOMContentLoaded', () => {
             punchBtnText.textContent = 'Shift Completed';
             if (statShiftStatus) statShiftStatus.innerHTML = '<span class="text-warning">Completed</span>';
             
-            const hrs = Math.floor(activeLog.totalHours);
-            const mins = Math.round((activeLog.totalHours - hrs) * 60);
+            const hrs = Math.floor(activeLog.totalHours || 0);
+            const mins = Math.round(((activeLog.totalHours || 0) - hrs) * 60);
             if (shiftTimer) {
                 shiftTimer.textContent = 
                     String(hrs).padStart(2, '0') + ':' + 
                     String(mins).padStart(2, '0') + ':00';
             }
-            
-            const earlyLeaveContainer = document.getElementById('earlyLeaveContainer');
-            if (earlyLeaveContainer) earlyLeaveContainer.style.display = 'none';
         }
     }
 
@@ -507,8 +502,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (punchBtn) {
         punchBtn.addEventListener('click', async () => {
             const isPunchIn = !activeLog;
-            const url = isPunchIn ? '/api/attendance/punch-in' : '/api/attendance/punch-out';
             
+            if (!isPunchIn) {
+                const isConfirmed = confirm('Are you sure you want to Punch Out and complete your shift for today?');
+                if (!isConfirmed) return;
+            }
+
+            const url = isPunchIn ? '/api/attendance/punch-in' : '/api/attendance/punch-out';
             punchBtn.disabled = true;
             
             try {
@@ -709,17 +709,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Calculate dynamic stats on Dashboard Overview
+    // Calculate dynamic stats on Dashboard Overview (for current month)
     function updateDashboardStats() {
         const pendingOrWorking = allTasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length;
         if (statActiveTasks) statActiveTasks.textContent = pendingOrWorking;
         
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const currentMonthPrefix = `${currentYear}-${currentMonth}`;
+
         let sumHours = 0;
         let presentCount = 0;
+
         attendanceLogs.forEach(l => {
-            presentCount++;
-            if (l.punchOut) sumHours += l.totalHours;
+            if (l.date && l.date.startsWith(currentMonthPrefix)) {
+                if (l.status === 'present' || l.status === 'late' || l.status === 'half_day' || l.punchIn) {
+                    presentCount++;
+                }
+                if (l.totalHours) {
+                    sumHours += Number(l.totalHours);
+                }
+            }
         });
+
         if (statMonthlyHours) statMonthlyHours.textContent = formatHours(sumHours);
         if (statPresentDays) statPresentDays.textContent = presentCount + ' days';
     }

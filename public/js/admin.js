@@ -19,6 +19,8 @@ let tasksDoughnutChart = null;
 let staffReportChart = null;
 let currentCalendarDate = new Date();
 let packageModal = null;
+let manualPunchModal = null;
+let attendanceLogsList = [];
 
 // Internal Chat State
 let chatContacts = [];
@@ -33,10 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailsModalEl = document.getElementById('leadDetailsModal');
     const clientModalEl = document.getElementById('clientModal');
     const packageModalEl = document.getElementById('packageModal');
+    const manualPunchModalEl = document.getElementById('manualPunchModal');
     if (confirmModalEl) confirmModal = new bootstrap.Modal(confirmModalEl);
     if (detailsModalEl) detailsModal = new bootstrap.Modal(detailsModalEl);
     if (clientModalEl) clientModal = new bootstrap.Modal(clientModalEl);
     if (packageModalEl) packageModal = new bootstrap.Modal(packageModalEl);
+    if (manualPunchModalEl) manualPunchModal = new bootstrap.Modal(manualPunchModalEl);
 
     checkAuthState();
     initThemeSwitchAdmin();
@@ -53,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTaskTrackerForm();
     initClientsManagement();
     initPackagesManagement();
+    initAttendanceManagement();
     
     // Check for unread chat messages
     setTimeout(() => {
@@ -1867,6 +1872,33 @@ async function loadClients() {
     }
 }
 
+function initAttendanceManagement() {
+    const manualPunchForm = document.getElementById('modalManualPunchForm');
+    if (manualPunchForm) {
+        manualPunchForm.addEventListener('submit', handleManualPunchSubmit);
+    }
+
+    const dateFilter = document.getElementById('adminAttendanceDateFilter');
+    if (dateFilter) {
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        dateFilter.value = todayStr;
+        dateFilter.addEventListener('change', () => renderAttendanceLogs(attendanceLogsList));
+    }
+
+    const staffFilter = document.getElementById('adminAttendanceStaffFilter');
+    if (staffFilter) {
+        staffFilter.addEventListener('change', () => renderAttendanceLogs(attendanceLogsList));
+    }
+
+    const monthFilter = document.getElementById('adminMonthlyHoursMonthFilter');
+    if (monthFilter) {
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        monthFilter.value = currentMonth;
+        monthFilter.addEventListener('change', () => renderAttendanceLogs(attendanceLogsList));
+    }
+}
+
 async function loadAttendanceLogs() {
     try {
         const response = await fetch('/api/attendance/admin/all', {
@@ -1876,13 +1908,44 @@ async function loadAttendanceLogs() {
         });
         const data = await response.json();
         if (data.success) {
-            renderAttendanceLogs(data.logs || []);
+            attendanceLogsList = data.logs || [];
+            
+            // Populate staff filter dropdown
+            const staffFilter = document.getElementById('adminAttendanceStaffFilter');
+            if (staffFilter) {
+                const currentVal = staffFilter.value || 'all';
+                staffFilter.innerHTML = '<option value="all">All Staff Members</option>';
+                staffList.forEach(s => {
+                    staffFilter.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                });
+                staffFilter.value = currentVal;
+            }
+
+            renderAttendanceLogs(attendanceLogsList);
         }
     } catch (err) {
         console.error('Error loading attendance logs:', err);
     }
 }
 window.loadAttendanceLogs = loadAttendanceLogs;
+
+function setAttendanceFilterToday() {
+    const dateFilter = document.getElementById('adminAttendanceDateFilter');
+    if (dateFilter) {
+        dateFilter.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        renderAttendanceLogs(attendanceLogsList);
+    }
+}
+window.setAttendanceFilterToday = setAttendanceFilterToday;
+
+function setAttendanceFilterAllDates() {
+    const dateFilter = document.getElementById('adminAttendanceDateFilter');
+    if (dateFilter) {
+        dateFilter.value = '';
+        renderAttendanceLogs(attendanceLogsList);
+    }
+}
+window.setAttendanceFilterAllDates = setAttendanceFilterAllDates;
 
 function formatHours(hoursDecimal) {
     if (!hoursDecimal || hoursDecimal <= 0) return '0 hrs';
@@ -1899,6 +1962,7 @@ function formatHours(hoursDecimal) {
 }
 
 function renderAttendanceLogs(logs) {
+    attendanceLogsList = logs || [];
     const dailyTbody = document.getElementById('adminAttendanceTableBody');
     const monthlyTbody = document.getElementById('adminMonthlyHoursTableBody');
     const emptyState = document.getElementById('adminAttendanceEmptyState');
@@ -1907,18 +1971,37 @@ function renderAttendanceLogs(logs) {
     dailyTbody.innerHTML = '';
     monthlyTbody.innerHTML = '';
 
-    // 1. Render Daily punch logs (filter for today's date in local time)
-    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD format
-    const todayLogs = logs.filter(l => l.date === todayStr);
+    const dateFilterVal = document.getElementById('adminAttendanceDateFilter') ? document.getElementById('adminAttendanceDateFilter').value : '';
+    const staffFilterVal = document.getElementById('adminAttendanceStaffFilter') ? document.getElementById('adminAttendanceStaffFilter').value : 'all';
+    const monthFilterVal = document.getElementById('adminMonthlyHoursMonthFilter') ? document.getElementById('adminMonthlyHoursMonthFilter').value : '';
 
-    if (todayLogs.length === 0) {
+    // 1. Filter Daily punch logs
+    let filteredLogs = [...attendanceLogsList];
+
+    if (dateFilterVal) {
+        filteredLogs = filteredLogs.filter(l => l.date === dateFilterVal);
+    }
+    if (staffFilterVal && staffFilterVal !== 'all') {
+        filteredLogs = filteredLogs.filter(l => l.staffId === staffFilterVal);
+    }
+
+    // Sort: newest date & punchIn first
+    filteredLogs.sort((a, b) => {
+        const timeA = a.punchIn ? new Date(a.punchIn).getTime() : new Date(a.date).getTime();
+        const timeB = b.punchIn ? new Date(b.punchIn).getTime() : new Date(b.date).getTime();
+        return timeB - timeA;
+    });
+
+    if (filteredLogs.length === 0) {
         if (emptyState) emptyState.style.display = 'block';
     } else {
         if (emptyState) emptyState.style.display = 'none';
-        todayLogs.forEach(l => {
+        filteredLogs.forEach(l => {
             const tr = document.createElement('tr');
             
-            const punchInTime = new Date(l.punchIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const punchInTime = l.punchIn 
+                ? new Date(l.punchIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : '<span class="text-muted italic">-</span>';
             const punchOutTime = l.punchOut 
                 ? new Date(l.punchOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                 : '<span class="text-warning italic">Working...</span>';
@@ -1934,6 +2017,10 @@ function renderAttendanceLogs(logs) {
                 statusBadge = '<span class="badge bg-warning text-dark" style="font-weight: 600; padding: 4px 8px; color: #000000 !important;">Late Punch</span>';
             } else if (l.status === 'half_day') {
                 statusBadge = '<span class="badge bg-danger" style="font-weight: 600; padding: 4px 8px; color: #ffffff !important;">Half Day</span>';
+            } else if (l.status === 'absent') {
+                statusBadge = '<span class="badge bg-secondary" style="font-weight: 600; padding: 4px 8px; color: #ffffff !important;">Absent</span>';
+            } else {
+                statusBadge = `<span class="badge bg-info text-dark" style="font-weight: 600; padding: 4px 8px;">${l.status || 'Logged'}</span>`;
             }
 
             tr.innerHTML = `
@@ -1945,16 +2032,20 @@ function renderAttendanceLogs(logs) {
                 <td data-label="Punch Out">${punchOutTime}</td>
                 <td data-label="Duration">${duration}</td>
                 <td data-label="Status">${statusBadge}</td>
+                <td data-label="Actions" class="text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <button class="btn-action-dss btn-action-edit" onclick="openEditPunchModal('${l.id}')" title="Edit Record" style="background: rgba(250, 157, 28, 0.1); color: var(--accent-color); border: 1px solid rgba(250, 157, 28, 0.2);"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-action-dss btn-action-delete" onclick="confirmDeletePunch('${l.id}', '${(l.staffName || '').replace(/'/g, "\\'")}', '${l.date}')" title="Delete Record"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </td>
             `;
             dailyTbody.appendChild(tr);
         });
     }
 
     // 2. Render Monthly Attendance Hours Aggregation
-    // Aggregate by staff name/id
     const summary = {};
     
-    // Make sure all current staff members are listed, even if they have 0 logs
     staffList.forEach(s => {
         summary[s.id] = {
             name: s.name,
@@ -1965,8 +2056,11 @@ function renderAttendanceLogs(logs) {
         };
     });
 
-    // Populate from logs
-    logs.forEach(l => {
+    const targetMonthPrefix = monthFilterVal || `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+
+    attendanceLogsList.forEach(l => {
+        if (!l.date || !l.date.startsWith(targetMonthPrefix)) return;
+
         if (!summary[l.staffId]) {
             summary[l.staffId] = {
                 name: l.staffName,
@@ -1976,16 +2070,18 @@ function renderAttendanceLogs(logs) {
                 workingHours: 0
             };
         }
-        summary[l.staffId].presentDays += 1;
+
+        if (l.status === 'present' || l.status === 'late' || l.status === 'half_day' || l.punchIn) {
+            summary[l.staffId].presentDays += 1;
+        }
         if (l.status === 'late') {
             summary[l.staffId].latePunches += 1;
         }
-        if (l.punchOut) {
-            summary[l.staffId].workingHours += l.totalHours;
+        if (l.totalHours) {
+            summary[l.staffId].workingHours += Number(l.totalHours);
         }
     });
 
-    // Render summary rows
     Object.keys(summary).forEach(staffId => {
         const s = summary[staffId];
         const tr = document.createElement('tr');
@@ -2001,6 +2097,193 @@ function renderAttendanceLogs(logs) {
         monthlyTbody.appendChild(tr);
     });
 }
+
+function openManualPunchModal() {
+    const modalEl = document.getElementById('manualPunchModal');
+    if (!modalEl) return;
+    
+    if (!manualPunchModal) {
+        manualPunchModal = new bootstrap.Modal(modalEl);
+    }
+
+    const form = document.getElementById('modalManualPunchForm');
+    if (form) form.reset();
+
+    const punchIdInput = document.getElementById('manualPunchId');
+    if (punchIdInput) punchIdInput.value = '';
+
+    const titleEl = document.getElementById('manualPunchModalTitle');
+    if (titleEl) titleEl.textContent = 'Manual Attendance Entry';
+
+    const staffSelect = document.getElementById('manualPunchStaff');
+    if (staffSelect) {
+        staffSelect.innerHTML = '<option value="" disabled selected>Select Staff</option>';
+        staffList.forEach(s => {
+            staffSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.role})</option>`;
+        });
+        staffSelect.disabled = false;
+    }
+
+    const dateInput = document.getElementById('manualPunchDate');
+    if (dateInput) {
+        dateInput.value = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    }
+
+    const inTimeInput = document.getElementById('manualPunchInTime');
+    if (inTimeInput) inTimeInput.value = '10:00';
+
+    const outTimeInput = document.getElementById('manualPunchOutTime');
+    if (outTimeInput) outTimeInput.value = '19:00';
+
+    const statusSelect = document.getElementById('manualPunchStatus');
+    if (statusSelect) statusSelect.value = 'present';
+
+    manualPunchModal.show();
+}
+window.openManualPunchModal = openManualPunchModal;
+
+function openEditPunchModal(logId) {
+    const log = attendanceLogsList.find(l => l.id === logId);
+    if (!log) {
+        showToast('Attendance record not found.', false);
+        return;
+    }
+
+    const modalEl = document.getElementById('manualPunchModal');
+    if (!modalEl) return;
+    if (!manualPunchModal) manualPunchModal = new bootstrap.Modal(modalEl);
+
+    const punchIdInput = document.getElementById('manualPunchId');
+    if (punchIdInput) punchIdInput.value = log.id;
+
+    const titleEl = document.getElementById('manualPunchModalTitle');
+    if (titleEl) titleEl.textContent = `Edit Attendance - ${log.staffName}`;
+
+    const staffSelect = document.getElementById('manualPunchStaff');
+    if (staffSelect) {
+        staffSelect.innerHTML = '';
+        staffList.forEach(s => {
+            const isSelected = s.id === log.staffId ? 'selected' : '';
+            staffSelect.innerHTML += `<option value="${s.id}" ${isSelected}>${s.name} (${s.role})</option>`;
+        });
+        staffSelect.value = log.staffId;
+    }
+
+    const dateInput = document.getElementById('manualPunchDate');
+    if (dateInput) dateInput.value = log.date || '';
+
+    const inTimeInput = document.getElementById('manualPunchInTime');
+    if (inTimeInput) {
+        if (log.punchIn) {
+            const d = new Date(log.punchIn);
+            const hrs = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            inTimeInput.value = `${hrs}:${mins}`;
+        } else {
+            inTimeInput.value = '';
+        }
+    }
+
+    const outTimeInput = document.getElementById('manualPunchOutTime');
+    if (outTimeInput) {
+        if (log.punchOut) {
+            const d = new Date(log.punchOut);
+            const hrs = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            outTimeInput.value = `${hrs}:${mins}`;
+        } else {
+            outTimeInput.value = '';
+        }
+    }
+
+    const statusSelect = document.getElementById('manualPunchStatus');
+    if (statusSelect) statusSelect.value = log.status || 'present';
+
+    manualPunchModal.show();
+}
+window.openEditPunchModal = openEditPunchModal;
+
+async function handleManualPunchSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('manualPunchId') ? document.getElementById('manualPunchId').value : '';
+    const staffId = document.getElementById('manualPunchStaff').value;
+    const date = document.getElementById('manualPunchDate').value;
+    const punchIn = document.getElementById('manualPunchInTime').value;
+    const punchOut = document.getElementById('manualPunchOutTime').value;
+    const status = document.getElementById('manualPunchStatus').value;
+
+    const submitBtn = document.getElementById('modalManualPunchSubmitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Saving...';
+    }
+
+    try {
+        let response;
+        if (id) {
+            // Update existing record
+            response = await fetch(`/api/admin/attendance/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                },
+                body: JSON.stringify({ date, punchIn, punchOut, status })
+            });
+        } else {
+            // Create new record
+            response = await fetch('/api/admin/attendance/manual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                },
+                body: JSON.stringify({ staffId, date, punchIn, punchOut, status })
+            });
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message || 'Attendance record saved successfully!', true);
+            if (manualPunchModal) manualPunchModal.hide();
+            await loadAttendanceLogs();
+        } else {
+            showToast(data.message || 'Failed to save attendance record.', false);
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Connection error while saving attendance.', false);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> Save Entry';
+        }
+    }
+}
+
+function confirmDeletePunch(logId, staffName, date) {
+    showConfirmModal(`Are you sure you want to delete the attendance log for ${staffName} on ${date}?`, async () => {
+        try {
+            const response = await fetch(`/api/admin/attendance/${logId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast(data.message || 'Attendance record deleted successfully!', true);
+                await loadAttendanceLogs();
+            } else {
+                showToast(data.message || 'Failed to delete attendance record.', false);
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Connection error while deleting attendance.', false);
+        }
+    });
+}
+window.confirmDeletePunch = confirmDeletePunch;
 
 // 2. Render functions
 function renderDashboard() {

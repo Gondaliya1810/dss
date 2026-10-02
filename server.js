@@ -1244,9 +1244,9 @@ app.post('/api/attendance/punch-in', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.163.237, 171.61.165.56, 171.61.*, 219.100.37.233';
-        if (allowedIpEnv) {
+        // Verify IP address restriction only if explicitly enabled in environment variables
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP;
+        if (allowedIpEnv && allowedIpEnv !== '*' && allowedIpEnv !== 'none' && allowedIpEnv !== 'disabled') {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
             const forwarded = req.headers['x-forwarded-for'];
@@ -1260,7 +1260,7 @@ app.post('/api/attendance/punch-in', async (req, res) => {
             if (!allowed) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'You must be connected to the office WiFi (Airtel_DSS) to register attendance.' 
+                    message: `Please connect to the office WiFi network to register attendance (IP: ${clientIp}).` 
                 });
             }
         }
@@ -1271,28 +1271,12 @@ app.post('/api/attendance/punch-in', async (req, res) => {
         // Check if already punched in today
         let log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
         if (log) {
-            return res.status(400).json({ success: false, message: 'Already punched in today.' });
+            return res.status(400).json({ success: false, message: 'You have already punched in today.' });
         }
 
         const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
         const [hrs, mins] = timeStr.split(':').map(Number);
         const currentMinutes = hrs * 60 + mins;
-
-        // Check shift start time restriction for all staff members based on their shiftTime
-        if (staff.shiftTime) {
-            const shiftStart = parseShiftStartTime(staff.shiftTime);
-            if (shiftStart) {
-                const startMinutes = shiftStart.hours * 60 + shiftStart.minutes;
-                
-                if (currentMinutes < startMinutes) {
-                    const timeDisplay = staff.shiftTime.split('-')[0].trim();
-                    return res.status(400).json({ 
-                        success: false, 
-                        message: `You cannot punch-in before your shift start time (${timeDisplay}).` 
-                    });
-                }
-            }
-        }
 
         // Calculate status dynamically based on shift start time (with 15 min grace period)
         let status = 'present';
@@ -1332,9 +1316,9 @@ app.post('/api/attendance/punch-out', async (req, res) => {
         return res.status(403).json({ success: false, message: 'Unauthorized staff access.' });
     }
     try {
-        // Verify IP address restriction if configured
-        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP || '171.61.163.237, 171.61.165.56, 171.61.*, 219.100.37.233';
-        if (allowedIpEnv) {
+        // Verify IP address restriction only if explicitly configured
+        const allowedIpEnv = process.env.ALLOWED_PUNCH_IP;
+        if (allowedIpEnv && allowedIpEnv !== '*' && allowedIpEnv !== 'none' && allowedIpEnv !== 'disabled') {
             const allowedIps = allowedIpEnv.split(',').map(ip => ip.trim());
             
             const forwarded = req.headers['x-forwarded-for'];
@@ -1348,12 +1332,12 @@ app.post('/api/attendance/punch-out', async (req, res) => {
             if (!allowed) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: 'You must be connected to the office WiFi (Airtel_DSS) to register attendance.' 
+                    message: `Please connect to the office WiFi network to register attendance (IP: ${clientIp}).` 
                 });
             }
         }
 
-        // Check shift end time restriction (cannot punch out more than 1 hour before shift ends)
+        // Check shift end time restriction (cannot punch out directly more than 1 hour before shift ends without OTP)
         if (staff.shiftTime) {
             const shiftEnd = parseShiftEndTime(staff.shiftTime);
             if (shiftEnd) {
@@ -1373,7 +1357,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
                     
                     return res.status(400).json({
                         success: false,
-                        message: `You cannot punch-out yet. Punch-out will unlock 1 hour before your shift ends (at ${unlockTimeDisplay}).`
+                        message: `Regular punch-out will unlock at ${unlockTimeDisplay} (1 hour before shift end). Please click "Request Early Punch Out" to leave early.`
                     });
                 }
             }
@@ -1381,9 +1365,17 @@ app.post('/api/attendance/punch-out', async (req, res) => {
 
         const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
         
-        const log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
+        // Find today's log, or most recent unclosed punch-in
+        let log = await Attendance.findOne({ staffId: staff.id, date: todayStr });
         if (!log) {
-            return res.status(400).json({ success: false, message: 'Have not punched in today.' });
+            // Check if there is any unpunched-out log from recent days
+            const recentLogs = await Attendance.find({ staffId: staff.id }).sort({ punchIn: -1 });
+            const unclosed = recentLogs.find(l => l.punchIn && !l.punchOut);
+            if (unclosed) {
+                log = unclosed;
+            } else {
+                return res.status(400).json({ success: false, message: 'Have not punched in today.' });
+            }
         }
         if (log.punchOut) {
             return res.status(400).json({ success: false, message: 'Already punched out today.' });
@@ -1394,7 +1386,7 @@ app.post('/api/attendance/punch-out', async (req, res) => {
 
         // Calculate hours
         const diffMs = now - new Date(log.punchIn);
-        const diffHrs = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+        const diffHrs = Math.max(0, Number((diffMs / (1000 * 60 * 60)).toFixed(2)));
         log.totalHours = diffHrs;
 
         // Determine if half-day (less than 4 hours)
@@ -1409,12 +1401,16 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
 });
 
-// POST manual punch entry by admin
+// POST manual punch entry by admin (create or update)
 app.post('/api/admin/attendance/manual', async (req, res) => {
     if (!validateAdminAuth(req)) {
         return res.status(403).json({ success: false, message: 'Unauthorized access.' });
     }
     const { staffId, date, punchIn, punchOut, status } = req.body;
+
+    if (!staffId || !date) {
+        return res.status(400).json({ success: false, message: 'Staff and Date are required.' });
+    }
 
     try {
         const staff = await Staff.findOne({ id: staffId });
@@ -1427,12 +1423,12 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
         
         let inDate = null;
         if (punchIn) {
-            inDate = new Date(`${date}T${punchIn}:00`);
+            inDate = new Date(`${date}T${punchIn.length === 5 ? punchIn + ':00' : punchIn}`);
         }
         
         let outDate = null;
         if (punchOut) {
-            outDate = new Date(`${date}T${punchOut}:00`);
+            outDate = new Date(`${date}T${punchOut.length === 5 ? punchOut + ':00' : punchOut}`);
         }
         
         let totalHours = null;
@@ -1442,6 +1438,8 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
                 totalHours = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
             }
         }
+
+        const finalStatus = status || (totalHours && totalHours < 4.0 ? 'half_day' : 'present');
 
         if (log) {
             // Update existing log
@@ -1453,7 +1451,7 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
                 log.punchOut = null;
                 log.totalHours = null;
             }
-            log.status = status;
+            log.status = finalStatus;
             await log.save();
         } else {
             // Create new log
@@ -1462,17 +1460,79 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
                 staffId: staff.id,
                 staffName: staff.name,
                 date,
-                punchIn: inDate,
+                punchIn: inDate || new Date(`${date}T10:00:00`),
                 punchOut: outDate,
                 totalHours: punchOut ? totalHours : null,
-                status
+                status: finalStatus
             });
             await log.save();
         }
 
+        res.json({ success: true, message: 'Attendance record saved successfully.', log });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// PUT update attendance record by ID
+app.put('/api/admin/attendance/:id', async (req, res) => {
+    if (!validateAdminAuth(req)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+    }
+    const { id } = req.params;
+    const { date, punchIn, punchOut, status, totalHours } = req.body;
+
+    try {
+        const log = await Attendance.findOne({ id });
+        if (!log) {
+            return res.status(404).json({ success: false, message: 'Attendance record not found.' });
+        }
+
+        const targetDate = date || log.date;
+        if (date) log.date = date;
+
+        if (punchIn) {
+            log.punchIn = new Date(`${targetDate}T${punchIn.length === 5 ? punchIn + ':00' : punchIn}`);
+        }
+        if (punchOut) {
+            log.punchOut = new Date(`${targetDate}T${punchOut.length === 5 ? punchOut + ':00' : punchOut}`);
+            if (log.punchIn) {
+                const diffMs = log.punchOut - log.punchIn;
+                log.totalHours = diffMs > 0 ? Number((diffMs / (1000 * 60 * 60)).toFixed(2)) : 0;
+            }
+        } else if (punchOut === '' || punchOut === null) {
+            log.punchOut = null;
+            log.totalHours = null;
+        }
+
+        if (totalHours !== undefined && totalHours !== null && totalHours !== '') {
+            log.totalHours = Number(totalHours);
+        }
+
+        if (status) log.status = status;
+
+        await log.save();
         res.json({ success: true, message: 'Attendance record updated successfully.', log });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE attendance record by ID
+app.delete('/api/admin/attendance/:id', async (req, res) => {
+    if (!validateAdminAuth(req)) {
+        return res.status(403).json({ success: false, message: 'Unauthorized access.' });
+    }
+    const { id } = req.params;
+
+    try {
+        const result = await Attendance.deleteOne({ id });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Attendance record not found.' });
+        }
+        res.json({ success: true, message: 'Attendance record deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
