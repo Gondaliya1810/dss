@@ -1116,9 +1116,11 @@ document.addEventListener('DOMContentLoaded', () => {
             attendanceLogs.forEach(l => {
                 const tr = document.createElement('tr');
                 
-                const punchInTime = new Date(l.punchIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const punchInTime = l.punchIn 
+                    ? new Date(l.punchIn).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
+                    : '<span class="text-muted italic">-</span>';
                 const punchOutTime = l.punchOut 
-                    ? new Date(l.punchOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    ? new Date(l.punchOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
                     : '<span class="text-warning italic">Working...</span>';
                 
                 const duration = l.punchOut 

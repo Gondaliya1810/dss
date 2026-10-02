@@ -1401,6 +1401,13 @@ app.post('/api/attendance/punch-out', async (req, res) => {
     }
 });
 
+// Helper to parse date string (YYYY-MM-DD) and time string (HH:mm) into an IST Date object
+function parseISTDateTime(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return null;
+    const timeFormatted = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
+    return new Date(`${dateStr}T${timeFormatted}+05:30`);
+}
+
 // POST manual punch entry by admin (create or update)
 app.post('/api/admin/attendance/manual', async (req, res) => {
     if (!validateAdminAuth(req)) {
@@ -1421,15 +1428,8 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
         // Find if record already exists for this staff and date
         let log = await Attendance.findOne({ staffId, date });
         
-        let inDate = null;
-        if (punchIn) {
-            inDate = new Date(`${date}T${punchIn.length === 5 ? punchIn + ':00' : punchIn}`);
-        }
-        
-        let outDate = null;
-        if (punchOut) {
-            outDate = new Date(`${date}T${punchOut.length === 5 ? punchOut + ':00' : punchOut}`);
-        }
+        let inDate = parseISTDateTime(date, punchIn);
+        let outDate = parseISTDateTime(date, punchOut);
         
         let totalHours = null;
         if (inDate && outDate) {
@@ -1460,7 +1460,7 @@ app.post('/api/admin/attendance/manual', async (req, res) => {
                 staffId: staff.id,
                 staffName: staff.name,
                 date,
-                punchIn: inDate || new Date(`${date}T10:00:00`),
+                punchIn: inDate || parseISTDateTime(date, '10:00'),
                 punchOut: outDate,
                 totalHours: punchOut ? totalHours : null,
                 status: finalStatus
@@ -1492,10 +1492,10 @@ app.put('/api/admin/attendance/:id', async (req, res) => {
         if (date) log.date = date;
 
         if (punchIn) {
-            log.punchIn = new Date(`${targetDate}T${punchIn.length === 5 ? punchIn + ':00' : punchIn}`);
+            log.punchIn = parseISTDateTime(targetDate, punchIn);
         }
         if (punchOut) {
-            log.punchOut = new Date(`${targetDate}T${punchOut.length === 5 ? punchOut + ':00' : punchOut}`);
+            log.punchOut = parseISTDateTime(targetDate, punchOut);
         } else if (punchOut === '' || punchOut === null) {
             log.punchOut = null;
             log.totalHours = null;

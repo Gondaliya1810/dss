@@ -2000,10 +2000,10 @@ function renderAttendanceLogs(logs) {
             const tr = document.createElement('tr');
             
             const punchInTime = l.punchIn 
-                ? new Date(l.punchIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                ? new Date(l.punchIn).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
                 : '<span class="text-muted italic">-</span>';
             const punchOutTime = l.punchOut 
-                ? new Date(l.punchOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                ? new Date(l.punchOut).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })
                 : '<span class="text-warning italic">Working...</span>';
             
             const duration = l.punchOut 
@@ -2175,10 +2175,8 @@ function openEditPunchModal(logId) {
     const inTimeInput = document.getElementById('manualPunchInTime');
     if (inTimeInput) {
         if (log.punchIn) {
-            const d = new Date(log.punchIn);
-            const hrs = String(d.getHours()).padStart(2, '0');
-            const mins = String(d.getMinutes()).padStart(2, '0');
-            inTimeInput.value = `${hrs}:${mins}`;
+            const timeStr = new Date(log.punchIn).toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+            inTimeInput.value = timeStr;
         } else {
             inTimeInput.value = '';
         }
@@ -2187,10 +2185,8 @@ function openEditPunchModal(logId) {
     const outTimeInput = document.getElementById('manualPunchOutTime');
     if (outTimeInput) {
         if (log.punchOut) {
-            const d = new Date(log.punchOut);
-            const hrs = String(d.getHours()).padStart(2, '0');
-            const mins = String(d.getMinutes()).padStart(2, '0');
-            outTimeInput.value = `${hrs}:${mins}`;
+            const timeStr = new Date(log.punchOut).toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+            outTimeInput.value = timeStr;
         } else {
             outTimeInput.value = '';
         }
