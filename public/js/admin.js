@@ -1355,8 +1355,8 @@ function initThemeSwitchAdmin() {
         updateCharts(); // Refresh chart styles for new theme
     };
 
-    const isLightModeActive = localStorage.getItem('lightmode') === 'active';
-    setTheme(isLightModeActive);
+    const isLightModeActive = true;
+    setTheme(true);
 
     const toggleTheme = () => {
         const currentMode = document.documentElement.classList.contains('lightmode');

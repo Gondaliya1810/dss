@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLogos(isLight);
     };
 
-    const isLightModeActive = localStorage.getItem('lightmode') === 'active';
-    setTheme(isLightModeActive);
+    const isLightModeActive = true;
+    setTheme(true);
 
     const toggleTheme = () => {
         const currentMode = document.documentElement.classList.contains('lightmode');

@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="lightmode">
 <head>
     <script>
-        if (localStorage.getItem('lightmode') === 'active') {
-            document.documentElement.classList.add('lightmode');
-        }
+        document.documentElement.classList.add('lightmode');
+        localStorage.setItem('lightmode', 'active');
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" content="light">
     <title>DSS - Design Shaper Studio | Admin Dashboard</title>
     <!-- CSS Stylesheets -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="./css/style.css?v=2.5">
+    <link rel="stylesheet" href="./css/style.css?v=3.0">
     
     <!-- Chart.js CDN for Analytics Visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1699,16 +1698,16 @@
         <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Navigation Sidebar">
             <i class="fa-solid fa-bars"></i>
         </button>
-        <img src="./image/logo-light.png" alt="DSS Logo" height="30" id="mobileLogo">
-        <button id="themeSwitchAdminMobile" class="themeswitch" aria-label="Toggle Theme">
-            <i id="themeIconAdminMobile" class="fas fa-moon"></i>
+        <img src="./image/logo-dark.png" alt="DSS Logo" height="30" id="mobileLogo">
+        <button id="themeSwitchAdminMobile" class="themeswitch" style="display: none;" aria-label="Toggle Theme">
+            <i id="themeIconAdminMobile" class="fas fa-sun"></i>
         </button>
     </header>
 
     <!-- Admin Sidebar -->
     <aside class="admin-sidebar" id="adminSidebar" style="display: none;">
         <div class="sidebar-brand">
-            <img src="./image/logo-light.png" alt="DSS Logo" id="sidebarLogoImg">
+            <img src="./image/logo-dark.png" alt="DSS Logo" id="sidebarLogoImg">
             <div class="admin-profile">
                 <div class="profile-avatar">A</div>
                 <div class="profile-info">
@@ -1822,9 +1821,9 @@
         </ul>
 
         <div class="sidebar-footer">
-            <button id="themeSwitchAdmin" class="btn-outline-dss py-2 px-3 border-0 d-flex align-items-center gap-3 w-100" style="font-size: 14px; border-radius: 10px;">
-                <i id="themeIconAdmin" class="fas fa-moon" style="width: 20px;"></i>
-                <span id="themeTextAdmin">Dark Mode</span>
+            <button id="themeSwitchAdmin" class="btn-outline-dss py-2 px-3 border-0 d-none align-items-center gap-3 w-100" style="font-size: 14px; border-radius: 10px;">
+                <i id="themeIconAdmin" class="fas fa-sun" style="width: 20px;"></i>
+                <span id="themeTextAdmin">Light Mode</span>
             </button>
             <a href="index.html" class="btn-outline-dss text-decoration-none py-2 px-3 w-100 d-flex align-items-center gap-3" style="font-size: 14px; border-radius: 10px;">
                 <i class="fa-solid fa-house" style="width: 20px;"></i> View Website
