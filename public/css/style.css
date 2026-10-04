@@ -788,200 +788,298 @@ header.scrolled .navbar-wrapper {
 }
 
 /* ========================================================================
-   HERO / BANNER SECTION
+   HERO / BANNER SECTION (CENTER-FOCUSED CREATIVE SHOWCASE)
    ======================================================================== */
 .hero-section {
-    padding-top: 180px;
-    padding-bottom: 100px;
-    background: linear-gradient(to bottom, transparent 60%, var(--bg-dark) 100%),
-        radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.05) 0%, transparent 50%),
-        radial-gradient(circle at 90% 80%, rgba(255, 0, 127, 0.05) 0%, transparent 50%);
-}
-
-.hero-layout {
-    display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 50px;
-    align-items: center;
-}
-
-.hero-content h1 {
-    font-size: 56px;
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -2px;
-    margin-bottom: 25px;
-}
-
-.hero-content p {
-    font-size: 18px;
-    color: var(--text-secondary);
-    margin-bottom: 40px;
-    max-width: 600px;
-}
-
-.hero-cta {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 50px;
-}
-
-/* Premium Buttons */
-.btn-primary-gradient {
-    background: var(--accent-gradient);
-    color: white;
-    padding: 16px 32px;
-    border-radius: 30px;
-    font-weight: 700;
-    font-size: 16px;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    border: none;
-    cursor: pointer;
-    box-shadow: var(--glow-btn-shadow);
-    transition: all var(--anim-fast);
+    padding-top: 160px;
+    padding-bottom: 90px;
     position: relative;
     overflow: hidden;
-    z-index: 1;
+    background: radial-gradient(circle at 50% 15%, rgba(250, 157, 28, 0.12) 0%, transparent 65%),
+                radial-gradient(circle at 10% 40%, rgba(255, 94, 59, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 90% 40%, rgba(250, 157, 28, 0.06) 0%, transparent 50%);
 }
 
-.btn-primary-gradient:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 35px rgba(255, 0, 127, 0.5);
+.lightmode .hero-section {
+    background: radial-gradient(circle at 50% 10%, rgba(250, 157, 28, 0.1) 0%, transparent 60%),
+                radial-gradient(circle at 10% 30%, rgba(255, 94, 59, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 90% 30%, rgba(250, 157, 28, 0.04) 0%, transparent 50%);
 }
 
-.btn-primary-gradient::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--hover-gradient);
-    opacity: 0;
-    transition: opacity var(--anim-normal);
-    z-index: -1;
+/* 1. Centered Header */
+.hero-header-center {
+    max-width: 920px;
+    margin: 0 auto 35px auto;
+    position: relative;
+    z-index: 10;
 }
 
-.btn-primary-gradient:hover::before {
-    opacity: 1;
-}
-
-.btn-outline-glass {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 16px 32px;
-    border-radius: 30px;
-    font-weight: 700;
-    font-size: 16px;
+.hero-greeting-pill {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    transition: all var(--anim-fast);
-}
-
-.btn-outline-glass:hover {
-    border-color: var(--accent-color);
-    background: rgba(138, 43, 226, 0.05);
-    transform: translateY(-2px);
-}
-
-/* Stats wrapper */
-.hero-stats {
-    display: flex;
-    gap: 40px;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.stat-num {
-    font-size: 36px;
-    font-weight: 800;
-    color: var(--text-primary);
-}
-
-.stat-num span {
+    gap: 8px;
+    padding: 8px 20px;
+    border-radius: 9999px;
+    background: rgba(250, 157, 28, 0.1);
+    border: 1px solid rgba(250, 157, 28, 0.3);
     color: var(--accent-color);
-}
-
-.stat-label {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--text-muted);
+    box-shadow: 0 4px 15px rgba(250, 157, 28, 0.15);
 }
 
-/* Floating Mockup */
-.hero-visual {
+.greeting-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    box-shadow: 0 0 8px var(--accent-color);
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+.hero-main-title {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1.14;
+    letter-spacing: -1.5px;
+    color: var(--text-primary);
+    margin-top: 14px;
+    margin-bottom: 0;
+}
+
+/* 2. Three-Column Center Stage Layout */
+.hero-center-stage {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr 1fr;
+    gap: 28px;
+    align-items: center;
     position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    z-index: 5;
+}
+
+.hero-side-col {
     display: flex;
+    flex-direction: column;
     justify-content: center;
 }
 
-.hero-vector-container {
+.hero-left-col {
+    align-items: flex-end;
+    text-align: left;
+}
+
+.hero-right-col {
+    align-items: flex-start;
+    text-align: left;
+}
+
+/* Glass Cards on Sides */
+.hero-info-glass-card {
+    background: var(--bg-surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px 22px;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    max-width: 320px;
+    width: 100%;
+}
+
+.hero-info-glass-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(250, 157, 28, 0.4);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 25px rgba(250, 157, 28, 0.1);
+}
+
+.card-mini-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+}
+
+.hero-desc-text {
+    font-size: 14.5px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+
+.trust-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 12px;
+}
+
+.lightmode .trust-badge-pill {
+    background: #f1f5f9;
+}
+
+.hero-rating-stars {
+    display: flex;
+    gap: 4px;
+    font-size: 16px;
+}
+
+.hero-rating-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.hero-rating-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 3. Center Arch & 3D Character Stage */
+.hero-center-col {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.hero-arch-container {
     position: relative;
     width: 100%;
     max-width: 460px;
-    margin: 0 auto;
+    min-height: 460px;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: flex-end;
 }
 
-.hero-vector-container::before {
-    content: "";
+/* The Grand Center Arch / Dome Backdrop */
+.hero-arch-backdrop {
     position: absolute;
-    width: 380px;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 360px;
     height: 380px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(250, 157, 28, 0.55) 0%, rgba(255, 94, 59, 0.22) 50%, transparent 70%);
-    filter: blur(50px);
+    border-radius: 190px 190px 24px 24px;
+    background: radial-gradient(circle at 50% 30%, rgba(250, 157, 28, 0.45) 0%, rgba(255, 94, 59, 0.22) 55%, rgba(22, 22, 26, 0.8) 100%);
+    border: 2px solid rgba(250, 157, 28, 0.35);
+    box-shadow: 0 0 60px rgba(250, 157, 28, 0.25), inset 0 0 40px rgba(250, 157, 28, 0.15);
     z-index: 1;
-    pointer-events: none;
-    animation: pulseGlow 6s infinite ease-in-out;
+    transition: all 0.3s ease;
 }
 
-.lightmode .hero-vector-container::before {
-    background: radial-gradient(circle, rgba(250, 157, 28, 0.28) 0%, rgba(255, 94, 59, 0.1) 50%, transparent 70%);
-    filter: blur(45px);
+.lightmode .hero-arch-backdrop {
+    background: radial-gradient(circle at 50% 30%, #ffedd5 0%, #fed7aa 55%, #fdba74 100%);
+    border: 2px solid #fdba74;
+    box-shadow: 0 20px 50px rgba(250, 157, 28, 0.2);
 }
 
-@keyframes pulseGlow {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.9;
-    }
-
-    50% {
-        transform: scale(1.15);
-        opacity: 1;
-    }
-}
-
-.hero-vector-img {
-    width: 100%;
-    height: auto;
-    max-height: 480px;
-    object-fit: contain;
+.hero-character-center-img {
+    position: relative;
     z-index: 2;
-    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.4));
+    width: 100%;
+    max-width: 390px;
+    height: auto;
+    max-height: 450px;
+    object-fit: contain;
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+    transform: translateY(12px);
+    transition: transform 0.3s ease;
 }
 
+.hero-arch-container:hover .hero-character-center-img {
+    transform: translateY(6px) scale(1.02);
+}
+
+/* 4. Floating Dual CTA Pill Bar (matching reference image) */
+.hero-floating-cta-pill {
+    position: absolute;
+    bottom: 0px;
+    z-index: 6;
+    background: rgba(18, 18, 22, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(250, 157, 28, 0.4);
+    border-radius: 9999px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 25px rgba(250, 157, 28, 0.2);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-floating-cta-pill:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 35px rgba(250, 157, 28, 0.3);
+    border-color: var(--accent-color);
+}
+
+.lightmode .hero-floating-cta-pill {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(250, 157, 28, 0.35);
+    box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12), 0 0 20px rgba(250, 157, 28, 0.15);
+}
+
+.pill-cta-primary {
+    background: linear-gradient(135deg, #fa9d1c, #ff5e3b);
+    color: #ffffff !important;
+    padding: 10px 22px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 4px 14px rgba(250, 157, 28, 0.35);
+    transition: all 0.2s ease;
+}
+
+.pill-cta-primary:hover {
+    opacity: 0.94;
+    transform: scale(1.02);
+}
+
+.pill-cta-secondary {
+    background: transparent;
+    color: var(--text-primary) !important;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.pill-cta-secondary:hover {
+    color: var(--accent-color) !important;
+    background: rgba(250, 157, 28, 0.08);
+}
+
+/* 5. Floating Badges positioning */
 .floating-badge {
     position: absolute;
-    width: 60px;
-    height: 60px;
-    border-radius: 18px;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
     background: var(--bg-surface-glass);
     border: 1px solid var(--border-color);
     backdrop-filter: blur(12px);
@@ -990,23 +1088,23 @@ header.scrolled .navbar-wrapper {
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 20px;
+    font-size: 17px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), var(--glow-shadow);
-    z-index: 3;
+    z-index: 4;
     animation: floatingBadge 5s ease-in-out infinite;
 }
 
 .badge-ps {
-    top: 50px;
-    left: -20px;
+    top: 40px;
+    left: -15px;
     color: #00c8ff;
     border-color: rgba(0, 200, 255, 0.25);
     animation-delay: 0s;
 }
 
 .badge-ai {
-    top: 130px;
-    right: -20px;
+    top: 60px;
+    right: -15px;
     color: #ff9f00;
     border-color: rgba(255, 159, 0, 0.25);
     animation-delay: 1.2s;
@@ -1014,20 +1112,194 @@ header.scrolled .navbar-wrapper {
 
 .badge-ig {
     bottom: 120px;
-    left: -30px;
+    left: -20px;
     color: #f75274;
     border-color: rgba(247, 82, 116, 0.25);
     animation-delay: 2.4s;
-    font-size: 24px;
+    font-size: 22px;
 }
 
 .badge-fb {
-    bottom: 60px;
-    right: -10px;
+    bottom: 130px;
+    right: -20px;
     color: #1877f2;
     border-color: rgba(24, 119, 242, 0.25);
     animation-delay: 3.6s;
-    font-size: 24px;
+    font-size: 22px;
+}
+
+@keyframes floatingBadge {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(3deg);
+    }
+}
+
+/* 6. Bottom Stats Grid Bar */
+.hero-stats-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    background: var(--bg-surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    padding: 22px 36px;
+    max-width: 960px;
+    margin: 45px auto 0 auto;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+}
+
+.hero-stats-bottom-bar:hover {
+    border-color: rgba(250, 157, 28, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25), 0 0 25px rgba(250, 157, 28, 0.08);
+}
+
+.hero-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(250, 157, 28, 0.1);
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    border: 1px solid rgba(250, 157, 28, 0.2);
+}
+
+.stat-card-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-stat-card .stat-num {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.hero-stat-card .stat-num span {
+    color: var(--accent-color);
+}
+
+.hero-stat-card .stat-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+}
+
+.hero-stat-divider {
+    width: 1px;
+    height: 42px;
+    background: var(--border-color);
+}
+
+/* 7. Responsive Media Queries for Center Hero */
+@media (max-width: 991px) {
+    .hero-section {
+        padding-top: 130px;
+        padding-bottom: 60px;
+    }
+
+    .hero-main-title {
+        font-size: 40px;
+        letter-spacing: -1px;
+    }
+
+    .hero-center-stage {
+        grid-template-columns: 1fr;
+        gap: 32px;
+        text-align: center;
+    }
+
+    .hero-left-col, .hero-right-col {
+        align-items: center;
+        text-align: center;
+    }
+
+    .hero-info-glass-card {
+        max-width: 460px;
+    }
+
+    .hero-side-col {
+        order: 2;
+    }
+
+    .hero-center-col {
+        order: 1;
+    }
+
+    .hero-right-col {
+        order: 3;
+    }
+
+    .hero-arch-backdrop {
+        width: 310px;
+        height: 330px;
+    }
+
+    .hero-character-center-img {
+        max-width: 320px;
+    }
+
+    .hero-stats-bottom-bar {
+        flex-direction: column;
+        gap: 20px;
+        padding: 24px 20px;
+    }
+
+    .hero-stat-divider {
+        width: 100%;
+        height: 1px;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-main-title {
+        font-size: 32px;
+    }
+
+    .hero-arch-backdrop {
+        width: 260px;
+        height: 280px;
+        border-radius: 130px 130px 20px 20px;
+    }
+
+    .hero-character-center-img {
+        max-width: 270px;
+    }
+
+    .hero-floating-cta-pill {
+        flex-direction: column;
+        width: 90%;
+        border-radius: 20px;
+        bottom: -10px;
+    }
+
+    .pill-cta-primary, .pill-cta-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .badge-ps, .badge-ai, .badge-ig, .badge-fb {
+        width: 42px;
+        height: 42px;
+        font-size: 14px;
+    }
 }
 
 /* Service Detail Pages Custom Floating Badges */
