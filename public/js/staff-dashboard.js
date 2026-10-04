@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLogos(isLight);
     };
 
-    const isLightModeActive = true;
-    setTheme(true);
+    const isLightModeActive = localStorage.getItem('lightmode') === 'active';
+    setTheme(isLightModeActive);
 
     const toggleTheme = () => {
         const currentMode = document.documentElement.classList.contains('lightmode');
@@ -1043,15 +1043,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tr.innerHTML = `
                 <td data-label="Task Title">
-                    <span class="fw-bold" style="color: #0f172a;">${s.title}</span>
+                    <span class="fw-bold" style="color: var(--text-primary);">${s.title}</span>
                     ${workLinkHTML}
-                    ${s.submissionComment ? `<div class="small mt-1 fst-italic" style="color: #475569;">Note: ${s.submissionComment}</div>` : ''}
+                    ${s.submissionComment ? `<div class="small mt-1 fst-italic" style="color: var(--text-secondary);">Note: ${s.submissionComment}</div>` : ''}
                 </td>
                 <td data-label="Client">
-                    <span class="small fw-semibold" style="color: #334155;"><i class="fa-solid fa-user-tie text-warning me-1"></i>${s.client}</span>
+                    <span class="small fw-semibold" style="color: var(--text-secondary);"><i class="fa-solid fa-user-tie text-warning me-1"></i>${s.client}</span>
                 </td>
                 <td data-label="Submitted On">
-                    <span class="small" style="color: #64748b;"><i class="fa-regular fa-calendar me-1"></i>${formattedDate}</span>
+                    <span class="small" style="color: var(--text-muted);"><i class="fa-regular fa-calendar me-1"></i>${formattedDate}</span>
                 </td>
                 <td data-label="Status">${statusBadge}</td>
             `;
@@ -1283,10 +1283,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 tr.innerHTML = `
-                    <td data-label="Date" class="fw-bold" style="color: #0f172a;">${l.date}</td>
-                    <td data-label="Punch In" style="color: #1e293b; font-weight: 600;">${punchInTime}</td>
-                    <td data-label="Punch Out" style="color: #1e293b; font-weight: 600;">${punchOutTime}</td>
-                    <td data-label="Duration" style="color: #334155; font-weight: 600;">${duration}</td>
+                    <td data-label="Date" class="fw-bold" style="color: var(--text-primary);">${l.date}</td>
+                    <td data-label="Punch In" style="color: var(--text-secondary); font-weight: 600;">${punchInTime}</td>
+                    <td data-label="Punch Out" style="color: var(--text-secondary); font-weight: 600;">${punchOutTime}</td>
+                    <td data-label="Duration" style="color: var(--text-secondary); font-weight: 600;">${duration}</td>
                     <td data-label="Status">${statusBadge}</td>
                 `;
                 body.appendChild(tr);

@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" class="lightmode">
+<html lang="en">
 <head>
     <script>
-        document.documentElement.classList.add('lightmode');
-        localStorage.setItem('lightmode', 'active');
+        if (localStorage.getItem('lightmode') === 'active') {
+            document.documentElement.classList.add('lightmode');
+        }
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="dark light">
     <title>DSS - Portal Login</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -198,7 +199,7 @@
         <div class="container d-flex justify-content-center">
             <div id="loginPanel" class="login-card admin-card p-4">
                 <div class="text-center mb-4">
-                    <img src="./image/logo-dark.png" alt="DSS Logo" id="logoImg" class="mb-3" style="height: 65px !important; width: auto; object-fit: contain;">
+                    <img src="./image/logo-light.png" alt="DSS Logo" id="logoImg" class="mb-3" style="height: 65px !important; width: auto; object-fit: contain;">
                     <h2 class="text-white fw-bold" id="loginPortalTitle">Admin Portal</h2>
                     <p class="text-muted mb-4" id="loginPortalSubtitle">Enter credentials to manage works</p>
                 </div>
@@ -287,8 +288,8 @@
             updateLogos(isLight);
         };
 
-        const isLightModeActive = true;
-        setTheme(true);
+        const isLightModeActive = localStorage.getItem('lightmode') === 'active';
+        setTheme(isLightModeActive);
 
         if (themeSwitch) {
             themeSwitch.addEventListener('click', () => {

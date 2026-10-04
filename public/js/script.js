@@ -130,8 +130,8 @@ function initThemeSwitch() {
     };
 
     // Load initial state
-    const isLightModeActive = true;
-    setTheme(true);
+    const isLightModeActive = localStorage.getItem('lightmode') === 'active';
+    setTheme(isLightModeActive);
 
     themeBtn.addEventListener('click', () => {
         const currentMode = document.documentElement.classList.contains('lightmode');
