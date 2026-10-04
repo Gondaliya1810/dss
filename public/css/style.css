@@ -961,17 +961,18 @@ header.scrolled .navbar-wrapper {
     position: relative;
     width: 100%;
     max-width: 460px;
-    min-height: 460px;
+    min-height: 480px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
+    padding-bottom: 25px;
 }
 
 /* The Grand Center Arch / Dome Backdrop */
 .hero-arch-backdrop {
     position: absolute;
-    bottom: 25px;
+    bottom: 45px;
     left: 50%;
     transform: translateX(-50%);
     width: 360px;
@@ -994,25 +995,28 @@ header.scrolled .navbar-wrapper {
     position: relative;
     z-index: 2;
     width: 100%;
-    max-width: 390px;
+    max-width: 380px;
     height: auto;
-    max-height: 450px;
+    max-height: 440px;
     object-fit: contain;
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
-    transform: translateY(12px);
+    transform: translateY(0);
+    margin-bottom: 12px;
     transition: transform 0.3s ease;
 }
 
 .hero-arch-container:hover .hero-character-center-img {
-    transform: translateY(6px) scale(1.02);
+    transform: translateY(-4px) scale(1.02);
 }
 
-/* 4. Floating Dual CTA Pill Bar (matching reference image) */
+/* 4. Floating Dual CTA Pill Bar (positioned cleanly below character legs) */
 .hero-floating-cta-pill {
     position: absolute;
-    bottom: 0px;
+    bottom: -24px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 6;
-    background: rgba(18, 18, 22, 0.85);
+    background: rgba(18, 18, 22, 0.88);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(250, 157, 28, 0.4);
@@ -1021,13 +1025,14 @@ header.scrolled .navbar-wrapper {
     display: flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 25px rgba(250, 157, 28, 0.2);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 25px rgba(250, 157, 28, 0.2);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
 }
 
 .hero-floating-cta-pill:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 35px rgba(250, 157, 28, 0.3);
+    transform: translateX(-50%) translateY(-3px) scale(1.02);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 35px rgba(250, 157, 28, 0.3);
     border-color: var(--accent-color);
 }
 
