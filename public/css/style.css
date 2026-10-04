@@ -3093,26 +3093,40 @@ h6,
     display: block;
     text-decoration: none !important;
     color: inherit !important;
+    height: 100%;
 }
 
 .offer-card {
-    background: linear-gradient(135deg, rgba(20, 20, 28, 0.75), rgba(250, 157, 28, 0.03));
+    background: linear-gradient(160deg, rgba(24, 24, 32, 0.85) 0%, rgba(12, 12, 18, 0.95) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    /* Brighter border in dark mode */
-    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 20px;
     padding: 24px 20px;
-    min-height: 220px;
+    min-height: 270px;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    /* Added baseline shadow for depth */
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
     transition: transform var(--anim-normal), border-color var(--anim-normal), box-shadow var(--anim-normal), background var(--anim-normal);
     cursor: pointer;
+}
+
+/* Ambient glow on hover */
+.offer-card-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(250, 157, 28, 0.18), transparent 60%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--anim-normal);
+    z-index: 0;
 }
 
 /* Diagonal cut decorative corner style matching reference */
@@ -3121,80 +3135,189 @@ h6,
     position: absolute;
     top: 0;
     right: 0;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     background: var(--accent-gradient);
     clip-path: polygon(100% 0, 0 0, 100% 100%);
-    opacity: 0.85;
+    opacity: 0.9;
     transition: all var(--anim-normal);
+    z-index: 2;
 }
 
 .offer-card:hover {
     transform: translateY(-8px);
-    border-color: var(--accent-color);
-    box-shadow: 0 15px 35px rgba(250, 157, 28, 0.2), 0 0 25px rgba(255, 94, 59, 0.1);
-    background: linear-gradient(135deg, rgba(250, 157, 28, 0.16), rgba(255, 94, 59, 0.12));
+    border-color: rgba(250, 157, 28, 0.45);
+    box-shadow: 0 20px 40px -10px rgba(250, 157, 28, 0.22), 0 0 25px rgba(255, 94, 59, 0.12);
+    background: linear-gradient(160deg, rgba(30, 28, 38, 0.92) 0%, rgba(18, 16, 25, 0.98) 100%);
+}
+
+.offer-card:hover .offer-card-glow {
+    opacity: 1;
 }
 
 .offer-card:hover::before {
-    width: 35px;
-    height: 35px;
+    width: 38px;
+    height: 38px;
+}
+
+.offer-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 16px;
+}
+
+.offer-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(250, 157, 28, 0.15), rgba(255, 94, 59, 0.08));
+    border: 1px solid rgba(250, 157, 28, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-color);
+    font-size: 18px;
+    transition: all var(--anim-normal);
+}
+
+.offer-card:hover .offer-icon-box {
+    background: var(--accent-gradient);
+    color: #ffffff;
+    transform: scale(1.08) rotate(4deg);
+    box-shadow: 0 6px 18px rgba(250, 157, 28, 0.35);
+    border-color: transparent;
+}
+
+.offer-number {
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: rgba(255, 255, 255, 0.18);
+    transition: color var(--anim-normal);
+}
+
+.offer-card:hover .offer-number {
+    color: var(--accent-color);
+}
+
+.offer-content {
+    position: relative;
+    z-index: 1;
+    flex-grow: 1;
+}
+
+.offer-title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    text-transform: capitalize !important;
+    transition: color var(--anim-fast);
+}
+
+.offer-card:hover .offer-title {
+    color: var(--accent-color);
 }
 
 .offer-desc {
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: var(--text-secondary);
     margin: 0;
 }
 
 .offer-footer {
+    position: relative;
+    z-index: 1;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.offer-title {
-    font-size: 13.5px;
-    font-weight: 800;
-    line-height: 1.2;
-    color: var(--text-primary);
-    margin: 0;
-    white-space: nowrap;
-    text-transform: capitalize !important;
+.offer-action-text {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.45);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--anim-fast);
+}
+
+.offer-action-text i {
+    font-size: 10px;
+    transition: transform var(--anim-fast);
+}
+
+.offer-card:hover .offer-action-text {
+    color: var(--accent-color);
+}
+
+.offer-card:hover .offer-action-text i {
+    transform: translateX(4px);
 }
 
 /* Light mode overrides for offer cards */
 .lightmode .offer-card {
     background: #ffffff;
-    /* Solid clean white card background */
     border: 1px solid rgba(0, 0, 0, 0.08);
-    /* More visible borders on light bg */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-    /* Soft shadow for contrast */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.lightmode .offer-card .offer-title {
+    color: #111111;
+}
+
+.lightmode .offer-card .offer-desc {
+    color: #555555;
+}
+
+.lightmode .offer-card .offer-number {
+    color: rgba(0, 0, 0, 0.15);
+}
+
+.lightmode .offer-card .offer-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.lightmode .offer-card .offer-action-text {
+    color: #666666;
 }
 
 .lightmode .offer-card:hover {
     border-color: var(--accent-color);
-    box-shadow: 0 15px 35px rgba(250, 157, 28, 0.12);
-    background: linear-gradient(135deg, #ffffff, rgba(250, 157, 28, 0.03));
+    box-shadow: 0 15px 35px rgba(250, 157, 28, 0.15);
+    background: linear-gradient(160deg, #ffffff 0%, rgba(250, 157, 28, 0.04) 100%);
+}
+
+.lightmode .offer-card:hover .offer-title,
+.lightmode .offer-card:hover .offer-action-text {
+    color: var(--accent-color);
 }
 
 /* Responsive configurations for offer grid */
 @media (max-width: 1200px) {
     .offer-card {
-        min-height: 210px;
+        min-height: 250px;
     }
 
     .offer-title {
-        font-size: 12px;
+        font-size: 14px;
     }
 }
 
 @media (max-width: 768px) {
     .offer-card {
-        min-height: 200px;
+        min-height: 230px;
     }
 }
 
