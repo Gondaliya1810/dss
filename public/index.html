@@ -393,50 +393,83 @@
         </section>
 
         <!-- What We Offer Split Details Section -->
-        <section class="what-we-offer-section py-5">
+        <section class="what-we-offer-section py-5 position-relative">
             <div class="hero-container">
                 <div class="row align-items-center g-5">
                     <!-- Text & Bullets Column -->
                     <div class="col-lg-6 reveal-in">
                         <span class="section-tag text-start d-inline-block">our values</span>
-                        <h2 class="section-title text-white text-start mb-4">what we offer?</h2>
+                        <h2 class="section-title text-white text-start mb-4">what we <span class="gradient-text">offer?</span></h2>
                         <p class="offer-detail-text mb-4">At Design Shaper Studio, we take pride in offering a wide range of services tailored to meet our clients' essential requirements while adhering to the highest industry standards. With our constantly expanding team, we are able to cater to clients with varying budgets and deliver long-term impactful outcomes.</p>
                         
-                        <div class="offer-bullets-list row g-3">
-                            <div class="col-sm-6 d-flex align-items-center gap-2">
-                                <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
-                                <span class="bullet-text">high-converting reels</span>
+                        <div class="offer-bullets-list row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="offer-feature-pill">
+                                    <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
+                                    <span class="bullet-text">high-converting reels</span>
+                                </div>
                             </div>
-                            <div class="col-sm-6 d-flex align-items-center gap-2">
-                                <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
-                                <span class="bullet-text">custom brand style guides</span>
+                            <div class="col-sm-6">
+                                <div class="offer-feature-pill">
+                                    <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
+                                    <span class="bullet-text">custom brand style guides</span>
+                                </div>
                             </div>
-                            <div class="col-sm-6 d-flex align-items-center gap-2">
-                                <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
-                                <span class="bullet-text">kinetic subtitle typography</span>
+                            <div class="col-sm-6">
+                                <div class="offer-feature-pill">
+                                    <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
+                                    <span class="bullet-text">kinetic subtitle typography</span>
+                                </div>
                             </div>
-                            <div class="col-sm-6 d-flex align-items-center gap-2">
-                                <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
-                                <span class="bullet-text">pixel-perfect post designs</span>
+                            <div class="col-sm-6">
+                                <div class="offer-feature-pill">
+                                    <span class="bullet-check"><i class="fa-solid fa-check"></i></span>
+                                    <span class="bullet-text">pixel-perfect post designs</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mt-5">
-                            <a href="contact.html" class="btn-gradient px-4 py-3">get a free proposal <i class="fa-solid fa-paper-plane"></i></a>
+                        <div class="d-flex flex-wrap align-items-center gap-4 mt-4">
+                            <a href="contact.html" class="btn-gradient px-4 py-3 rounded-pill d-inline-flex align-items-center gap-2">get a free proposal <i class="fa-solid fa-paper-plane"></i></a>
+                            <div class="offer-guarantee-pill">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>100% Quality Guaranteed</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Interactive 3D Character Column -->
                     <div class="col-lg-6 reveal-in delay-2">
                         <div class="offer-3d-container">
+                            <!-- Glowing Ambient Backdrop Rings -->
+                            <div class="offer-ambient-ring ring-1"></div>
+                            <div class="offer-ambient-ring ring-2"></div>
+                            
                             <img src="./image/3d-character.png" alt="3D Digital Creator" class="offer-character-img">
                             
-                            <!-- Floating Social Media Icons around the character -->
-                            <div class="floating-sm-icon icon-instagram"><i class="fa-brands fa-instagram"></i></div>
-                            <div class="floating-sm-icon icon-youtube"><i class="fa-brands fa-youtube"></i></div>
-                            <div class="floating-sm-icon icon-meta"><i class="fa-brands fa-meta"></i></div>
-                            <div class="floating-sm-icon icon-whatsapp"><i class="fa-brands fa-whatsapp"></i></div>
-                            <div class="floating-sm-icon icon-facebook"><i class="fa-brands fa-facebook-f"></i></div>
+                            <!-- Floating Social Media Icons with colored glow -->
+                            <div class="floating-sm-icon icon-instagram" title="Instagram"><i class="fa-brands fa-instagram"></i></div>
+                            <div class="floating-sm-icon icon-youtube" title="YouTube"><i class="fa-brands fa-youtube"></i></div>
+                            <div class="floating-sm-icon icon-meta" title="Meta"><i class="fa-brands fa-meta"></i></div>
+                            <div class="floating-sm-icon icon-whatsapp" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></div>
+                            <div class="floating-sm-icon icon-facebook" title="Facebook"><i class="fa-brands fa-facebook-f"></i></div>
+
+                            <!-- Floating Glass Stat Badges -->
+                            <div class="floating-stat-badge badge-top-right">
+                                <div class="stat-badge-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                                <div class="stat-badge-info">
+                                    <span class="stat-badge-val">+350%</span>
+                                    <span class="stat-badge-lbl">Engagement</span>
+                                </div>
+                            </div>
+                            
+                            <div class="floating-stat-badge badge-bottom-left">
+                                <div class="stat-badge-icon star-icon"><i class="fa-solid fa-star"></i></div>
+                                <div class="stat-badge-info">
+                                    <span class="stat-badge-val">5.0 / 5</span>
+                                    <span class="stat-badge-lbl">Top Rated Studio</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
