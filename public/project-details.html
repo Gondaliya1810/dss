@@ -457,15 +457,18 @@
             const filterTabsContainer = document.getElementById('project-filter-tabs');
             const workListContainer = document.getElementById('project-work-list');
 
+            let initialFilter = 'all';
+
             // Render filter tabs if multiple categories exist or multiple media types exist
             if (projectCategories.length > 1) {
-                let tabsHTML = `<button class="portfolio-tab-btn active" data-filter="all">All Works (${mediaItems.length})</button>`;
-                projectCategories.forEach(c => {
+                let tabsHTML = '';
+                projectCategories.forEach((c, idx) => {
                     const catCount = mediaItems.filter(item => item.category === c).length;
-                    tabsHTML += `<button class="portfolio-tab-btn" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
+                    tabsHTML += `<button class="portfolio-tab-btn ${idx === 0 ? 'active' : ''}" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
                 });
                 filterTabsContainer.innerHTML = tabsHTML;
                 filterTabsContainer.style.display = 'flex';
+                initialFilter = projectCategories[0];
 
                 const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
                 tabs.forEach(tab => {
@@ -480,11 +483,12 @@
                 const hasVideos = mediaItems.some(item => item.type === 'video');
                 if (hasImages && hasVideos) {
                     filterTabsContainer.innerHTML = `
-                        <button class="portfolio-tab-btn active" data-filter="all">All Works</button>
-                        <button class="portfolio-tab-btn" data-filter="graphics">Graphics</button>
+                        <button class="portfolio-tab-btn active" data-filter="graphics">Graphics</button>
                         <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
                     `;
                     filterTabsContainer.style.display = 'flex';
+                    initialFilter = 'graphics';
+
                     const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
                     tabs.forEach(tab => {
                         tab.addEventListener('click', (e) => {
@@ -495,6 +499,7 @@
                     });
                 } else {
                     filterTabsContainer.style.display = 'none';
+                    initialFilter = 'all';
                 }
             }
 
@@ -503,10 +508,22 @@
                 workListContainer.innerHTML = '';
                 
                 let filteredItems = mediaItems;
-                if (filterType === 'graphics') {
+                if (filterType === 'all') {
+                    filteredItems = mediaItems;
+                } else if (filterType === 'graphics' && !projectCategories.includes('graphics')) {
                     filteredItems = mediaItems.filter(item => item.type === 'image');
-                } else if (filterType === 'reels') {
+                } else if (filterType === 'reels' && !projectCategories.includes('reels')) {
                     filteredItems = mediaItems.filter(item => item.type === 'video');
+                } else {
+                    // Filter by specific category
+                    filteredItems = mediaItems.filter(item => item.category === filterType);
+                    if (filteredItems.length === 0) {
+                        if (filterType === 'graphics') {
+                            filteredItems = mediaItems.filter(item => item.type === 'image');
+                        } else if (filterType === 'video' || filterType === 'reels') {
+                            filteredItems = mediaItems.filter(item => item.type === 'video');
+                        }
+                    }
                 }
 
                 if (filteredItems.length === 0) {
@@ -596,7 +613,7 @@
             };
 
             // Initial render
-            renderWorkList('all');
+            renderWorkList(initialFilter);
         });
     </script>
 </body>
