@@ -331,6 +331,9 @@ function initCursorGlow() {
    PORTFOLIO FILTER GRID
    ======================================================================== */
 function initPortfolioFilter() {
+    const portfolioGrid = document.querySelector('.portfolio-grid');
+    if (!portfolioGrid) return;
+
     const tabs = document.querySelectorAll('.portfolio-tab-btn');
     if (tabs.length === 0) return;
 

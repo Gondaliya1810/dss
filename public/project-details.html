@@ -304,7 +304,7 @@
 
     <!-- Project Render Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function initProjectDetailPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const projectId = urlParams.get('id');
             if (!projectId) {
@@ -363,17 +363,21 @@
                 }
             ];
 
-            let project = defaultProjects.find(p => p.id === projectId);
+            let project = defaultProjects.find(p => String(p.id).trim().toLowerCase() === String(projectId).trim().toLowerCase());
 
             if (!project) {
                 try {
                     const response = await fetch('/api/projects');
                     const data = await response.json();
                     if (data.success && data.projects) {
-                        const dbProj = data.projects.find(p => p.id === projectId);
+                        const targetId = String(projectId).trim().toLowerCase();
+                        const dbProj = data.projects.find(p => 
+                            (p.id && String(p.id).trim().toLowerCase() === targetId) ||
+                            (p._id && String(p._id).trim().toLowerCase() === targetId)
+                        );
                         if (dbProj) {
                             project = {
-                                id: dbProj.id,
+                                id: dbProj.id || dbProj._id,
                                 title: dbProj.title,
                                 category: dbProj.category,
                                 categories: dbProj.categories || [dbProj.category],
@@ -391,19 +395,24 @@
             }
 
             if (!project) {
-                document.getElementById('project-content-wrapper').innerHTML = `
-                    <div class="text-center py-5">
-                        <h2 class="text-white">Project Not Found</h2>
-                        <p class="text-white-50">The requested portfolio work could not be located.</p>
-                        <a href="index.html" class="btn-outline-glass px-4 py-2 mt-3 text-decoration-none d-inline-block">Back to Home</a>
-                    </div>
-                `;
+                const wrapper = document.getElementById('project-content-wrapper');
+                if (wrapper) {
+                    wrapper.innerHTML = `
+                        <div class="text-center py-5">
+                            <h2 class="text-white">Project Not Found</h2>
+                            <p class="text-white-50">The requested portfolio work could not be located.</p>
+                            <a href="index.html" class="btn-outline-glass px-4 py-2 mt-3 text-decoration-none d-inline-block">Back to Home</a>
+                        </div>
+                    `;
+                }
                 return;
             }
 
             // Render metadata
-            document.getElementById('project-title').textContent = project.title;
-            document.getElementById('project-desc').textContent = project.description || 'No description available for this project.';
+            const titleEl = document.getElementById('project-title');
+            const descEl = document.getElementById('project-desc');
+            if (titleEl) titleEl.textContent = project.title;
+            if (descEl) descEl.textContent = project.description || 'No description available for this project.';
             
             const categoryLabels = {
                 'graphics': 'graphics design',
@@ -471,9 +480,11 @@
             // Fallback to mediaPaths if categoryMedia is empty or unpopulated
             if (mediaItems.length === 0 && project.mediaPaths) {
                 project.mediaPaths.forEach((path, index) => {
+                    const explicitType = (project.mediaTypes && project.mediaTypes[index]);
+                    const inferredType = (path && path.match(/\.(mp4|webm)$/i)) ? 'video' : 'image';
                     mediaItems.push({
                         path,
-                        type: (project.mediaTypes && project.mediaTypes[index]) || 'image',
+                        type: explicitType || inferredType,
                         category: projectCategories[0] || 'graphics'
                     });
                 });
@@ -482,40 +493,21 @@
             const filterTabsContainer = document.getElementById('project-filter-tabs');
             const workListContainer = document.getElementById('project-work-list');
 
-            const urlParams = new URLSearchParams(window.location.search);
             const requestedCat = urlParams.get('cat');
 
             let initialFilter = (requestedCat && projectCategories.includes(requestedCat)) ? requestedCat : projectCategories[0];
 
             // Render filter tabs if multiple categories exist or multiple media types exist
-            if (projectCategories.length > 1) {
-                let tabsHTML = '';
-                projectCategories.forEach((c) => {
-                    const catCount = mediaItems.filter(item => item.category === c).length;
-                    const isActive = c === initialFilter;
-                    tabsHTML += `<button class="portfolio-tab-btn ${isActive ? 'active' : ''}" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
-                });
-                filterTabsContainer.innerHTML = tabsHTML;
-                filterTabsContainer.style.display = 'flex';
-
-                const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', (e) => {
-                        tabs.forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        renderWorkList(tab.getAttribute('data-filter'));
+            if (filterTabsContainer) {
+                if (projectCategories.length > 1) {
+                    let tabsHTML = '';
+                    projectCategories.forEach((c) => {
+                        const catCount = mediaItems.filter(item => item.category === c).length;
+                        const isActive = c === initialFilter;
+                        tabsHTML += `<button class="portfolio-tab-btn ${isActive ? 'active' : ''}" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
                     });
-                });
-            } else {
-                const hasImages = mediaItems.some(item => item.type === 'image');
-                const hasVideos = mediaItems.some(item => item.type === 'video');
-                if (hasImages && hasVideos) {
-                    filterTabsContainer.innerHTML = `
-                        <button class="portfolio-tab-btn active" data-filter="graphics">Graphics</button>
-                        <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
-                    `;
+                    filterTabsContainer.innerHTML = tabsHTML;
                     filterTabsContainer.style.display = 'flex';
-                    initialFilter = 'graphics';
 
                     const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
                     tabs.forEach(tab => {
@@ -526,13 +518,34 @@
                         });
                     });
                 } else {
-                    filterTabsContainer.style.display = 'none';
-                    initialFilter = 'all';
+                    const hasImages = mediaItems.some(item => item.type === 'image');
+                    const hasVideos = mediaItems.some(item => item.type === 'video');
+                    if (hasImages && hasVideos) {
+                        filterTabsContainer.innerHTML = `
+                            <button class="portfolio-tab-btn active" data-filter="graphics">Graphics</button>
+                            <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
+                        `;
+                        filterTabsContainer.style.display = 'flex';
+                        initialFilter = 'graphics';
+
+                        const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
+                        tabs.forEach(tab => {
+                            tab.addEventListener('click', (e) => {
+                                tabs.forEach(t => t.classList.remove('active'));
+                                tab.classList.add('active');
+                                renderWorkList(tab.getAttribute('data-filter'));
+                            });
+                        });
+                    } else {
+                        filterTabsContainer.style.display = 'none';
+                        initialFilter = 'all';
+                    }
                 }
             }
 
             // Render media in responsive CSS grid
             const renderWorkList = (filterType) => {
+                if (!workListContainer) return;
                 workListContainer.innerHTML = '';
                 
                 let filteredItems = mediaItems;
@@ -559,7 +572,7 @@
                     return;
                 }
 
-                filteredItems.forEach((item, index) => {
+                filteredItems.forEach((item) => {
                     const cardWrapper = document.createElement('div');
                     cardWrapper.className = 'reveal-in visible';
                     cardWrapper.style.width = '100%';
@@ -631,7 +644,7 @@
                     });
                 }, {
                     root: null,
-                    rootMargin: '150px 0px', // start loading video when 150px away
+                    rootMargin: '150px 0px',
                     threshold: 0.1
                 });
 
@@ -642,7 +655,13 @@
 
             // Initial render
             renderWorkList(initialFilter);
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initProjectDetailPage);
+        } else {
+            initProjectDetailPage();
+        }
     </script>
 </body>
 </html>
