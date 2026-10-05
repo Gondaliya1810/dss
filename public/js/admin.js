@@ -1134,83 +1134,107 @@ function initEditProjectForm() {
         });
     }
 
-    if (editForm) {
-        editForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    const handleEditSubmit = async (e) => {
+        if (e) e.preventDefault();
 
-            const id = document.getElementById('editProjectId').value;
-            const title = document.getElementById('editProjectTitle').value.trim();
-            const description = document.getElementById('editProjectDesc').value.trim();
-            const token = localStorage.getItem('adminToken');
+        const id = document.getElementById('editProjectId').value;
+        const title = document.getElementById('editProjectTitle').value.trim();
+        const description = document.getElementById('editProjectDesc').value.trim();
+        const token = localStorage.getItem('adminToken');
 
-            const checkedBoxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]:checked');
-            const selectedCats = Array.from(checkedBoxes).map(cb => cb.value);
+        if (!title) {
+            showToast('Please enter a project title.', false);
+            return;
+        }
 
-            if (selectedCats.length === 0) {
-                showToast('Please select at least one category for this project.', false);
-                return;
-            }
+        const checkedBoxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]:checked');
+        const selectedCats = Array.from(checkedBoxes).map(cb => cb.value);
 
-            if (editKeepMediaPaths.length === 0 && editNewFiles.length === 0) {
-                showToast('Please retain or upload at least one media file.', false);
-                return;
-            }
+        if (selectedCats.length === 0) {
+            showToast('Please select at least one category for this project.', false);
+            return;
+        }
 
-            if (!token) {
-                showToast('Session expired. Please log in again.', false);
-                checkAuthState();
-                return;
-            }
+        if (editKeepMediaPaths.length === 0 && editNewFiles.length === 0) {
+            showToast('Please retain or upload at least one media file.', false);
+            return;
+        }
 
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
-            }
+        if (!token) {
+            showToast('Session expired. Please log in again.', false);
+            checkAuthState();
+            return;
+        }
 
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('category', selectedCats[0]);
-            formData.append('categories', JSON.stringify(selectedCats));
-            formData.append('description', description);
-            formData.append('keepMediaPaths', JSON.stringify(editKeepMediaPaths));
-            formData.append('keepCategoryMedia', JSON.stringify(editKeepCategoryMedia));
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+        }
 
-            editNewFiles.forEach(file => {
-                formData.append('workFiles', file);
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('category', selectedCats[0]);
+        formData.append('categories', JSON.stringify(selectedCats));
+        formData.append('description', description);
+        formData.append('keepMediaPaths', JSON.stringify(editKeepMediaPaths));
+        formData.append('keepCategoryMedia', JSON.stringify(editKeepCategoryMedia));
+
+        editNewFiles.forEach(file => {
+            formData.append('workFiles', file);
+        });
+
+        const editThumbInput = document.getElementById('editThumbnailFile');
+        if (editThumbInput && editThumbInput.files.length > 0) {
+            formData.append('thumbnailFile', editThumbInput.files[0]);
+        }
+
+        try {
+            const response = await fetch(`/api/projects/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
             });
 
-            const editThumbInput = document.getElementById('editThumbnailFile');
-            if (editThumbInput && editThumbInput.files.length > 0) {
-                formData.append('thumbnailFile', editThumbInput.files[0]);
-            }
+            const data = await response.json();
 
-            try {
-                const response = await fetch(`/api/projects/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    showToast('Project updated successfully!', true);
-                    if (editProjectModal) editProjectModal.hide();
-                    loadAdminProjects();
-                } else {
-                    showToast(data.message || 'Failed to update project.', false);
+            if (response.ok && data.success) {
+                showToast('Project updated successfully!', true);
+                
+                const modalEl = document.getElementById('editProjectModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
                 }
-            } catch (err) {
-                console.error('Edit error:', err);
-                showToast('Error updating project. Check connection.', false);
-            } finally {
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Save Changes';
+                if (editProjectModal) {
+                    editProjectModal.hide();
                 }
+
+                await loadAdminProjects();
+            } else {
+                showToast(data.message || 'Failed to update project.', false);
             }
+        } catch (err) {
+            console.error('Edit error:', err);
+            showToast('Error updating project. Check connection.', false);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Save Changes';
+            }
+        }
+    };
+
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditSubmit);
+    }
+    if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+            if (editForm && editForm.checkValidity && !editForm.checkValidity()) {
+                return;
+            }
+            handleEditSubmit(e);
         });
     }
 }

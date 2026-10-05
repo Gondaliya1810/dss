@@ -497,7 +497,13 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
-        const project = await Project.findOne({ id });
+        // Find project by id
+        let project = await Project.findOne({ id });
+        if (!project) {
+            const allProjects = await Project.find({});
+            project = allProjects.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+        }
+
         if (!project) {
             for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(404).json({ success: false, message: 'Project not found.' });
