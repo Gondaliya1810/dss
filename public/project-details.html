@@ -414,9 +414,34 @@
                 'marketing': 'digital marketing'
             };
 
-            const projectCategories = Array.isArray(project.categories) && project.categories.length > 0
-                ? project.categories
-                : (project.category ? [project.category] : ['graphics']);
+            // Normalize categories
+            let projectCategories = [];
+            if (project.categories) {
+                if (typeof project.categories === 'string') {
+                    try { projectCategories = JSON.parse(project.categories); } catch(e) { projectCategories = [project.categories]; }
+                } else if (Array.isArray(project.categories)) {
+                    projectCategories = [...project.categories];
+                } else {
+                    projectCategories = [project.categories];
+                }
+            }
+            if (project.category && !projectCategories.includes(project.category)) {
+                projectCategories.push(project.category);
+            }
+
+            let projCatMedia = project.categoryMedia;
+            if (typeof projCatMedia === 'string') {
+                try { projCatMedia = JSON.parse(projCatMedia); } catch(e) { projCatMedia = {}; }
+            }
+            if (projCatMedia && typeof projCatMedia === 'object') {
+                Object.keys(projCatMedia).forEach(k => {
+                    if (Array.isArray(projCatMedia[k]) && projCatMedia[k].length > 0 && !projectCategories.includes(k)) {
+                        projectCategories.push(k);
+                    }
+                });
+            }
+            projectCategories = projectCategories.map(c => String(c).trim()).filter(Boolean);
+            if (projectCategories.length === 0) projectCategories = ['graphics'];
 
             // Render all category badges
             const categoryTagEl = document.getElementById('project-category-tag');
@@ -430,9 +455,9 @@
 
             // Map media items with category assignment
             const mediaItems = [];
-            if (project.categoryMedia && Object.keys(project.categoryMedia).length > 0) {
+            if (projCatMedia && Object.keys(projCatMedia).length > 0) {
                 projectCategories.forEach(catKey => {
-                    const list = project.categoryMedia[catKey] || [];
+                    const list = projCatMedia[catKey] || [];
                     list.forEach(item => {
                         const path = typeof item === 'object' ? item.path : item;
                         const type = typeof item === 'object' ? item.type : (path && path.match(/\.(mp4|webm)$/i) ? 'video' : 'image');
@@ -457,18 +482,21 @@
             const filterTabsContainer = document.getElementById('project-filter-tabs');
             const workListContainer = document.getElementById('project-work-list');
 
-            let initialFilter = 'all';
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedCat = urlParams.get('cat');
+
+            let initialFilter = (requestedCat && projectCategories.includes(requestedCat)) ? requestedCat : projectCategories[0];
 
             // Render filter tabs if multiple categories exist or multiple media types exist
             if (projectCategories.length > 1) {
                 let tabsHTML = '';
-                projectCategories.forEach((c, idx) => {
+                projectCategories.forEach((c) => {
                     const catCount = mediaItems.filter(item => item.category === c).length;
-                    tabsHTML += `<button class="portfolio-tab-btn ${idx === 0 ? 'active' : ''}" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
+                    const isActive = c === initialFilter;
+                    tabsHTML += `<button class="portfolio-tab-btn ${isActive ? 'active' : ''}" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
                 });
                 filterTabsContainer.innerHTML = tabsHTML;
                 filterTabsContainer.style.display = 'flex';
-                initialFilter = projectCategories[0];
 
                 const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
                 tabs.forEach(tab => {

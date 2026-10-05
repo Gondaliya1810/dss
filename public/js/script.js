@@ -910,7 +910,10 @@ function initPortfolioRedirection() {
         }
 
         if (projectId) {
-            window.location.href = 'project-details.html?id=' + projectId;
+            const activeTab = document.querySelector('.portfolio-tab-btn.active');
+            const filter = activeTab ? activeTab.getAttribute('data-filter') : '';
+            const catQuery = (filter && filter !== 'all') ? `&cat=${encodeURIComponent(filter)}` : '';
+            window.location.href = `project-details.html?id=${encodeURIComponent(projectId)}${catQuery}`;
         }
     });
 }
