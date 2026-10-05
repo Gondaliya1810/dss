@@ -888,6 +888,8 @@ async function loadAdminProjects() {
                 const badgesHTML = projCats.map(c => `<span class="badge-dss">${categoryLabels[c] || c}</span>`).join(' ');
                 const dateStr = proj.createdAt ? new Date(proj.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
 
+                const projId = proj.id || proj._id;
+
                 card.innerHTML = `
                     <div class="work-media">
                         ${mediaHTML}
@@ -902,10 +904,10 @@ async function loadAdminProjects() {
                             <div class="work-footer-meta">
                                 <span class="text-muted" style="font-size: 11px; white-space: nowrap;"><i class="fa-regular fa-calendar me-1"></i>${dateStr}</span>
                                 <div class="d-flex align-items-center gap-2">
-                                    <button type="button" class="work-edit-btn" onclick="openEditProjectModal('${proj.id || proj._id}')" title="Edit project">
+                                    <button type="button" class="work-edit-btn" data-id="${projId}" onclick="openEditProjectModal('${projId}')" title="Edit project">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
-                                    <button type="button" class="work-delete-btn" onclick="confirmDeleteProject('${proj.id || proj._id}')" title="Delete project">
+                                    <button type="button" class="work-delete-btn" onclick="confirmDeleteProject('${projId}')" title="Delete project">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -913,6 +915,17 @@ async function loadAdminProjects() {
                         </div>
                     </div>
                 `;
+
+                // Add explicit event listener to edit button
+                const editBtn = card.querySelector('.work-edit-btn');
+                if (editBtn) {
+                    editBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openEditProjectModal(projId);
+                    });
+                }
+
                 grid.appendChild(card);
             });
 
@@ -926,73 +939,84 @@ async function loadAdminProjects() {
 
 // Open Edit Project Modal
 async function openEditProjectModal(id) {
-    if (!id) return;
+    try {
+        if (!id) return;
 
-    let proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
-    
-    // If not found in current list, fetch projects from server
-    if (!proj) {
-        try {
-            const resp = await fetch('/api/projects');
-            const data = await resp.json();
-            if (data.success && data.projects) {
-                projectsList = data.projects;
-                proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+        let proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+        
+        // If not found in current list, fetch projects from server
+        if (!proj) {
+            try {
+                const resp = await fetch('/api/projects');
+                const data = await resp.json();
+                if (data.success && data.projects) {
+                    projectsList = data.projects;
+                    proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+                }
+            } catch (e) {
+                console.error('Error fetching project for edit:', e);
             }
-        } catch (e) {
-            console.error('Error fetching project for edit:', e);
         }
-    }
 
-    if (!proj) {
-        showToast('Project details not found.', false);
-        return;
-    }
+        if (!proj) {
+            showToast('Project details not found.', false);
+            return;
+        }
 
-    // Ensure edit modal instance exists
-    const modalEl = document.getElementById('editProjectModal');
-    if (!modalEl) {
-        console.error('editProjectModal element not found');
-        return;
-    }
+        // Ensure edit modal instance exists
+        const modalEl = document.getElementById('editProjectModal');
+        if (!modalEl) {
+            console.error('editProjectModal element not found');
+            showToast('Edit modal not found in DOM.', false);
+            return;
+        }
 
-    if (!editProjectModal && typeof bootstrap !== 'undefined') {
-        editProjectModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    } else if (typeof bootstrap !== 'undefined') {
-        editProjectModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    }
+        let modalInstance = null;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        }
 
-    document.getElementById('editProjectId').value = proj.id || proj._id;
-    document.getElementById('editProjectTitle').value = proj.title || '';
-    document.getElementById('editProjectDesc').value = proj.description || '';
+        const idField = document.getElementById('editProjectId');
+        const titleField = document.getElementById('editProjectTitle');
+        const descField = document.getElementById('editProjectDesc');
 
-    const projCats = (proj.categories && proj.categories.length > 0) ? proj.categories : [proj.category || 'graphics'];
-    
-    // Set checkboxes in edit modal
-    const editCheckboxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]');
-    editCheckboxes.forEach(cb => {
-        cb.checked = projCats.includes(cb.value);
-    });
+        if (idField) idField.value = proj.id || proj._id;
+        if (titleField) titleField.value = proj.title || '';
+        if (descField) descField.value = proj.description || '';
 
-    // Setup existing media state
-    editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])].filter(Boolean);
-    editKeepCategoryMedia = proj.categoryMedia ? JSON.parse(JSON.stringify(proj.categoryMedia)) : {};
-    editNewFiles = [];
-    editSelectedThumbnailFile = null;
+        const projCats = (proj.categories && proj.categories.length > 0) ? proj.categories : [proj.category || 'graphics'];
+        
+        // Set checkboxes in edit modal
+        const editCheckboxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]');
+        editCheckboxes.forEach(cb => {
+            cb.checked = projCats.includes(cb.value);
+        });
 
-    const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
-    if (newFilesGrid) newFilesGrid.innerHTML = '';
-    const newFilesInput = document.getElementById('editProjectFiles');
-    if (newFilesInput) newFilesInput.value = '';
-    const thumbInput = document.getElementById('editThumbnailFile');
-    if (thumbInput) thumbInput.value = '';
+        // Setup existing media state
+        editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])].filter(Boolean);
+        editKeepCategoryMedia = proj.categoryMedia ? JSON.parse(JSON.stringify(proj.categoryMedia)) : {};
+        editNewFiles = [];
+        editSelectedThumbnailFile = null;
 
-    renderEditExistingMedia();
-    
-    if (editProjectModal) {
-        editProjectModal.show();
-    } else if (typeof bootstrap !== 'undefined') {
-        new bootstrap.Modal(modalEl).show();
+        const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
+        if (newFilesGrid) newFilesGrid.innerHTML = '';
+        const newFilesInput = document.getElementById('editProjectFiles');
+        if (newFilesInput) newFilesInput.value = '';
+        const thumbInput = document.getElementById('editThumbnailFile');
+        if (thumbInput) thumbInput.value = '';
+
+        renderEditExistingMedia();
+        
+        if (modalInstance) {
+            modalInstance.show();
+        } else if (editProjectModal) {
+            editProjectModal.show();
+        } else if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            new bootstrap.Modal(modalEl).show();
+        }
+    } catch (err) {
+        console.error('Error opening edit modal:', err);
+        showToast('Error opening edit modal: ' + err.message, false);
     }
 }
 window.openEditProjectModal = openEditProjectModal;
@@ -1798,322 +1822,6 @@ function initScrollProgress() {
     };
 
     window.addEventListener('scroll', handleScrollProgress);
-}
-
-// ========================================================================
-// EDIT PORTFOLIO WORK LOGIC
-// ========================================================================
-let editSelectedFiles = [];
-let editExistingMediaPaths = [];
-let editProjectModalInstance = null;
-
-function initEditProjectForm() {
-    const editModalEl = document.getElementById('editProjectModal');
-    if (!editModalEl) return;
-    
-    editProjectModalInstance = new bootstrap.Modal(editModalEl);
-    
-    const editForm = document.getElementById('editProjectForm');
-    const editFilesInput = document.getElementById('editProjectFiles');
-    const editDropzone = document.getElementById('editDropzone');
-    
-    if (editDropzone && editFilesInput) {
-        editDropzone.addEventListener('click', () => editFilesInput.click());
-        
-        editFilesInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleEditFilesSelect(e.target.files);
-            }
-        });
-        
-        // Drag events
-        ['dragenter', 'dragover'].forEach(eventName => {
-            editDropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                editDropzone.classList.add('dragover');
-            }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            editDropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                editDropzone.classList.remove('dragover');
-            }, false);
-        });
-        
-        editDropzone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            if (dt.files.length > 0) {
-                handleEditFilesSelect(dt.files);
-            }
-        });
-    }
-    
-    if (editForm) {
-        editForm.addEventListener('submit', handleEditProjectSubmit);
-    }
-}
-
-function handleEditFilesSelect(filesList) {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
-    const files = Array.from(filesList);
-    const validFiles = [];
-    
-    for (let file of files) {
-        if (!allowedTypes.includes(file.type)) {
-            showToast(`Skipped "${file.name}": Unsupported format.`, false);
-            continue;
-        }
-        if (file.size > 20 * 1024 * 1024) {
-            showToast(`Skipped "${file.name}": Exceeds 20MB limit.`, false);
-            continue;
-        }
-        validFiles.push(file);
-    }
-    
-    editSelectedFiles = [...editSelectedFiles, ...validFiles];
-    renderEditNewFilesGrid();
-}
-
-function renderEditNewFilesGrid() {
-    const grid = document.getElementById('editNewFilesPreviewGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
-    editSelectedFiles.forEach((file, index) => {
-        const previewItem = document.createElement('div');
-        previewItem.style.position = 'relative';
-        previewItem.style.width = '100%';
-        previewItem.style.paddingTop = '100%';
-        previewItem.style.borderRadius = '6px';
-        previewItem.style.overflow = 'hidden';
-        previewItem.style.border = '1px solid rgba(255,255,255,0.1)';
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '&times;';
-        removeBtn.style.position = 'absolute';
-        removeBtn.style.top = '3px';
-        removeBtn.style.right = '3px';
-        removeBtn.style.background = 'rgba(0,0,0,0.7)';
-        removeBtn.style.color = '#fff';
-        removeBtn.style.border = 'none';
-        removeBtn.style.borderRadius = '50%';
-        removeBtn.style.width = '18px';
-        removeBtn.style.height = '18px';
-        removeBtn.style.display = 'flex';
-        removeBtn.style.alignItems = 'center';
-        removeBtn.style.justifyContent = 'center';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.zIndex = '10';
-        removeBtn.style.fontSize = '12px';
-        
-        removeBtn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            editSelectedFiles.splice(index, 1);
-            renderEditNewFilesGrid();
-        });
-        
-        previewItem.appendChild(removeBtn);
-        
-        const mediaContainer = document.createElement('div');
-        mediaContainer.style.position = 'absolute';
-        mediaContainer.style.top = '0';
-        mediaContainer.style.left = '0';
-        mediaContainer.style.width = '100%';
-        mediaContainer.style.height = '100%';
-        
-        const reader = new FileReader();
-        if (file.type.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = URL.createObjectURL(file);
-            video.muted = true;
-            video.playsInline = true;
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'cover';
-            mediaContainer.appendChild(video);
-        } else {
-            const img = document.createElement('img');
-            reader.onload = (event) => {
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
-            mediaContainer.appendChild(img);
-        }
-        
-        previewItem.appendChild(mediaContainer);
-        grid.appendChild(previewItem);
-    });
-}
-
-async function openEditProjectModal(projectId) {
-    const project = projectsList.find(p => p.id === projectId);
-    if (!project) return;
-    
-    document.getElementById('editProjectId').value = project.id;
-    document.getElementById('editProjectTitle').value = project.title;
-    document.getElementById('editProjectCategory').value = project.category;
-    document.getElementById('editProjectDesc').value = project.description || '';
-    
-    // Clear selections
-    editSelectedFiles = [];
-    document.getElementById('editProjectFiles').value = '';
-    document.getElementById('editNewFilesPreviewGrid').innerHTML = '';
-    document.getElementById('editThumbnailFile').value = '';
-    
-    // Set existing paths
-    editExistingMediaPaths = project.mediaPaths ? [...project.mediaPaths] : [project.imagePath];
-    renderEditExistingFilesGrid(project);
-    
-    if (editProjectModalInstance) {
-        editProjectModalInstance.show();
-    }
-}
-
-function renderEditExistingFilesGrid(project) {
-    const grid = document.getElementById('editExistingMediaGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
-    editExistingMediaPaths.forEach((path, index) => {
-        const previewItem = document.createElement('div');
-        previewItem.style.position = 'relative';
-        previewItem.style.width = '100%';
-        previewItem.style.paddingTop = '100%';
-        previewItem.style.borderRadius = '6px';
-        previewItem.style.overflow = 'hidden';
-        previewItem.style.border = '1px solid rgba(255,255,255,0.1)';
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '&times;';
-        removeBtn.style.position = 'absolute';
-        removeBtn.style.top = '3px';
-        removeBtn.style.right = '3px';
-        removeBtn.style.background = 'rgba(230, 57, 70, 0.9)';
-        removeBtn.style.color = '#fff';
-        removeBtn.style.border = 'none';
-        removeBtn.style.borderRadius = '50%';
-        removeBtn.style.width = '18px';
-        removeBtn.style.height = '18px';
-        removeBtn.style.display = 'flex';
-        removeBtn.style.alignItems = 'center';
-        removeBtn.style.justifyContent = 'center';
-        removeBtn.style.cursor = 'pointer';
-        removeBtn.style.zIndex = '10';
-        removeBtn.style.fontSize = '12px';
-        
-        removeBtn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            editExistingMediaPaths.splice(index, 1);
-            renderEditExistingFilesGrid(project);
-        });
-        
-        previewItem.appendChild(removeBtn);
-        
-        const mediaContainer = document.createElement('div');
-        mediaContainer.style.position = 'absolute';
-        mediaContainer.style.top = '0';
-        mediaContainer.style.left = '0';
-        mediaContainer.style.width = '100%';
-        mediaContainer.style.height = '100%';
-        
-        const oldIndex = (project.mediaPaths || [project.imagePath]).indexOf(path);
-        const fileType = oldIndex !== -1 ? (project.mediaTypes || [project.fileType])[oldIndex] : 'image';
-        
-        if (fileType === 'video') {
-            const video = document.createElement('video');
-            video.src = path;
-            video.muted = true;
-            video.playsInline = true;
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'cover';
-            mediaContainer.appendChild(video);
-        } else {
-            const img = document.createElement('img');
-            img.src = path;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
-            mediaContainer.appendChild(img);
-        }
-        
-        previewItem.appendChild(mediaContainer);
-        grid.appendChild(previewItem);
-    });
-}
-
-async function handleEditProjectSubmit(e) {
-    e.preventDefault();
-    
-    const projectId = document.getElementById('editProjectId').value;
-    const title = document.getElementById('editProjectTitle').value.trim();
-    const category = document.getElementById('editProjectCategory').value;
-    const description = document.getElementById('editProjectDesc').value.trim();
-    const thumbnailFile = document.getElementById('editThumbnailFile').files[0];
-    
-    if (!title || !category) {
-        showToast('Title and Category are required.', false);
-        return;
-    }
-    
-    if (editExistingMediaPaths.length === 0 && editSelectedFiles.length === 0) {
-        showToast('At least one image or video is required.', false);
-        return;
-    }
-    
-    const submitBtn = document.getElementById('editProjectSubmitBtn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving Changes...';
-    
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('category', category);
-    formData.append('description', description);
-    formData.append('keepMediaPaths', JSON.stringify(editExistingMediaPaths));
-    
-    editSelectedFiles.forEach(file => {
-        formData.append('workFiles', file);
-    });
-    
-    if (thumbnailFile) {
-        formData.append('thumbnailFile', thumbnailFile);
-    }
-    
-    try {
-        const response = await fetch(`/api/projects/${projectId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
-            },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Portfolio work updated successfully!', true);
-            if (editProjectModalInstance) {
-                editProjectModalInstance.hide();
-            }
-            loadAdminProjects();
-        } else {
-            showToast(data.message || 'Error updating work.', false);
-        }
-    } catch (err) {
-        console.error('Error submitting edit:', err);
-        showToast('Server connection failed.', false);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Save Changes';
-    }
 }
 
 // ========================================================================
