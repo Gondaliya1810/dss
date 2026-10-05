@@ -475,16 +475,18 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         let keepMediaPaths = [];
         if (req.body.keepMediaPaths) {
             try {
-                keepMediaPaths = JSON.parse(req.body.keepMediaPaths);
+                keepMediaPaths = typeof req.body.keepMediaPaths === 'string' ? JSON.parse(req.body.keepMediaPaths) : req.body.keepMediaPaths;
+                if (!Array.isArray(keepMediaPaths)) keepMediaPaths = [keepMediaPaths];
             } catch(e) {
                 keepMediaPaths = [req.body.keepMediaPaths];
             }
         }
+        keepMediaPaths = keepMediaPaths.map(item => (item && typeof item === 'object' && item.path) ? item.path : String(item || '')).filter(Boolean);
 
         let existingCategoryMedia = {};
         if (req.body.keepCategoryMedia) {
             try {
-                existingCategoryMedia = JSON.parse(req.body.keepCategoryMedia);
+                existingCategoryMedia = typeof req.body.keepCategoryMedia === 'string' ? JSON.parse(req.body.keepCategoryMedia) : req.body.keepCategoryMedia;
             } catch(e) {
                 existingCategoryMedia = {};
             }
@@ -493,7 +495,9 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         // Validate auth header (token)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer dss-token-')) {
-            for (const file of uploadedFiles) { await deleteFile(file); }
+            for (const file of uploadedFiles) { 
+                try { await deleteFile(file); } catch(e){} 
+            }
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
@@ -501,27 +505,38 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         let project = await Project.findOne({ id });
         if (!project) {
             const allProjects = await Project.find({});
-            project = allProjects.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+            const rawProj = allProjects.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+            if (rawProj) {
+                project = typeof Project === 'function' ? Project(rawProj) : rawProj;
+            }
         }
 
         if (!project) {
-            for (const file of uploadedFiles) { await deleteFile(file); }
+            for (const file of uploadedFiles) { 
+                try { await deleteFile(file); } catch(e){} 
+            }
             return res.status(404).json({ success: false, message: 'Project not found.' });
         }
 
         const workFiles = uploadedFiles.filter(f => f.fieldname !== 'thumbnailFile');
 
         if (keepMediaPaths.length === 0 && workFiles.length === 0) {
-            for (const file of uploadedFiles) { await deleteFile(file); }
+            for (const file of uploadedFiles) { 
+                try { await deleteFile(file); } catch(e){} 
+            }
             return res.status(400).json({ success: false, message: 'At least one media file is required.' });
         }
 
-        // Delete removed files from disk/R2
+        // Delete removed files from disk/R2 safely (non-fatal)
         const currentMediaPaths = project.mediaPaths || [project.imagePath];
-        const deletedMediaPaths = currentMediaPaths.filter(pathVal => !keepMediaPaths.includes(pathVal));
+        const deletedMediaPaths = currentMediaPaths.filter(pathVal => pathVal && !keepMediaPaths.includes(pathVal));
         
         for (const pathVal of deletedMediaPaths) {
-            await deleteFile(pathVal);
+            try {
+                await deleteFile(pathVal);
+            } catch (delErr) {
+                console.warn('Non-fatal error deleting old media file:', delErr.message);
+            }
         }
 
         // Build updated list of kept files and new files
@@ -529,7 +544,7 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         const updatedMediaTypes = [];
         const updatedCategoryMedia = {};
 
-        const finalCategories = categories.length > 0 ? categories : (project.categories || [project.category]);
+        const finalCategories = categories.length > 0 ? categories : (project.categories || [project.category || 'graphics']);
         finalCategories.forEach(cat => {
             updatedCategoryMedia[cat] = [];
         });
@@ -537,11 +552,14 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         // Add kept files
         keepMediaPaths.forEach(pathVal => {
             const oldIndex = (project.mediaPaths || [project.imagePath]).indexOf(pathVal);
-            const oldType = oldIndex !== -1 
-                ? (project.mediaTypes || [project.fileType])[oldIndex] 
-                : 'image';
-            updatedMediaPaths.push(pathVal);
-            updatedMediaTypes.push(oldType);
+            const oldType = (oldIndex !== -1 && project.mediaTypes && project.mediaTypes[oldIndex])
+                ? project.mediaTypes[oldIndex] 
+                : ((pathVal.endsWith('.mp4') || pathVal.endsWith('.webm')) ? 'video' : 'image');
+            
+            if (!updatedMediaPaths.includes(pathVal)) {
+                updatedMediaPaths.push(pathVal);
+                updatedMediaTypes.push(oldType);
+            }
 
             // Find which category it belonged to
             let assignedCat = null;
@@ -566,7 +584,9 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
             }
 
             if (!updatedCategoryMedia[assignedCat]) updatedCategoryMedia[assignedCat] = [];
-            updatedCategoryMedia[assignedCat].push({ path: pathVal, type: oldType });
+            if (!updatedCategoryMedia[assignedCat].some(item => (item.path || item) === pathVal)) {
+                updatedCategoryMedia[assignedCat].push({ path: pathVal, type: oldType });
+            }
         });
 
         // Append new files
@@ -592,7 +612,9 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         let updatedThumbnailPath = project.thumbnailPath;
         if (thumbnailFile) {
             if (project.thumbnailPath) {
-                await deleteFile(project.thumbnailPath);
+                try {
+                    await deleteFile(project.thumbnailPath);
+                } catch(e) {}
             }
             updatedThumbnailPath = getFileUrl(thumbnailFile);
         }
@@ -605,21 +627,47 @@ app.put('/api/projects/:id', upload.any(), async (req, res) => {
         project.description = description !== undefined ? description : project.description;
         project.mediaPaths = updatedMediaPaths;
         project.mediaTypes = updatedMediaTypes;
-        project.imagePath = updatedMediaPaths[0];
-        project.fileType = updatedMediaTypes[0];
+        project.imagePath = updatedMediaPaths[0] || project.imagePath;
+        project.fileType = updatedMediaTypes[0] || project.fileType || 'image';
         project.thumbnailPath = updatedThumbnailPath;
 
-        await project.save();
+        let savedResult = null;
+        try {
+            if (typeof project.save === 'function') {
+                savedResult = await project.save();
+            }
+        } catch (saveErr) {
+            console.warn('[Project Update] project.save() failed, falling back to findOneAndUpdate:', saveErr.message);
+        }
+
+        if (!savedResult) {
+            const updatePayload = {
+                title: project.title,
+                categories: project.categories,
+                category: project.category,
+                categoryMedia: project.categoryMedia,
+                description: project.description,
+                mediaPaths: project.mediaPaths,
+                mediaTypes: project.mediaTypes,
+                imagePath: project.imagePath,
+                fileType: project.fileType,
+                thumbnailPath: project.thumbnailPath
+            };
+            const updateQuery = project.id ? { id: project.id } : { _id: project._id || id };
+            savedResult = await Project.findOneAndUpdate(updateQuery, { $set: updatePayload }, { new: true });
+        }
 
         return res.status(200).json({ 
             success: true, 
-            project,
+            project: savedResult || project,
             message: 'Project updated successfully!' 
         });
     } catch (error) {
         console.error('Update error:', error);
-        for (const file of uploadedFiles) { await deleteFile(file); }
-        return res.status(500).json({ success: false, message: error.message });
+        for (const file of uploadedFiles) { 
+            try { await deleteFile(file); } catch(e){} 
+        }
+        return res.status(500).json({ success: false, message: error.message || 'Server error updating project' });
     }
 });
 

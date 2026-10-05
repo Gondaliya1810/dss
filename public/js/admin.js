@@ -1298,6 +1298,8 @@ function renderEditNewGrid(catKey, sectionCard) {
 }
 
 // Initialize Edit Project Form Listener
+let isEditProjectSubmitting = false;
+
 function initEditProjectForm() {
     const editForm = document.getElementById('editProjectForm');
     const submitBtn = document.getElementById('editProjectSubmitBtn');
@@ -1310,7 +1312,12 @@ function initEditProjectForm() {
     }
 
     const handleEditSubmit = async (e) => {
-        if (e) e.preventDefault();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (isEditProjectSubmitting) return;
 
         const id = document.getElementById('editProjectId').value;
         const title = document.getElementById('editProjectTitle').value.trim();
@@ -1340,7 +1347,8 @@ function initEditProjectForm() {
             totalFiles += retained.length + newlyAdded.length;
 
             retained.forEach(item => {
-                allKeepPaths.push(item.path || item);
+                const p = (item && typeof item === 'object' && item.path) ? item.path : item;
+                if (p) allKeepPaths.push(p);
             });
         });
 
@@ -1355,6 +1363,7 @@ function initEditProjectForm() {
             return;
         }
 
+        isEditProjectSubmitting = true;
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
@@ -1368,12 +1377,11 @@ function initEditProjectForm() {
         formData.append('keepMediaPaths', JSON.stringify(allKeepPaths));
         formData.append('keepCategoryMedia', JSON.stringify(editKeepCategoryMedia));
 
-        // Append category-specific files
+        // Append category-specific new files
         selectedCats.forEach(catKey => {
             const files = editCategorySelectedFiles[catKey] || [];
             files.forEach(file => {
                 formData.append(`workFiles_${catKey}`, file);
-                formData.append('workFiles', file); // Fallback for backwards compatibility
             });
         });
 
@@ -1411,8 +1419,9 @@ function initEditProjectForm() {
             }
         } catch (err) {
             console.error('Edit error:', err);
-            showToast('Error updating project. Check connection.', false);
+            showToast('Error updating project: ' + (err.message || 'Check connection.'), false);
         } finally {
+            isEditProjectSubmitting = false;
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Save Changes';
@@ -1421,15 +1430,7 @@ function initEditProjectForm() {
     };
 
     if (editForm) {
-        editForm.addEventListener('submit', handleEditSubmit);
-    }
-    if (submitBtn) {
-        submitBtn.addEventListener('click', (e) => {
-            if (editForm && editForm.checkValidity && !editForm.checkValidity()) {
-                return;
-            }
-            handleEditSubmit(e);
-        });
+        editForm.onsubmit = handleEditSubmit;
     }
 }
 

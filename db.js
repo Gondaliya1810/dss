@@ -17,6 +17,7 @@ class SupabaseModel {
 
     createInstance(data) {
         const tableName = this.tableName;
+        const self = this;
         // Return a new object with mongoose-like .save()
         const instance = {
             ...data,
@@ -26,22 +27,45 @@ class SupabaseModel {
                 let attempts = 0;
                 while (attempts < 6) {
                     attempts++;
-                    const { data: savedData, error } = await supabase
-                        .from(tableName)
-                        .upsert(payload)
-                        .select()
-                        .maybeSingle();
-                    if (error) {
+                    let res;
+                    if (payload.id || payload._id) {
+                        const matchKey = payload.id !== undefined ? 'id' : '_id';
+                        const matchVal = payload.id !== undefined ? payload.id : payload._id;
+                        res = await supabase
+                            .from(tableName)
+                            .update(payload)
+                            .eq(matchKey, matchVal)
+                            .select()
+                            .maybeSingle();
+
+                        if (!res.error && !res.data) {
+                            res = await supabase
+                                .from(tableName)
+                                .upsert(payload)
+                                .select()
+                                .maybeSingle();
+                        }
+                    } else {
+                        res = await supabase
+                            .from(tableName)
+                            .upsert(payload)
+                            .select()
+                            .maybeSingle();
+                    }
+
+                    if (res && res.error) {
+                        const error = res.error;
                         if (error.message && error.message.includes('Could not find the') && error.message.includes('column of')) {
                             const match = error.message.match(/Could not find the '([^']+)' column/);
                             if (match && match[1] && payload.hasOwnProperty(match[1])) {
+                                console.warn(`[Supabase save] Column "${match[1]}" not found in table "${tableName}". Retrying without it...`);
                                 delete payload[match[1]];
                                 continue;
                             }
                         }
                         throw new Error(error.message);
                     }
-                    if (savedData) Object.assign(this, savedData);
+                    if (res && res.data) Object.assign(this, res.data);
                     return this;
                 }
                 return this;
@@ -51,6 +75,7 @@ class SupabaseModel {
     }
 
     find(query = {}) {
+        const self = this;
         let chain = supabase.from(this.tableName).select('*');
 
         // Apply filters
@@ -86,7 +111,8 @@ class SupabaseModel {
                 try {
                     const { data, error } = await chain;
                     if (error) throw error;
-                    return onFulfilled(data || []);
+                    const instances = (data || []).map(item => self.createInstance(item));
+                    return onFulfilled(instances);
                 } catch (err) {
                     if (onRejected) return onRejected(err);
                     throw err;
