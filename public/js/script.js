@@ -462,8 +462,15 @@ async function loadServiceSpecificProjects() {
 
             const label = categoryLabels[category] || category;
 
+            // Helper to get all categories of a project
+            const getCats = (p) => {
+                if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
+                if (p.category) return [p.category];
+                return ['graphics'];
+            };
+
             // Filter projects matching this category
-            const filteredProjects = data.projects.filter(p => p.category === category);
+            const filteredProjects = data.projects.filter(p => getCats(p).includes(category));
 
             if (filteredProjects.length === 0) {
                 showNoProjectsMessage(serviceGrid);
@@ -477,9 +484,19 @@ async function loadServiceSpecificProjects() {
 
                 const showThumbnail = project.thumbnailPath ? true : false;
                 
+                // If category media exists, pick first media from this specific category
+                let categoryMediaItem = null;
+                if (project.categoryMedia && project.categoryMedia[category] && project.categoryMedia[category].length > 0) {
+                    categoryMediaItem = project.categoryMedia[category][0];
+                }
+
                 let mediaHTML = '';
-                if (showThumbnail) {
+                if (showThumbnail && !categoryMediaItem) {
                     mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
+                } else if (categoryMediaItem) {
+                    mediaHTML = categoryMediaItem.type === 'video'
+                        ? `<video src="${categoryMediaItem.path}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
+                        : `<img src="${categoryMediaItem.path}" alt="${project.title}">`;
                 } else {
                     mediaHTML = project.fileType === 'video' 
                         ? `<video src="${project.imagePath}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
@@ -604,6 +621,12 @@ async function initHomepagePortfolio() {
     }
 }
 
+function getProjectCategories(p) {
+    if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
+    if (p.category) return [p.category];
+    return ['graphics'];
+}
+
 function renderPortfolioGrid() {
     const portfolioGrid = document.querySelector('.portfolio-grid');
     if (!portfolioGrid) return;
@@ -624,7 +647,7 @@ function renderPortfolioGrid() {
 
     const filteredProjects = filter === 'all'
         ? combinedProjects
-        : combinedProjects.filter(p => p.category === filter);
+        : combinedProjects.filter(p => getProjectCategories(p).includes(filter));
 
     if (filteredProjects.length === 0) {
         portfolioGrid.innerHTML = `
@@ -641,15 +664,26 @@ function renderPortfolioGrid() {
     visibleProjects.forEach(project => {
         const itemWrapper = document.createElement('div');
         itemWrapper.className = 'col-lg-3 col-md-4 col-sm-6 col-6 portfolio-item-wrapper reveal-in visible';
-        itemWrapper.setAttribute('data-category', project.category);
+        itemWrapper.setAttribute('data-category', project.category || 'graphics');
 
-        const label = categoryLabels[project.category] || project.category;
+        const projCats = getProjectCategories(project);
+        const label = projCats.map(c => categoryLabels[c] || c).join(' • ');
         
         const showThumbnail = project.thumbnailPath ? true : false;
         
+        // If a specific category tab is chosen, check if there's categoryMedia for it
+        let categoryMediaItem = null;
+        if (filter !== 'all' && project.categoryMedia && project.categoryMedia[filter] && project.categoryMedia[filter].length > 0) {
+            categoryMediaItem = project.categoryMedia[filter][0];
+        }
+
         let mediaHTML = '';
-        if (showThumbnail) {
+        if (showThumbnail && (!categoryMediaItem || filter === 'all')) {
             mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
+        } else if (categoryMediaItem) {
+            mediaHTML = categoryMediaItem.type === 'video' 
+                ? `<video src="${categoryMediaItem.path}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
+                : `<img src="${categoryMediaItem.path}" alt="${project.title}">`;
         } else {
             mediaHTML = project.fileType === 'video' 
                 ? `<video src="${project.imagePath}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
@@ -708,7 +742,7 @@ function updatePortfolioButton() {
 
     const filteredProjects = filter === 'all'
         ? combinedProjects
-        : combinedProjects.filter(p => p.category === filter);
+        : combinedProjects.filter(p => getProjectCategories(p).includes(filter));
 
     const totalProjects = filteredProjects.length;
 

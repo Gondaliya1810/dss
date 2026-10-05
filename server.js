@@ -347,45 +347,91 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
-// POST upload new project
-app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
-    const workFiles = req.files && req.files['workFiles'] ? req.files['workFiles'] : [];
-    const thumbnailFile = req.files && req.files['thumbnailFile'] ? req.files['thumbnailFile'][0] : null;
+// POST upload new project (supports multiple categories & per-category media)
+app.post('/api/projects', upload.any(), async (req, res) => {
+    const uploadedFiles = req.files || [];
+    const thumbnailFile = uploadedFiles.find(f => f.fieldname === 'thumbnailFile') || null;
 
     try {
-        const { title, category, description } = req.body;
-        
-        if (!title || !category || workFiles.length === 0) {
+        const { title, description } = req.body;
+
+        // Parse categories
+        let categories = [];
+        if (req.body.categories) {
+            try {
+                categories = typeof req.body.categories === 'string' ? JSON.parse(req.body.categories) : req.body.categories;
+                if (!Array.isArray(categories)) categories = [categories];
+            } catch (e) {
+                categories = Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories];
+            }
+        } else if (req.body.category) {
+            categories = [req.body.category];
+        }
+
+        // Clean & sanitize categories
+        categories = categories.map(c => String(c).trim()).filter(Boolean);
+        if (categories.length === 0 && req.body.category) {
+            categories = [req.body.category];
+        }
+
+        const workFiles = uploadedFiles.filter(f => f.fieldname !== 'thumbnailFile');
+
+        if (!title || categories.length === 0 || workFiles.length === 0) {
             // Delete uploaded files if validation fails
-            for (const file of workFiles) { await deleteFile(file); }
-            if (thumbnailFile) { await deleteFile(thumbnailFile); }
+            for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(400).json({ 
                 success: false, 
-                message: 'Title, category, and at least one media file are required.' 
+                message: 'Project title, at least one category, and at least one media file are required.' 
             });
         }
 
         // Validate auth header (token)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer dss-token-')) {
-            // Delete uploaded files if unauthorized
-            for (const file of workFiles) { await deleteFile(file); }
-            if (thumbnailFile) { await deleteFile(thumbnailFile); }
+            for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
-        const mediaPaths = workFiles.map(file => getFileUrl(file));
-        const mediaTypes = workFiles.map(file => file.mimetype.startsWith('video/') ? 'video' : 'image');
+        // Map files by category if provided, or distribute across categories
+        const categoryMedia = {};
+        categories.forEach(cat => {
+            categoryMedia[cat] = [];
+        });
+
+        const allMediaPaths = [];
+        const allMediaTypes = [];
+
+        workFiles.forEach(file => {
+            const url = getFileUrl(file);
+            const type = file.mimetype.startsWith('video/') ? 'video' : 'image';
+            allMediaPaths.push(url);
+            allMediaTypes.push(type);
+
+            // Check if fieldname specifies category e.g. workFiles_graphics or workFiles_video
+            const match = file.fieldname.match(/^workFiles_(.+)$/);
+            if (match && categories.includes(match[1])) {
+                const catKey = match[1];
+                if (!categoryMedia[catKey]) categoryMedia[catKey] = [];
+                categoryMedia[catKey].push({ path: url, type });
+            } else {
+                // If general workFiles, assign to first selected category or all selected categories
+                const primaryCat = categories[0];
+                if (!categoryMedia[primaryCat]) categoryMedia[primaryCat] = [];
+                categoryMedia[primaryCat].push({ path: url, type });
+            }
+        });
 
         const newProject = new Project({
             id: 'proj-' + Date.now(),
             title,
-            category,
+            category: categories[0],
+            categories: categories,
+            categoryMedia: categoryMedia,
             description: description || '',
-            imagePath: mediaPaths[0],
-            fileType: mediaTypes[0],
-            mediaPaths,
-            mediaTypes,
+            imagePath: allMediaPaths[0],
+            fileType: allMediaTypes[0],
+            mediaPaths: allMediaPaths,
+            mediaTypes: allMediaTypes,
             thumbnailPath: thumbnailFile ? getFileUrl(thumbnailFile) : null,
             createdAt: new Date()
         });
@@ -399,21 +445,33 @@ app.post('/api/projects', upload.fields([{ name: 'workFiles', maxCount: 15 }, { 
         });
     } catch (error) {
         console.error('Upload error:', error);
-        for (const file of workFiles) { await deleteFile(file); }
-        if (thumbnailFile) { await deleteFile(thumbnailFile); }
+        for (const file of uploadedFiles) { await deleteFile(file); }
         return res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// PUT update a project
-app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 }, { name: 'thumbnailFile', maxCount: 1 }]), async (req, res) => {
-    const workFiles = req.files && req.files['workFiles'] ? req.files['workFiles'] : [];
-    const thumbnailFile = req.files && req.files['thumbnailFile'] ? req.files['thumbnailFile'][0] : null;
+// PUT update a project (supports multi-category and categorized media)
+app.put('/api/projects/:id', upload.any(), async (req, res) => {
+    const uploadedFiles = req.files || [];
+    const thumbnailFile = uploadedFiles.find(f => f.fieldname === 'thumbnailFile') || null;
 
     try {
         const { id } = req.params;
-        const { title, category, description } = req.body;
+        const { title, description } = req.body;
         
+        let categories = [];
+        if (req.body.categories) {
+            try {
+                categories = typeof req.body.categories === 'string' ? JSON.parse(req.body.categories) : req.body.categories;
+                if (!Array.isArray(categories)) categories = [categories];
+            } catch(e) {
+                categories = Array.isArray(req.body.categories) ? req.body.categories : [req.body.categories];
+            }
+        } else if (req.body.category) {
+            categories = [req.body.category];
+        }
+        categories = categories.map(c => String(c).trim()).filter(Boolean);
+
         let keepMediaPaths = [];
         if (req.body.keepMediaPaths) {
             try {
@@ -423,24 +481,32 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
             }
         }
 
+        let existingCategoryMedia = {};
+        if (req.body.keepCategoryMedia) {
+            try {
+                existingCategoryMedia = JSON.parse(req.body.keepCategoryMedia);
+            } catch(e) {
+                existingCategoryMedia = {};
+            }
+        }
+
         // Validate auth header (token)
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer dss-token-')) {
-            for (const file of workFiles) { await deleteFile(file); }
-            if (thumbnailFile) { await deleteFile(thumbnailFile); }
+            for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(403).json({ success: false, message: 'Unauthorized access.' });
         }
 
         const project = await Project.findOne({ id });
         if (!project) {
-            for (const file of workFiles) { await deleteFile(file); }
-            if (thumbnailFile) { await deleteFile(thumbnailFile); }
+            for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(404).json({ success: false, message: 'Project not found.' });
         }
 
+        const workFiles = uploadedFiles.filter(f => f.fieldname !== 'thumbnailFile');
+
         if (keepMediaPaths.length === 0 && workFiles.length === 0) {
-            for (const file of workFiles) { await deleteFile(file); }
-            if (thumbnailFile) { await deleteFile(thumbnailFile); }
+            for (const file of uploadedFiles) { await deleteFile(file); }
             return res.status(400).json({ success: false, message: 'At least one media file is required.' });
         }
 
@@ -452,12 +518,15 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
             await deleteFile(pathVal);
         }
 
-        // Compute new uploads
-        const newMediaPaths = workFiles.map(file => getFileUrl(file));
-        const newMediaTypes = workFiles.map(file => file.mimetype.startsWith('video/') ? 'video' : 'image');
-
+        // Build updated list of kept files and new files
         const updatedMediaPaths = [];
         const updatedMediaTypes = [];
+        const updatedCategoryMedia = {};
+
+        const finalCategories = categories.length > 0 ? categories : (project.categories || [project.category]);
+        finalCategories.forEach(cat => {
+            updatedCategoryMedia[cat] = [];
+        });
 
         // Add kept files
         keepMediaPaths.forEach(pathVal => {
@@ -467,12 +536,50 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
                 : 'image';
             updatedMediaPaths.push(pathVal);
             updatedMediaTypes.push(oldType);
+
+            // Find which category it belonged to
+            let assignedCat = null;
+            if (existingCategoryMedia) {
+                for (const [catKey, list] of Object.entries(existingCategoryMedia)) {
+                    if (Array.isArray(list) && list.some(item => (item.path || item) === pathVal)) {
+                        assignedCat = catKey;
+                        break;
+                    }
+                }
+            }
+            if (!assignedCat && project.categoryMedia) {
+                for (const [catKey, list] of Object.entries(project.categoryMedia)) {
+                    if (Array.isArray(list) && list.some(item => (item.path || item) === pathVal)) {
+                        assignedCat = catKey;
+                        break;
+                    }
+                }
+            }
+            if (!assignedCat || !finalCategories.includes(assignedCat)) {
+                assignedCat = finalCategories[0];
+            }
+
+            if (!updatedCategoryMedia[assignedCat]) updatedCategoryMedia[assignedCat] = [];
+            updatedCategoryMedia[assignedCat].push({ path: pathVal, type: oldType });
         });
 
         // Append new files
-        newMediaPaths.forEach((pathVal, i) => {
-            updatedMediaPaths.push(pathVal);
-            updatedMediaTypes.push(newMediaTypes[i]);
+        workFiles.forEach(file => {
+            const url = getFileUrl(file);
+            const type = file.mimetype.startsWith('video/') ? 'video' : 'image';
+            updatedMediaPaths.push(url);
+            updatedMediaTypes.push(type);
+
+            const match = file.fieldname.match(/^workFiles_(.+)$/);
+            if (match && finalCategories.includes(match[1])) {
+                const catKey = match[1];
+                if (!updatedCategoryMedia[catKey]) updatedCategoryMedia[catKey] = [];
+                updatedCategoryMedia[catKey].push({ path: url, type });
+            } else {
+                const primaryCat = finalCategories[0];
+                if (!updatedCategoryMedia[primaryCat]) updatedCategoryMedia[primaryCat] = [];
+                updatedCategoryMedia[primaryCat].push({ path: url, type });
+            }
         });
 
         // Handle thumbnail replacement
@@ -484,10 +591,12 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
             updatedThumbnailPath = getFileUrl(thumbnailFile);
         }
 
-        // Update project details
+        // Update project properties
         project.title = title || project.title;
-        project.category = category || project.category;
-        project.description = description || '';
+        project.categories = finalCategories;
+        project.category = finalCategories[0] || project.category;
+        project.categoryMedia = updatedCategoryMedia;
+        project.description = description !== undefined ? description : project.description;
         project.mediaPaths = updatedMediaPaths;
         project.mediaTypes = updatedMediaTypes;
         project.imagePath = updatedMediaPaths[0];
@@ -503,8 +612,7 @@ app.put('/api/projects/:id', upload.fields([{ name: 'workFiles', maxCount: 15 },
         });
     } catch (error) {
         console.error('Update error:', error);
-        for (const file of workFiles) { await deleteFile(file); }
-        if (thumbnailFile) { await deleteFile(thumbnailFile); }
+        for (const file of uploadedFiles) { await deleteFile(file); }
         return res.status(500).json({ success: false, message: error.message });
     }
 });

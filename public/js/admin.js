@@ -1,5 +1,10 @@
 let selectedFiles = [];
 let selectedThumbnailFile = null;
+let categorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
+let editKeepMediaPaths = [];
+let editKeepCategoryMedia = {};
+let editNewFiles = [];
+let editSelectedThumbnailFile = null;
 let projectsList = [];
 let leadsList = [];
 let timelineChart = null;
@@ -8,6 +13,7 @@ let confirmModalCallback = null;
 let confirmModal = null;
 let detailsModal = null;
 let clientModal = null;
+let editProjectModal = null;
 
 // Task Tracker State variables
 let tasksList = [];
@@ -36,11 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientModalEl = document.getElementById('clientModal');
     const packageModalEl = document.getElementById('packageModal');
     const manualPunchModalEl = document.getElementById('manualPunchModal');
+    const editProjectModalEl = document.getElementById('editProjectModal');
     if (confirmModalEl) confirmModal = new bootstrap.Modal(confirmModalEl);
     if (detailsModalEl) detailsModal = new bootstrap.Modal(detailsModalEl);
     if (clientModalEl) clientModal = new bootstrap.Modal(clientModalEl);
     if (packageModalEl) packageModal = new bootstrap.Modal(packageModalEl);
     if (manualPunchModalEl) manualPunchModal = new bootstrap.Modal(manualPunchModalEl);
+    if (editProjectModalEl) editProjectModal = new bootstrap.Modal(editProjectModalEl);
 
     checkAuthState();
     initThemeSwitchAdmin();
@@ -333,8 +341,8 @@ function initSearchAndFilters() {
 
 // Filters implementation for Projects
 function filterProjects() {
-    const query = document.getElementById('searchProjects').value.toLowerCase().trim();
-    const category = document.getElementById('filterProjectsCategory').value;
+    const query = document.getElementById('searchProjects') ? document.getElementById('searchProjects').value.toLowerCase().trim() : '';
+    const category = document.getElementById('filterProjectsCategory') ? document.getElementById('filterProjectsCategory').value : 'all';
     const grid = document.getElementById('worksGrid');
     const emptyState = document.getElementById('projectsEmptyState');
 
@@ -344,11 +352,13 @@ function filterProjects() {
     let visibleCount = 0;
 
     cards.forEach(card => {
-        const title = card.getAttribute('data-title').toLowerCase();
-        const cat = card.getAttribute('data-category');
+        const title = (card.getAttribute('data-title') || '').toLowerCase();
+        const cat = card.getAttribute('data-category') || '';
+        const catsAttr = card.getAttribute('data-categories') || cat;
+        const cardCats = catsAttr.split(',').map(c => c.trim()).filter(Boolean);
 
         const matchesQuery = title.includes(query);
-        const matchesCategory = (category === 'all' || cat === category);
+        const matchesCategory = (category === 'all' || cardCats.includes(category) || cat === category);
 
         if (matchesQuery && matchesCategory) {
             card.style.display = 'block';
@@ -429,174 +439,35 @@ function showConfirmModal(message, onConfirm) {
     confirmModal.show();
 }
 
-// Drag and Drop File Upload Handling
+// Category definitions for DSS
+const DSS_CATEGORIES = [
+    { key: 'graphics', label: 'Graphics Design', icon: 'fa-solid fa-pen-nib' },
+    { key: 'branding', label: 'Branding Identity', icon: 'fa-solid fa-gem' },
+    { key: 'packaging', label: 'Packaging Design', icon: 'fa-solid fa-box-open' },
+    { key: 'social-media', label: 'Social Media Design', icon: 'fa-solid fa-share-nodes' },
+    { key: 'video', label: 'Video Ads', icon: 'fa-solid fa-video' },
+    { key: 'marketing', label: 'Digital Marketing', icon: 'fa-solid fa-chart-line' }
+];
+
+const categoryLabels = {
+    'graphics': 'Graphics Design',
+    'branding': 'Branding Identity',
+    'packaging': 'Packaging Design',
+    'social-media': 'Social Media Design',
+    'video': 'Video Ads',
+    'marketing': 'Digital Marketing'
+};
+
+// Drag and Drop & Category Upload Sections Handling
 function initDragAndDrop() {
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('projectFile');
-    const previewContainer = document.getElementById('previewContainer');
-    const previewMedia = document.getElementById('previewMedia');
-    const removePreview = document.getElementById('removePreview');
+    renderCategoryUploadSections();
 
-    if (!dropzone || !fileInput) return;
-
-    // Trigger click on file input when clicking dropzone
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFilesSelect(e.target.files);
-        }
-    });
-
-    // Drag-over styling
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.add('dragover');
-        }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropzone.addEventListener(eventName, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.remove('dragover');
-        }, false);
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length > 0) {
-            handleFilesSelect(files);
-        }
-    });
-
-    // Remove selected file and preview
-    removePreview.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectedFiles = [];
-        fileInput.value = '';
-        previewMedia.innerHTML = '';
-        previewContainer.style.display = 'none';
-        dropzone.style.display = 'block';
-        fileInput.required = true;
-    });
-
-    function handleFilesSelect(filesList) {
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
-        
-        // Convert FileList to array
-        const files = Array.from(filesList);
-        
-        const validFiles = [];
-        for (let file of files) {
-            if (!allowedTypes.includes(file.type)) {
-                showToast(`Skipped "${file.name}": Unsupported format.`, false);
-                continue;
-            }
-            if (file.size > 20 * 1024 * 1024) {
-                showToast(`Skipped "${file.name}": Exceeds 20MB limit.`, false);
-                continue;
-            }
-            validFiles.push(file);
-        }
-
-        if (validFiles.length === 0 && selectedFiles.length === 0) return;
-
-        // Merge files
-        selectedFiles = [...selectedFiles, ...validFiles];
-        
-        previewMedia.innerHTML = '';
-        
-        // Render a grid of previews
-        const gridDiv = document.createElement('div');
-        gridDiv.className = 'd-grid';
-        gridDiv.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
-        gridDiv.style.gap = '10px';
-        gridDiv.style.width = '100%';
-        previewMedia.appendChild(gridDiv);
-
-        selectedFiles.forEach((file, index) => {
-            const previewItem = document.createElement('div');
-            previewItem.style.position = 'relative';
-            previewItem.style.width = '100%';
-            previewItem.style.paddingTop = '100%';
-            previewItem.style.borderRadius = '6px';
-            previewItem.style.overflow = 'hidden';
-            previewItem.style.border = '1px solid rgba(255,255,255,0.1)';
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.innerHTML = '&times;';
-            removeBtn.style.position = 'absolute';
-            removeBtn.style.top = '3px';
-            removeBtn.style.right = '3px';
-            removeBtn.style.background = 'rgba(0,0,0,0.7)';
-            removeBtn.style.color = '#fff';
-            removeBtn.style.border = 'none';
-            removeBtn.style.borderRadius = '50%';
-            removeBtn.style.width = '18px';
-            removeBtn.style.height = '18px';
-            removeBtn.style.display = 'flex';
-            removeBtn.style.alignItems = 'center';
-            removeBtn.style.justifyContent = 'center';
-            removeBtn.style.cursor = 'pointer';
-            removeBtn.style.zIndex = '10';
-            removeBtn.style.fontSize = '12px';
-            removeBtn.style.lineHeight = '1';
-
-            removeBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                selectedFiles.splice(index, 1);
-                if (selectedFiles.length === 0) {
-                    removePreview.click();
-                } else {
-                    handleFilesSelect([]); // Re-render preview grid
-                }
-            });
-
-            previewItem.appendChild(removeBtn);
-
-            if (file.type.startsWith('video/')) {
-                const videoURL = URL.createObjectURL(file);
-                const videoEl = document.createElement('video');
-                videoEl.src = videoURL;
-                videoEl.style.position = 'absolute';
-                videoEl.style.top = '0';
-                videoEl.style.left = '0';
-                videoEl.style.width = '100%';
-                videoEl.style.height = '100%';
-                videoEl.style.objectFit = 'cover';
-                videoEl.muted = true;
-                videoEl.autoplay = true;
-                videoEl.loop = true;
-                previewItem.appendChild(videoEl);
-            } else {
-                const imgEl = document.createElement('img');
-                imgEl.style.position = 'absolute';
-                imgEl.style.top = '0';
-                imgEl.style.left = '0';
-                imgEl.style.width = '100%';
-                imgEl.style.height = '100%';
-                imgEl.style.objectFit = 'cover';
-                
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    imgEl.src = ev.target.result;
-                };
-                reader.readAsDataURL(file);
-                previewItem.appendChild(imgEl);
-            }
-
-            gridDiv.appendChild(previewItem);
+    // Listen to category checkbox changes
+    const categoryCheckboxesContainer = document.getElementById('uploadCategoryCheckboxes');
+    if (categoryCheckboxesContainer) {
+        categoryCheckboxesContainer.addEventListener('change', () => {
+            renderCategoryUploadSections();
         });
-
-        dropzone.style.display = 'none';
-        previewContainer.style.display = 'block';
-        fileInput.required = false;
     }
 
     // Thumbnail zone handlers
@@ -639,14 +510,16 @@ function initDragAndDrop() {
             }
         });
 
-        removeThumbPreview.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectedThumbnailFile = null;
-            thumbFileInput.value = '';
-            thumbPreviewMedia.innerHTML = '';
-            thumbPreviewContainer.style.display = 'none';
-            thumbDropzone.style.display = 'block';
-        });
+        if (removeThumbPreview) {
+            removeThumbPreview.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedThumbnailFile = null;
+                thumbFileInput.value = '';
+                thumbPreviewMedia.innerHTML = '';
+                thumbPreviewContainer.style.display = 'none';
+                thumbDropzone.style.display = 'block';
+            });
+        }
 
         function handleThumbFileSelect(file) {
             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -677,6 +550,178 @@ function initDragAndDrop() {
     }
 }
 
+// Render dynamic category upload dropzones based on selected category checkboxes
+function renderCategoryUploadSections() {
+    const container = document.getElementById('categoryUploadSections');
+    if (!container) return;
+
+    const checkedBoxes = document.querySelectorAll('#uploadCategoryCheckboxes input[type="checkbox"]:checked');
+    const checkedKeys = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (checkedKeys.length === 0) {
+        container.innerHTML = `
+            <div class="p-3 text-center rounded text-warning" style="background: rgba(250, 157, 28, 0.08); border: 1px dashed rgba(250, 157, 28, 0.3);">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Please select at least one service/category above to upload work files.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = '';
+
+    checkedKeys.forEach(catKey => {
+        const catInfo = DSS_CATEGORIES.find(c => c.key === catKey) || { key: catKey, label: catKey, icon: 'fa-solid fa-folder' };
+        if (!categorySelectedFiles[catKey]) categorySelectedFiles[catKey] = [];
+
+        const sectionCard = document.createElement('div');
+        sectionCard.className = 'category-upload-card p-3 rounded';
+        sectionCard.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;';
+
+        const fileCount = categorySelectedFiles[catKey].length;
+
+        sectionCard.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-white fw-bold"><i class="${catInfo.icon} text-warning me-2"></i>${catInfo.label} Works</span>
+                <span class="badge-dss" id="badgeCount_${catKey}">${fileCount} file${fileCount === 1 ? '' : 's'}</span>
+            </div>
+            <div class="upload-dropzone p-3 text-center rounded" id="categoryDropzone_${catKey}" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(0,0,0,0.15); cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-cloud-arrow-up text-warning mb-1" style="font-size: 24px;"></i>
+                <p class="text-white small mb-0">Drag & drop files for <strong>${catInfo.label}</strong> or click to browse</p>
+                <p class="text-white-50 small mb-0" style="font-size: 11px;">Supports JPG, PNG, WEBP, MP4, WEBM (Max 20MB per file)</p>
+                <input type="file" id="categoryFileInput_${catKey}" multiple accept="image/*,video/*" style="display: none;">
+            </div>
+            <div id="categoryPreviewGrid_${catKey}" class="d-grid gap-2 mt-3" style="grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); ${fileCount > 0 ? '' : 'display: none;'}"></div>
+        `;
+
+        container.appendChild(sectionCard);
+
+        const dropzone = sectionCard.querySelector(`#categoryDropzone_${catKey}`);
+        const fileInput = sectionCard.querySelector(`#categoryFileInput_${catKey}`);
+        const previewGrid = sectionCard.querySelector(`#categoryPreviewGrid_${catKey}`);
+        const badgeCount = sectionCard.querySelector(`#badgeCount_${catKey}`);
+
+        if (dropzone && fileInput) {
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleCategoryFiles(catKey, e.target.files, previewGrid, badgeCount);
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('dragover');
+                    dropzone.style.borderColor = 'var(--accent-color)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('dragover');
+                    dropzone.style.borderColor = 'rgba(255,255,255,0.15)';
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleCategoryFiles(catKey, files, previewGrid, badgeCount);
+                }
+            });
+        }
+
+        // Render existing files if any were previously loaded
+        renderCategoryPreviews(catKey, previewGrid, badgeCount);
+    });
+}
+
+// Handle adding files to a specific category
+function handleCategoryFiles(catKey, fileList, previewGrid, badgeCount) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    const files = Array.from(fileList);
+
+    const validFiles = [];
+    for (let file of files) {
+        if (!allowedTypes.includes(file.type)) {
+            showToast(`Skipped "${file.name}": Unsupported format.`, false);
+            continue;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            showToast(`Skipped "${file.name}": Exceeds 20MB limit.`, false);
+            continue;
+        }
+        validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+        if (!categorySelectedFiles[catKey]) categorySelectedFiles[catKey] = [];
+        categorySelectedFiles[catKey] = [...categorySelectedFiles[catKey], ...validFiles];
+        renderCategoryPreviews(catKey, previewGrid, badgeCount);
+    }
+}
+
+// Render previews for a specific category
+function renderCategoryPreviews(catKey, previewGrid, badgeCount) {
+    if (!previewGrid) return;
+    const files = categorySelectedFiles[catKey] || [];
+    
+    if (badgeCount) {
+        badgeCount.textContent = `${files.length} file${files.length === 1 ? '' : 's'}`;
+    }
+
+    if (files.length === 0) {
+        previewGrid.innerHTML = '';
+        previewGrid.style.display = 'none';
+        return;
+    }
+
+    previewGrid.style.display = 'grid';
+    previewGrid.innerHTML = '';
+
+    files.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
+        
+        removeBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            categorySelectedFiles[catKey].splice(index, 1);
+            renderCategoryPreviews(catKey, previewGrid, badgeCount);
+        });
+
+        item.appendChild(removeBtn);
+
+        if (file.type && file.type.startsWith('video/')) {
+            const videoURL = URL.createObjectURL(file);
+            const videoEl = document.createElement('video');
+            videoEl.src = videoURL;
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.muted = true;
+            videoEl.autoplay = true;
+            videoEl.loop = true;
+            item.appendChild(videoEl);
+        } else {
+            const imgEl = document.createElement('img');
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            const reader = new FileReader();
+            reader.onload = (e) => { imgEl.src = e.target.result; };
+            reader.readAsDataURL(file);
+            item.appendChild(imgEl);
+        }
+
+        previewGrid.appendChild(item);
+    });
+}
+
 // Project upload submission
 function initUploadForm() {
     const form = document.getElementById('uploadForm');
@@ -690,12 +735,26 @@ function initUploadForm() {
         e.preventDefault();
 
         const title = document.getElementById('projectTitle').value.trim();
-        const category = document.getElementById('projectCategory').value;
-        const description = document.getElementById('projectDescription').value.trim();
+        const description = document.getElementById('projectDescription') ? document.getElementById('projectDescription').value.trim() : '';
         const token = localStorage.getItem('adminToken');
 
-        if (selectedFiles.length === 0) {
-            showToast('Please select at least one file to upload.', false);
+        // Extract selected categories
+        const checkedBoxes = document.querySelectorAll('#uploadCategoryCheckboxes input[type="checkbox"]:checked');
+        const selectedCats = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (selectedCats.length === 0) {
+            showToast('Please select at least one category / service for this project.', false);
+            return;
+        }
+
+        // Count total files across checked categories
+        let totalFiles = 0;
+        selectedCats.forEach(catKey => {
+            totalFiles += (categorySelectedFiles[catKey] || []).length;
+        });
+
+        if (totalFiles === 0) {
+            showToast('Please select at least one work file to upload under your checked categories.', false);
             return;
         }
 
@@ -707,16 +766,24 @@ function initUploadForm() {
 
         // Setup loading state
         uploadBtn.disabled = true;
-        uploadBtnText.style.display = 'none';
-        uploadSpinner.style.display = 'inline-block';
+        if (uploadBtnText) uploadBtnText.style.display = 'none';
+        if (uploadSpinner) uploadSpinner.style.display = 'inline-block';
 
         const formData = new FormData();
         formData.append('title', title);
-        formData.append('category', category);
+        formData.append('category', selectedCats[0]);
+        formData.append('categories', JSON.stringify(selectedCats));
         formData.append('description', description);
-        selectedFiles.forEach(file => {
-            formData.append('workFiles', file);
+
+        // Append category-specific files
+        selectedCats.forEach(catKey => {
+            const catFiles = categorySelectedFiles[catKey] || [];
+            catFiles.forEach(file => {
+                formData.append(`workFiles_${catKey}`, file);
+                formData.append('workFiles', file); // Fallback for backwards compatibility
+            });
         });
+
         if (selectedThumbnailFile) {
             formData.append('thumbnailFile', selectedThumbnailFile);
         }
@@ -733,11 +800,23 @@ function initUploadForm() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                showToast('Work published successfully!', true);
+                showToast('Project published successfully with all categories!', true);
                 form.reset();
-                document.getElementById('removePreview').click();
+                
+                // Clear category files state
+                categorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
+                renderCategoryUploadSections();
+
                 const removeThumb = document.getElementById('removeThumbnailPreview');
                 if (removeThumb) removeThumb.click();
+
+                // Collapse the upload card
+                const uploadCollapse = document.getElementById('uploadCollapse');
+                if (uploadCollapse && typeof bootstrap !== 'undefined') {
+                    const bsCollapse = bootstrap.Collapse.getInstance(uploadCollapse);
+                    if (bsCollapse) bsCollapse.hide();
+                }
+
                 loadAdminProjects();
                 
                 // Switch to projects tab
@@ -750,10 +829,9 @@ function initUploadForm() {
             console.error('Upload request error:', error);
             showToast('An error occurred during upload. Check connection.', false);
         } finally {
-            // Restore button state
             uploadBtn.disabled = false;
-            uploadBtnText.style.display = 'inline-block';
-            uploadSpinner.style.display = 'none';
+            if (uploadBtnText) uploadBtnText.style.display = 'inline-block';
+            if (uploadSpinner) uploadSpinner.style.display = 'none';
         }
     });
 }
@@ -774,25 +852,16 @@ async function loadAdminProjects() {
             updateStatsCounters();
 
             if (projectsList.length === 0) {
-                loadingState.style.display = 'none';
-                emptyState.style.display = 'block';
+                if (loadingState) loadingState.style.display = 'none';
+                if (emptyState) emptyState.style.display = 'block';
                 grid.style.display = 'none';
                 return;
             }
 
-            loadingState.style.display = 'none';
-            emptyState.style.display = 'none';
+            if (loadingState) loadingState.style.display = 'none';
+            if (emptyState) emptyState.style.display = 'none';
             grid.style.display = 'grid';
             grid.innerHTML = '';
-
-            const categoryLabels = {
-                'graphics': 'Graphics Design',
-                'branding': 'Branding Identity',
-                'packaging': 'Packaging Design',
-                'social-media': 'Social Media Design',
-                'video': 'Video Ads',
-                'marketing': 'Digital Marketing'
-            };
 
             // Order projects by date descending
             const sortedProjects = [...projectsList].reverse();
@@ -801,13 +870,22 @@ async function loadAdminProjects() {
                 const card = document.createElement('div');
                 card.className = 'work-card';
                 card.setAttribute('data-title', proj.title);
-                card.setAttribute('data-category', proj.category);
+                
+                const projCats = (proj.categories && proj.categories.length > 0) 
+                    ? proj.categories 
+                    : [proj.category || 'graphics'];
+                
+                card.setAttribute('data-categories', projCats.join(','));
+                card.setAttribute('data-category', projCats[0]);
 
-                const mediaHTML = proj.fileType === 'video'
-                    ? `<video src="${proj.imagePath}" muted loop playsinline autoplay></video>`
-                    : `<img src="${proj.imagePath}" alt="${proj.title}" loading="lazy">`;
+                const mediaSrc = proj.thumbnailPath || proj.imagePath;
+                const isVideo = proj.fileType === 'video' && !proj.thumbnailPath;
 
-                const label = categoryLabels[proj.category] || proj.category;
+                const mediaHTML = isVideo
+                    ? `<video src="${mediaSrc}" muted loop playsinline autoplay></video>`
+                    : `<img src="${mediaSrc}" alt="${proj.title}" loading="lazy">`;
+
+                const badgesHTML = projCats.map(c => `<span class="badge-dss">${categoryLabels[c] || c}</span>`).join(' ');
                 const dateStr = proj.createdAt ? new Date(proj.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
 
                 card.innerHTML = `
@@ -818,8 +896,10 @@ async function loadAdminProjects() {
                         <div class="work-title-text" title="${proj.title}">${proj.title}</div>
                         <div class="work-desc-text" title="${proj.description || 'No description provided.'}">${proj.description || 'No description provided.'}</div>
                         <div class="work-footer">
-                            <span class="badge-dss">${label}</span>
-                            <div class="d-flex align-items-center gap-2">
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                ${badgesHTML}
+                            </div>
+                            <div class="d-flex align-items-center gap-2 ms-auto">
                                 <span class="text-muted" style="font-size: 11px;">${dateStr}</span>
                                 <button class="work-edit-btn" onclick="openEditProjectModal('${proj.id}')" title="Edit work" style="background: none; border: none; color: #ff9d1c; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -838,7 +918,261 @@ async function loadAdminProjects() {
         }
     } catch (error) {
         console.error('Error fetching admin projects:', error);
-        loadingState.innerHTML = `<span class="text-danger">Error loading projects from server.</span>`;
+        if (loadingState) loadingState.innerHTML = `<span class="text-danger">Error loading projects from server.</span>`;
+    }
+}
+
+// Open Edit Project Modal
+function openEditProjectModal(id) {
+    const proj = projectsList.find(p => p.id === id);
+    if (!proj || !editProjectModal) return;
+
+    document.getElementById('editProjectId').value = proj.id;
+    document.getElementById('editProjectTitle').value = proj.title || '';
+    document.getElementById('editProjectDesc').value = proj.description || '';
+
+    const projCats = (proj.categories && proj.categories.length > 0) ? proj.categories : [proj.category || 'graphics'];
+    
+    // Set checkboxes in edit modal
+    const editCheckboxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]');
+    editCheckboxes.forEach(cb => {
+        cb.checked = projCats.includes(cb.value);
+    });
+
+    // Setup existing media state
+    editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])];
+    editKeepCategoryMedia = JSON.parse(JSON.stringify(proj.categoryMedia || {}));
+    editNewFiles = [];
+    editSelectedThumbnailFile = null;
+
+    const existingGrid = document.getElementById('editExistingMediaGrid');
+    const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
+    if (newFilesGrid) newFilesGrid.innerHTML = '';
+    const newFilesInput = document.getElementById('editProjectFiles');
+    if (newFilesInput) newFilesInput.value = '';
+    const thumbInput = document.getElementById('editThumbnailFile');
+    if (thumbInput) thumbInput.value = '';
+
+    renderEditExistingMedia();
+    editProjectModal.show();
+}
+window.openEditProjectModal = openEditProjectModal;
+
+// Render existing media files in edit modal
+function renderEditExistingMedia() {
+    const existingGrid = document.getElementById('editExistingMediaGrid');
+    if (!existingGrid) return;
+
+    if (editKeepMediaPaths.length === 0) {
+        existingGrid.innerHTML = '<div class="text-white-50 small p-2">No existing media retained. Please upload at least one new file.</div>';
+        return;
+    }
+
+    existingGrid.innerHTML = '';
+
+    editKeepMediaPaths.forEach((mediaPath, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(220,53,69,0.85); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 14px; line-height: 1;';
+        
+        removeBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            editKeepMediaPaths.splice(index, 1);
+            
+            // Also remove from editKeepCategoryMedia
+            Object.keys(editKeepCategoryMedia).forEach(cat => {
+                editKeepCategoryMedia[cat] = (editKeepCategoryMedia[cat] || []).filter(m => m.path !== mediaPath);
+            });
+
+            renderEditExistingMedia();
+        });
+
+        item.appendChild(removeBtn);
+
+        const isVideo = mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm') || mediaPath.includes('video');
+        if (isVideo) {
+            const videoEl = document.createElement('video');
+            videoEl.src = mediaPath;
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.muted = true;
+            item.appendChild(videoEl);
+        } else {
+            const imgEl = document.createElement('img');
+            imgEl.src = mediaPath;
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            item.appendChild(imgEl);
+        }
+
+        existingGrid.appendChild(item);
+    });
+}
+
+// Initialize Edit Project Form Listener
+function initEditProjectForm() {
+    const editDropzone = document.getElementById('editDropzone');
+    const editFileInput = document.getElementById('editProjectFiles');
+    const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
+    const editForm = document.getElementById('editProjectForm');
+    const submitBtn = document.getElementById('editProjectSubmitBtn');
+
+    if (editDropzone && editFileInput) {
+        editDropzone.addEventListener('click', () => editFileInput.click());
+
+        editFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const files = Array.from(e.target.files);
+                editNewFiles = [...editNewFiles, ...files];
+                renderEditNewFilesPreviews();
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            editDropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editDropzone.style.borderColor = 'var(--accent-color)';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            editDropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                editDropzone.style.borderColor = 'rgba(255,255,255,0.15)';
+            });
+        });
+
+        editDropzone.addEventListener('drop', (e) => {
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                editNewFiles = [...editNewFiles, ...files];
+                renderEditNewFilesPreviews();
+            }
+        });
+    }
+
+    function renderEditNewFilesPreviews() {
+        if (!newFilesGrid) return;
+        newFilesGrid.innerHTML = '';
+
+        editNewFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
+            
+            removeBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                editNewFiles.splice(index, 1);
+                renderEditNewFilesPreviews();
+            });
+
+            item.appendChild(removeBtn);
+
+            if (file.type && file.type.startsWith('video/')) {
+                const videoEl = document.createElement('video');
+                videoEl.src = URL.createObjectURL(file);
+                videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+                videoEl.muted = true;
+                item.appendChild(videoEl);
+            } else {
+                const imgEl = document.createElement('img');
+                imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+                const reader = new FileReader();
+                reader.onload = (e) => { imgEl.src = e.target.result; };
+                reader.readAsDataURL(file);
+                item.appendChild(imgEl);
+            }
+
+            newFilesGrid.appendChild(item);
+        });
+    }
+
+    if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('editProjectId').value;
+            const title = document.getElementById('editProjectTitle').value.trim();
+            const description = document.getElementById('editProjectDesc').value.trim();
+            const token = localStorage.getItem('adminToken');
+
+            const checkedBoxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]:checked');
+            const selectedCats = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedCats.length === 0) {
+                showToast('Please select at least one category for this project.', false);
+                return;
+            }
+
+            if (editKeepMediaPaths.length === 0 && editNewFiles.length === 0) {
+                showToast('Please retain or upload at least one media file.', false);
+                return;
+            }
+
+            if (!token) {
+                showToast('Session expired. Please log in again.', false);
+                checkAuthState();
+                return;
+            }
+
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Saving...';
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', selectedCats[0]);
+            formData.append('categories', JSON.stringify(selectedCats));
+            formData.append('description', description);
+            formData.append('keepMediaPaths', JSON.stringify(editKeepMediaPaths));
+            formData.append('keepCategoryMedia', JSON.stringify(editKeepCategoryMedia));
+
+            editNewFiles.forEach(file => {
+                formData.append('workFiles', file);
+            });
+
+            const editThumbInput = document.getElementById('editThumbnailFile');
+            if (editThumbInput && editThumbInput.files.length > 0) {
+                formData.append('thumbnailFile', editThumbInput.files[0]);
+            }
+
+            try {
+                const response = await fetch(`/api/projects/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showToast('Project updated successfully!', true);
+                    if (editProjectModal) editProjectModal.hide();
+                    loadAdminProjects();
+                } else {
+                    showToast(data.message || 'Failed to update project.', false);
+                }
+            } catch (err) {
+                console.error('Edit error:', err);
+                showToast('Error updating project. Check connection.', false);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Save Changes';
+                }
+            }
+        });
     }
 }
 

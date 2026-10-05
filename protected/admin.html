@@ -2513,52 +2513,60 @@
                 <div class="collapse mb-4" id="uploadCollapse">
                     <div class="admin-card">
                         <h4 class="text-white fw-bold mb-3"><i class="fa-solid fa-cloud-arrow-up text-warning me-2"></i> Upload New Portfolio Work</h4>
-                        <p class="text-muted small mb-4">Publish a new design project to your public website portfolio</p>
+                        <p class="text-muted small mb-4">Publish a new design project with multiple services & categories to your public website portfolio</p>
                         
                         <form id="uploadForm">
                             <div class="row g-3">
-                                <div class="col-md-6 mb-3">
-                                    <label for="projectTitle" class="form-label text-white-50">Project Title</label>
-                                    <input type="text" class="form-control form-control-dss" id="projectTitle" placeholder="e.g. Modern Brand Brochure" required>
+                                <div class="col-md-12 mb-2">
+                                    <label for="projectTitle" class="form-label text-white-50">Project Title / Client Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-dss" id="projectTitle" placeholder="e.g. Trans Globe" required>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="projectCategory" class="form-label text-white-50">Category</label>
-                                    <select class="form-select form-control-dss" id="projectCategory" required>
-                                        <option value="" disabled selected>Select Category</option>
-                                        <option value="graphics">graphics design</option>
-                                        <option value="branding">branding identity</option>
-                                        <option value="packaging">packaging design</option>
-                                        <option value="social-media">social media design</option>
-                                        <option value="video">video ads</option>
-                                        <option value="marketing">digital marketing</option>
-                                    </select>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label text-white-50 d-block">Services & Categories for this Project (Select all that apply) <span class="text-danger">*</span></label>
+                                    <div class="category-checkbox-group d-flex flex-wrap gap-2" id="uploadCategoryCheckboxes">
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="graphics" class="category-chip-input" checked>
+                                            <span class="category-chip"><i class="fa-solid fa-pen-nib me-1"></i> Graphics Design</span>
+                                        </label>
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="branding" class="category-chip-input">
+                                            <span class="category-chip"><i class="fa-solid fa-gem me-1"></i> Branding Identity</span>
+                                        </label>
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="packaging" class="category-chip-input">
+                                            <span class="category-chip"><i class="fa-solid fa-box-open me-1"></i> Packaging Design</span>
+                                        </label>
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="social-media" class="category-chip-input">
+                                            <span class="category-chip"><i class="fa-solid fa-share-nodes me-1"></i> Social Media Design</span>
+                                        </label>
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="video" class="category-chip-input">
+                                            <span class="category-chip"><i class="fa-solid fa-video me-1"></i> Video Ads</span>
+                                        </label>
+                                        <label class="category-chip-label">
+                                            <input type="checkbox" name="projectCategories" value="marketing" class="category-chip-input">
+                                            <span class="category-chip"><i class="fa-solid fa-chart-line me-1"></i> Digital Marketing</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="mb-3">
                                 <label for="projectDescription" class="form-label text-white-50">Project Description (Optional)</label>
-                                <textarea class="form-control form-control-dss" id="projectDescription" rows="3" placeholder="Explain the project details..."></textarea>
+                                <textarea class="form-control form-control-dss" id="projectDescription" rows="2" placeholder="Explain the project details, client goals, and deliverables..."></textarea>
                             </div>
-                            <div class="mb-4">
-                                <label class="form-label text-white-50">Upload Media (Single/Multiple Images or Videos)</label>
-                                <div class="upload-dropzone" id="dropzone" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer; padding: 30px; text-align: center; border-radius: 12px;">
-                                    <i class="fa-solid fa-images text-warning mb-2" style="font-size: 32px;"></i>
-                                    <h5 class="text-white fs-6">Drag & drop files here or click to browse</h5>
-                                    <p class="text-muted small mb-0">Supports JPG, PNG, WEBP, MP4, WEBM (Multiple files allowed, Max 20MB per file)</p>
-                                    <input type="file" id="projectFile" accept="image/*,video/*" multiple style="display: none;" required>
-                                </div>
-                                <!-- Real-time upload preview -->
-                                <div class="preview-container mt-3" id="previewContainer" style="display: none;">
-                                    <button type="button" class="remove-preview-btn" id="removePreview" title="Remove Media">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                    <div id="previewMedia"></div>
-                                </div>
+
+                            <!-- Dynamic Category-Specific Media Upload Sections -->
+                            <div id="categoryUploadSections" class="mb-4 d-flex flex-column gap-3">
+                                <!-- Populated dynamically based on checked categories -->
                             </div>
+
+                            <!-- Project Thumbnail Card Image -->
                             <div class="mb-4">
-                                <label class="form-label text-white-50">Upload Thumbnail Image (Optional - Shows as preview card on homepage)</label>
-                                <div class="upload-dropzone" id="thumbnailDropzone" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer; padding: 30px; text-align: center; border-radius: 12px;">
-                                    <i class="fa-solid fa-image text-warning mb-2" style="font-size: 32px;"></i>
-                                    <h5 class="text-white fs-6">Drag & drop thumbnail image here or click to browse</h5>
+                                <label class="form-label text-white-50">Project Card Thumbnail (Optional - Featured cover card on homepage)</label>
+                                <div class="upload-dropzone" id="thumbnailDropzone" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer; padding: 25px; text-align: center; border-radius: 12px;">
+                                    <i class="fa-solid fa-image text-warning mb-2" style="font-size: 28px;"></i>
+                                    <h5 class="text-white fs-6 mb-1">Drag & drop thumbnail image here or click to browse</h5>
                                     <p class="text-muted small mb-0">Supports JPG, PNG, WEBP (Max 5MB)</p>
                                     <input type="file" id="projectThumbnailFile" accept="image/*" style="display: none;">
                                 </div>
@@ -2570,6 +2578,7 @@
                                     <div id="previewThumbnailMedia"></div>
                                 </div>
                             </div>
+
                             <div class="text-end">
                                 <button type="submit" class="btn btn-dss px-5 py-3" id="uploadBtn" style="border-radius: 8px;">
                                     <span id="uploadBtnText"><i class="fa-solid fa-paper-plane me-2"></i> Publish Project</span>
@@ -3018,27 +3027,44 @@
                         <input type="hidden" id="editProjectId">
                         <div class="row g-4">
                             <!-- Title -->
-                            <div class="col-md-6">
-                                <label for="editProjectTitle" class="form-label text-white">Project Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-dss" id="editProjectTitle" required placeholder="e.g. Creative Social Posts">
+                            <div class="col-md-12">
+                                <label for="editProjectTitle" class="form-label text-white">Project Title / Client Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-dss" id="editProjectTitle" required placeholder="e.g. Trans Globe">
                             </div>
-                            <!-- Category -->
-                            <div class="col-md-6">
-                                <label for="editProjectCategory" class="form-label text-white">Category <span class="text-danger">*</span></label>
-                                <select class="form-select form-control-dss" id="editProjectCategory" required>
-                                    <option value="" disabled selected>Select Category</option>
-                                    <option value="graphics">graphics design</option>
-                                    <option value="branding">branding identity</option>
-                                    <option value="packaging">packaging design</option>
-                                    <option value="social-media">social media design</option>
-                                    <option value="video">video ads</option>
-                                    <option value="marketing">digital marketing</option>
-                                </select>
+                            <!-- Categories Checkboxes -->
+                            <div class="col-md-12">
+                                <label class="form-label text-white d-block">Services & Categories <span class="text-danger">*</span></label>
+                                <div class="category-checkbox-group d-flex flex-wrap gap-2" id="editCategoryCheckboxes">
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="graphics" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-pen-nib me-1"></i> Graphics Design</span>
+                                    </label>
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="branding" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-gem me-1"></i> Branding Identity</span>
+                                    </label>
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="packaging" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-box-open me-1"></i> Packaging Design</span>
+                                    </label>
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="social-media" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-share-nodes me-1"></i> Social Media Design</span>
+                                    </label>
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="video" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-video me-1"></i> Video Ads</span>
+                                    </label>
+                                    <label class="category-chip-label">
+                                        <input type="checkbox" name="editProjectCategories" value="marketing" class="category-chip-input">
+                                        <span class="category-chip"><i class="fa-solid fa-chart-line me-1"></i> Digital Marketing</span>
+                                    </label>
+                                </div>
                             </div>
                             <!-- Description -->
                             <div class="col-12">
                                 <label for="editProjectDesc" class="form-label text-white">Project Description</label>
-                                <textarea class="form-control form-control-dss" id="editProjectDesc" rows="3" placeholder="Describe the client work..."></textarea>
+                                <textarea class="form-control form-control-dss" id="editProjectDesc" rows="2" placeholder="Describe the client work..."></textarea>
                             </div>
                             
                             <!-- Existing Media Files list -->

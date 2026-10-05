@@ -5704,5 +5704,72 @@ textarea~.floating-label {
     border-bottom: 1px solid #eaecf0 !important;
 }
 
+/* ========================================================================
+   CATEGORY CHECKBOX CHIPS & DYNAMIC UPLOAD CARDS
+   ======================================================================== */
+.category-chip-label {
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+.category-chip-input {
+    display: none;
+}
+.category-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.25s ease;
+}
+.category-chip:hover {
+    border-color: var(--accent-color, #fa9d1c);
+    color: #fff;
+}
+.category-chip-input:checked + .category-chip {
+    background: linear-gradient(135deg, #fa9d1c 0%, #ff5e3a 100%);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(250, 157, 28, 0.35);
+}
+
+.category-upload-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px 20px;
+    transition: border-color 0.2s ease;
+}
+.category-upload-card:hover {
+    border-color: rgba(250, 157, 28, 0.4);
+}
+.category-upload-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.category-upload-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.category-upload-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(250, 157, 28, 0.15);
+    color: #fa9d1c;
+    border: 1px solid rgba(250, 157, 28, 0.3);
+}
+
 
 

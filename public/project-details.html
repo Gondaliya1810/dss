@@ -376,6 +376,8 @@
                                 id: dbProj.id,
                                 title: dbProj.title,
                                 category: dbProj.category,
+                                categories: dbProj.categories || [dbProj.category],
+                                categoryMedia: dbProj.categoryMedia || {},
                                 description: dbProj.description,
                                 mediaPaths: dbProj.mediaPaths || [dbProj.imagePath],
                                 mediaTypes: dbProj.mediaTypes || [dbProj.fileType || 'image'],
@@ -411,31 +413,60 @@
                 'video': 'video ads',
                 'marketing': 'digital marketing'
             };
-            document.getElementById('project-category-tag').textContent = categoryLabels[project.category] || project.category;
 
-            // Map media items
+            const projectCategories = Array.isArray(project.categories) && project.categories.length > 0
+                ? project.categories
+                : (project.category ? [project.category] : ['graphics']);
+
+            // Render all category badges
+            const categoryTagEl = document.getElementById('project-category-tag');
+            if (categoryTagEl) {
+                categoryTagEl.outerHTML = `
+                    <div class="d-flex flex-wrap gap-2 mb-2" id="project-categories-container">
+                        ${projectCategories.map(c => `<span class="section-tag">${categoryLabels[c] || c}</span>`).join('')}
+                    </div>
+                `;
+            }
+
+            // Map media items with category assignment
             const mediaItems = [];
-            project.mediaPaths.forEach((path, index) => {
-                mediaItems.push({
-                    path,
-                    type: project.mediaTypes[index] || 'image'
+            if (project.categoryMedia && Object.keys(project.categoryMedia).length > 0) {
+                projectCategories.forEach(catKey => {
+                    const list = project.categoryMedia[catKey] || [];
+                    list.forEach(item => {
+                        const path = typeof item === 'object' ? item.path : item;
+                        const type = typeof item === 'object' ? item.type : (path && path.match(/\.(mp4|webm)$/i) ? 'video' : 'image');
+                        if (path) {
+                            mediaItems.push({ path, type, category: catKey });
+                        }
+                    });
                 });
-            });
+            }
 
-            const hasImages = mediaItems.some(item => item.type === 'image');
-            const hasVideos = mediaItems.some(item => item.type === 'video');
+            // Fallback to mediaPaths if categoryMedia is empty or unpopulated
+            if (mediaItems.length === 0 && project.mediaPaths) {
+                project.mediaPaths.forEach((path, index) => {
+                    mediaItems.push({
+                        path,
+                        type: (project.mediaTypes && project.mediaTypes[index]) || 'image',
+                        category: projectCategories[0] || 'graphics'
+                    });
+                });
+            }
 
             const filterTabsContainer = document.getElementById('project-filter-tabs');
             const workListContainer = document.getElementById('project-work-list');
 
-            // Render tabs if both videos and images exist
-            if (hasImages && hasVideos) {
-                filterTabsContainer.innerHTML = `
-                    <button class="portfolio-tab-btn active" data-filter="all">All Works</button>
-                    <button class="portfolio-tab-btn" data-filter="graphics">Graphics</button>
-                    <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
-                `;
-                
+            // Render filter tabs if multiple categories exist or multiple media types exist
+            if (projectCategories.length > 1) {
+                let tabsHTML = `<button class="portfolio-tab-btn active" data-filter="all">All Works (${mediaItems.length})</button>`;
+                projectCategories.forEach(c => {
+                    const catCount = mediaItems.filter(item => item.category === c).length;
+                    tabsHTML += `<button class="portfolio-tab-btn" data-filter="${c}">${categoryLabels[c] || c} ${catCount > 0 ? `(${catCount})` : ''}</button>`;
+                });
+                filterTabsContainer.innerHTML = tabsHTML;
+                filterTabsContainer.style.display = 'flex';
+
                 const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
                 tabs.forEach(tab => {
                     tab.addEventListener('click', (e) => {
@@ -445,7 +476,26 @@
                     });
                 });
             } else {
-                filterTabsContainer.style.display = 'none';
+                const hasImages = mediaItems.some(item => item.type === 'image');
+                const hasVideos = mediaItems.some(item => item.type === 'video');
+                if (hasImages && hasVideos) {
+                    filterTabsContainer.innerHTML = `
+                        <button class="portfolio-tab-btn active" data-filter="all">All Works</button>
+                        <button class="portfolio-tab-btn" data-filter="graphics">Graphics</button>
+                        <button class="portfolio-tab-btn" data-filter="reels">Reels & Videos</button>
+                    `;
+                    filterTabsContainer.style.display = 'flex';
+                    const tabs = filterTabsContainer.querySelectorAll('.portfolio-tab-btn');
+                    tabs.forEach(tab => {
+                        tab.addEventListener('click', (e) => {
+                            tabs.forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            renderWorkList(tab.getAttribute('data-filter'));
+                        });
+                    });
+                } else {
+                    filterTabsContainer.style.display = 'none';
+                }
             }
 
             // Render media in responsive CSS grid
