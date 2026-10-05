@@ -1769,15 +1769,9 @@ header.scrolled .navbar-wrapper {
     padding: 20px 0;
 }
 
-/* Horizontal dotted line behind cards in desktop */
+/* Dotted line behind workflow cards removed as requested */
 .timeline-line {
-    position: absolute;
-    top: 55px;
-    left: 10%;
-    right: 10%;
-    height: 2px;
-    background: repeating-linear-gradient(to right, var(--border-color), var(--border-color) 4px, transparent 4px, transparent 8px);
-    z-index: 1;
+    display: none !important;
 }
 
 .process-node-card {

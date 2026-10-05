@@ -750,7 +750,7 @@ function initFooterMapLink() {
         if (!footerMap.querySelector('.map-overlay-link')) {
             const overlay = document.createElement('a');
             overlay.className = 'map-overlay-link';
-            overlay.href = 'https://www.google.com/maps/dir//Design+Shaper+Studio,+312,+AR+Mall,+nr.+Panvel+Point,+Mota+Varachha,+Surat,+Gujarat+394101/@21.2378788,72.8633633,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3be04f05932c91f3:0x1b07e5622cb7e97f!2m2!1d72.8730725!2d21.2354592?entry=ttu&g_ep=EgoyMDI2MDgxMi4wIKXMDSoASAFQAw%3D%3D';
+            overlay.href = 'https://maps.app.goo.gl/NmLbswz3N2wNtJdh7';
             overlay.target = '_blank';
             overlay.title = 'Open in Google Maps';
             overlay.style.position = 'absolute';
@@ -772,7 +772,7 @@ function initFooterAddressLink() {
             const span = li.querySelector('span.text-white');
             if (span) {
                 const addressText = li.textContent.replace('Location:', '').trim();
-                li.innerHTML = `<span class="text-white">Location:</span> <a href="https://www.google.com/maps/dir//Design+Shaper+Studio,+312,+AR+Mall,+nr.+Panvel+Point,+Mota+Varachha,+Surat,+Gujarat+394101/@21.2378788,72.8633633,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3be04f05932c91f3:0x1b07e5622cb7e97f!2m2!1d72.8730725!2d21.2354592?entry=ttu&g_ep=EgoyMDI2MDgxMi4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="text-white-50 text-decoration-none" style="transition: color 0.3s;" onmouseover="this.style.color='var(--accent-color)'" onmouseout="this.style.color='var(--text-secondary)'">${addressText}</a>`;
+                li.innerHTML = `<span class="text-white">Location:</span> <a href="https://maps.app.goo.gl/NmLbswz3N2wNtJdh7" target="_blank" class="text-white-50 text-decoration-none" style="transition: color 0.3s;" onmouseover="this.style.color='var(--accent-color)'" onmouseout="this.style.color='var(--text-secondary)'">${addressText}</a>`;
             }
         }
     });
@@ -783,7 +783,7 @@ function initFooterAddressLink() {
         const desc = card.querySelector('p');
         if (title && title.textContent.includes('Address') && desc) {
             const addressText = desc.textContent;
-            desc.innerHTML = `<a href="https://www.google.com/maps/dir//Design+Shaper+Studio,+312,+AR+Mall,+nr.+Panvel+Point,+Mota+Varachha,+Surat,+Gujarat+394101/@21.2378788,72.8633633,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0x3be04f05932c91f3:0x1b07e5622cb7e97f!2m2!1d72.8730725!2d21.2354592?entry=ttu&g_ep=EgoyMDI2MDgxMi4wIKXMDSoASAFQAw%3D%3D" target="_blank" class="text-white-50 text-decoration-none" style="transition: color 0.3s;" onmouseover="this.style.color='var(--accent-color)'" onmouseout="this.style.color='var(--text-secondary)'">${addressText}</a>`;
+            desc.innerHTML = `<a href="https://maps.app.goo.gl/NmLbswz3N2wNtJdh7" target="_blank" class="text-white-50 text-decoration-none" style="transition: color 0.3s;" onmouseover="this.style.color='var(--accent-color)'" onmouseout="this.style.color='var(--text-secondary)'">${addressText}</a>`;
         }
     });
 }
