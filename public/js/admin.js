@@ -683,14 +683,31 @@ function renderCategoryPreviews(catKey, previewGrid, badgeCount) {
     previewGrid.style.display = 'grid';
     previewGrid.innerHTML = '';
 
+    const catInfo = DSS_CATEGORIES.find(c => c.key === catKey) || { label: catKey };
+
     files.forEach((file, index) => {
         const item = document.createElement('div');
-        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: #000;';
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.18); background: #0b0b0f; cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;';
+        item.title = 'Click to preview media';
+
+        item.onmouseover = () => {
+            item.style.transform = 'scale(1.05)';
+            item.style.borderColor = 'var(--accent-color, #fa9d1c)';
+            item.style.boxShadow = '0 6px 16px rgba(0,0,0,0.6)';
+        };
+        item.onmouseout = () => {
+            item.style.transform = 'scale(1)';
+            item.style.borderColor = 'rgba(255,255,255,0.18)';
+            item.style.boxShadow = 'none';
+        };
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '&times;';
-        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
+        removeBtn.title = 'Remove this file';
+        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.85); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 13px; line-height: 1; transition: transform 0.15s;';
+        removeBtn.onmouseover = () => { removeBtn.style.transform = 'scale(1.15)'; };
+        removeBtn.onmouseout = () => { removeBtn.style.transform = 'scale(1)'; };
         
         removeBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -700,23 +717,32 @@ function renderCategoryPreviews(catKey, previewGrid, badgeCount) {
 
         item.appendChild(removeBtn);
 
-        if (file.type && file.type.startsWith('video/')) {
-            const videoURL = URL.createObjectURL(file);
+        const isVid = file.type && file.type.startsWith('video/');
+        const blobUrl = URL.createObjectURL(file);
+
+        if (isVid) {
             const videoEl = document.createElement('video');
-            videoEl.src = videoURL;
-            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.src = blobUrl;
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             videoEl.muted = true;
-            videoEl.autoplay = true;
-            videoEl.loop = true;
             item.appendChild(videoEl);
+
+            const playBadge = document.createElement('div');
+            playBadge.style.cssText = 'position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); color: #fa9d1c; border-radius: 4px; padding: 2px 5px; font-size: 10px; display: flex; align-items: center; gap: 3px; z-index: 5; pointer-events: none;';
+            playBadge.innerHTML = '<i class="fa-solid fa-play"></i> Video';
+            item.appendChild(playBadge);
         } else {
             const imgEl = document.createElement('img');
-            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
-            const reader = new FileReader();
-            reader.onload = (e) => { imgEl.src = e.target.result; };
-            reader.readAsDataURL(file);
+            imgEl.src = blobUrl;
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             item.appendChild(imgEl);
         }
+
+        // Click to preview
+        item.addEventListener('click', (e) => {
+            if (e.target === removeBtn || removeBtn.contains(e.target)) return;
+            openAdminMediaLightbox(blobUrl, isVid ? 'video' : 'image', `${catInfo.label} - ${file.name}`);
+        });
 
         previewGrid.appendChild(item);
     });
@@ -937,6 +963,89 @@ async function loadAdminProjects() {
     }
 }
 
+// Admin Media Preview Lightbox Modal
+function openAdminMediaLightbox(src, type = 'image', title = 'Work Preview') {
+    const existingModal = document.getElementById('adminMediaLightboxModal');
+    if (existingModal) existingModal.remove();
+
+    const isVideo = type === 'video' || (typeof src === 'string' && (src.endsWith('.mp4') || src.endsWith('.webm') || (src.startsWith('blob:') && String(type).includes('video'))));
+
+    const modal = document.createElement('div');
+    modal.id = 'adminMediaLightboxModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(8, 8, 12, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 100060;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        padding: 24px;
+        box-sizing: border-box;
+    `;
+
+    const mediaElement = isVideo
+        ? `<video src="${src}" controls autoplay playsinline controlslist="nodownload" style="max-width: 88vw; max-height: 76vh; width: 780px; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.85); background: #000; object-fit: contain; outline: none; border: 1px solid rgba(255,255,255,0.15);"></video>`
+        : `<img src="${src}" alt="${escapeHTML(title)}" style="max-width: 88vw; max-height: 76vh; width: auto; height: auto; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.85); object-fit: contain; background: #000; border: 1px solid rgba(255,255,255,0.15);">`;
+
+    modal.innerHTML = `
+        <div style="position: absolute; top: 20px; right: 25px; z-index: 100070;">
+            <button id="adminLightboxCloseBtn" type="button" title="Close Preview (Esc)" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: all 0.2s; line-height: 1;" onmouseover="this.style.background='rgba(220,53,69,0.9)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'; this.style.transform='scale(1)'">
+                &times;
+            </button>
+        </div>
+        <div class="admin-lightbox-content" style="max-width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: default;">
+            ${mediaElement}
+            <div style="margin-top: 16px; text-align: center; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,0.8);">
+                <i class="${isVideo ? 'fa-solid fa-circle-play text-warning' : 'fa-solid fa-image text-warning'} me-2"></i>${escapeHTML(title || (isVideo ? 'Video Preview' : 'Image Preview'))}
+            </div>
+            <div class="text-white-50 small mt-1" style="font-size: 12px;">Press <kbd style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; color: #fff;">Esc</kbd> or click outside to close</div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    requestAnimationFrame(() => {
+        modal.style.opacity = '1';
+    });
+
+    const closeModal = () => {
+        modal.style.opacity = '0';
+        const vid = modal.querySelector('video');
+        if (vid) {
+            vid.pause();
+            vid.src = '';
+        }
+        setTimeout(() => {
+            modal.remove();
+        }, 250);
+        document.removeEventListener('keydown', handleKeyDown);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    const closeBtn = modal.querySelector('#adminLightboxCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.classList.contains('admin-lightbox-content')) {
+            closeModal();
+        }
+    });
+}
+window.openAdminMediaLightbox = openAdminMediaLightbox;
+
 // State for edit modal category uploads
 let editCategorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
 
@@ -987,34 +1096,65 @@ async function openEditProjectModal(id) {
         if (titleField) titleField.value = proj.title || '';
         if (descField) descField.value = proj.description || '';
 
-        const projCats = (proj.categories && proj.categories.length > 0) ? proj.categories : [proj.category || 'graphics'];
+        // Normalize categories
+        let projCats = proj.categories;
+        if (typeof projCats === 'string') {
+            try { projCats = JSON.parse(projCats); } catch(e) { projCats = [proj.category || 'graphics']; }
+        }
+        if (!Array.isArray(projCats) || projCats.length === 0) {
+            projCats = [proj.category || 'graphics'];
+        }
+        projCats = projCats.map(c => String(c).trim()).filter(Boolean);
+        if (projCats.length === 0) projCats = ['graphics'];
+
+        // Normalize media paths and types
+        let projMediaPaths = proj.mediaPaths;
+        if (typeof projMediaPaths === 'string') {
+            try { projMediaPaths = JSON.parse(projMediaPaths); } catch(e) { projMediaPaths = []; }
+        }
+        let projMediaTypes = proj.mediaTypes;
+        if (typeof projMediaTypes === 'string') {
+            try { projMediaTypes = JSON.parse(projMediaTypes); } catch(e) { projMediaTypes = []; }
+        }
+
+        let projCategoryMedia = proj.categoryMedia;
+        if (typeof projCategoryMedia === 'string') {
+            try { projCategoryMedia = JSON.parse(projCategoryMedia); } catch(e) { projCategoryMedia = {}; }
+        }
         
         // Reset category upload state
         editCategorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
         editKeepCategoryMedia = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
 
         // Populate existing category media
-        if (proj.categoryMedia && typeof proj.categoryMedia === 'object') {
-            Object.keys(proj.categoryMedia).forEach(cat => {
-                const items = proj.categoryMedia[cat] || [];
+        if (projCategoryMedia && typeof projCategoryMedia === 'object') {
+            Object.keys(projCategoryMedia).forEach(cat => {
+                let items = projCategoryMedia[cat] || [];
+                if (typeof items === 'string') {
+                    try { items = JSON.parse(items); } catch(e) { items = [items]; }
+                }
+                if (!Array.isArray(items)) items = [items];
+
                 editKeepCategoryMedia[cat] = items.map(m => {
                     if (typeof m === 'string') {
                         const isVid = m.endsWith('.mp4') || m.endsWith('.webm') || m.includes('video');
                         return { path: m, type: isVid ? 'video' : 'image' };
                     }
-                    return { path: m.path, type: m.type || 'image' };
-                });
+                    const p = m.path || m.url || m;
+                    const isVid = (m.type === 'video') || (String(p).endsWith('.mp4') || String(p).endsWith('.webm'));
+                    return { path: p, type: isVid ? 'video' : 'image' };
+                }).filter(item => item.path);
             });
         }
 
-        // Fallback for older projects without categoryMedia
+        // Fallback for projects where categoryMedia is empty or missing
         let hasAnyKept = Object.values(editKeepCategoryMedia).some(arr => arr.length > 0);
         if (!hasAnyKept) {
-            const allExisting = (proj.mediaPaths && proj.mediaPaths.length > 0) ? proj.mediaPaths : (proj.imagePath ? [proj.imagePath] : []);
+            const allExisting = (Array.isArray(projMediaPaths) && projMediaPaths.length > 0) ? projMediaPaths : (proj.imagePath ? [proj.imagePath] : []);
             const mainCat = projCats[0] || 'graphics';
             if (!editKeepCategoryMedia[mainCat]) editKeepCategoryMedia[mainCat] = [];
             allExisting.forEach((pathVal, idx) => {
-                const type = (proj.mediaTypes && proj.mediaTypes[idx]) ? proj.mediaTypes[idx] : ((pathVal.endsWith('.mp4') || pathVal.endsWith('.webm')) ? 'video' : 'image');
+                const type = (Array.isArray(projMediaTypes) && projMediaTypes[idx]) ? projMediaTypes[idx] : ((String(pathVal).endsWith('.mp4') || String(pathVal).endsWith('.webm')) ? 'video' : 'image');
                 editKeepCategoryMedia[mainCat].push({ path: pathVal, type });
             });
         }
@@ -1085,8 +1225,10 @@ function renderEditCategoryUploadSections() {
             
             <!-- Existing Media Files Grid for this category -->
             <div class="mb-2" id="editExistingSection_${catKey}" style="${retainedFiles.length > 0 ? '' : 'display: none;'}">
-                <span class="text-white-50 small d-block mb-1" style="font-size: 11px;">Current Files (Click &times; to remove):</span>
-                <div id="editExistingGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));"></div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-white-50 small" style="font-size: 11px;">Current Files (Click item to preview, click &times; to remove):</span>
+                </div>
+                <div id="editExistingGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));"></div>
             </div>
             
             <!-- Dropzone to upload new files for this category -->
@@ -1099,18 +1241,15 @@ function renderEditCategoryUploadSections() {
             
             <!-- New Files Preview Grid for this category -->
             <div class="mt-2" id="editNewSection_${catKey}" style="${newFiles.length > 0 ? '' : 'display: none;'}">
-                <span class="text-white-50 small d-block mb-1" style="font-size: 11px;">Newly Added Files:</span>
-                <div id="editNewGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));"></div>
+                <span class="text-white-50 small d-block mb-1" style="font-size: 11px;">Newly Added Files (Click item to preview):</span>
+                <div id="editNewGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));"></div>
             </div>
         `;
 
         container.appendChild(sectionCard);
 
-        const existingGrid = sectionCard.querySelector(`#editExistingGrid_${catKey}`);
-        const newGrid = sectionCard.querySelector(`#editNewGrid_${catKey}`);
         const dropzone = sectionCard.querySelector(`#editCategoryDropzone_${catKey}`);
         const fileInput = sectionCard.querySelector(`#editCategoryFileInput_${catKey}`);
-        const badgeCount = sectionCard.querySelector(`#editBadgeCount_${catKey}`);
 
         // Render Existing Files
         renderEditExistingGrid(catKey, sectionCard);
@@ -1177,18 +1316,36 @@ function renderEditExistingGrid(catKey, sectionCard) {
     if (existingSection) existingSection.style.display = 'block';
     existingGrid.innerHTML = '';
 
+    const catInfo = DSS_CATEGORIES.find(c => c.key === catKey) || { label: catKey };
+
     items.forEach((mediaItem, index) => {
         const mediaPath = mediaItem.path || mediaItem;
-        const mediaType = mediaItem.type || (mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm') ? 'video' : 'image');
+        const isVid = (mediaItem.type === 'video') || String(mediaPath).endsWith('.mp4') || String(mediaPath).endsWith('.webm');
+        const mediaType = isVid ? 'video' : 'image';
 
         const item = document.createElement('div');
-        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.18); background: #0b0b0f; cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;';
+        item.title = 'Click to preview media';
 
+        item.onmouseover = () => {
+            item.style.transform = 'scale(1.05)';
+            item.style.borderColor = 'var(--accent-color, #fa9d1c)';
+            item.style.boxShadow = '0 6px 16px rgba(0,0,0,0.6)';
+        };
+        item.onmouseout = () => {
+            item.style.transform = 'scale(1)';
+            item.style.borderColor = 'rgba(255,255,255,0.18)';
+            item.style.boxShadow = 'none';
+        };
+
+        // Remove button
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '&times;';
         removeBtn.title = 'Remove this file';
-        removeBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(220,53,69,0.9); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 13px; line-height: 1;';
+        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(220,53,69,0.92); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 14px; line-height: 1; transition: transform 0.15s;';
+        removeBtn.onmouseover = () => { removeBtn.style.transform = 'scale(1.15)'; };
+        removeBtn.onmouseout = () => { removeBtn.style.transform = 'scale(1)'; };
 
         removeBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -1198,18 +1355,31 @@ function renderEditExistingGrid(catKey, sectionCard) {
 
         item.appendChild(removeBtn);
 
-        if (mediaType === 'video' || mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm')) {
+        // Media content
+        if (mediaType === 'video') {
             const videoEl = document.createElement('video');
             videoEl.src = mediaPath;
-            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             videoEl.muted = true;
             item.appendChild(videoEl);
+
+            // Play icon badge overlay
+            const playBadge = document.createElement('div');
+            playBadge.style.cssText = 'position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); color: #fa9d1c; border-radius: 4px; padding: 2px 5px; font-size: 10px; display: flex; align-items: center; gap: 3px; z-index: 5; pointer-events: none;';
+            playBadge.innerHTML = '<i class="fa-solid fa-play"></i> Video';
+            item.appendChild(playBadge);
         } else {
             const imgEl = document.createElement('img');
             imgEl.src = mediaPath;
-            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             item.appendChild(imgEl);
         }
+
+        // Click to preview
+        item.addEventListener('click', (e) => {
+            if (e.target === removeBtn || removeBtn.contains(e.target)) return;
+            openAdminMediaLightbox(mediaPath, mediaType, `${catInfo.label} - File #${index + 1}`);
+        });
 
         existingGrid.appendChild(item);
     });
@@ -1261,14 +1431,31 @@ function renderEditNewGrid(catKey, sectionCard) {
     if (newSection) newSection.style.display = 'block';
     newGrid.innerHTML = '';
 
+    const catInfo = DSS_CATEGORIES.find(c => c.key === catKey) || { label: catKey };
+
     files.forEach((file, index) => {
         const item = document.createElement('div');
-        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.18); background: #0b0b0f; cursor: pointer; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;';
+        item.title = 'Click to preview newly added media';
+
+        item.onmouseover = () => {
+            item.style.transform = 'scale(1.05)';
+            item.style.borderColor = 'var(--accent-color, #fa9d1c)';
+            item.style.boxShadow = '0 6px 16px rgba(0,0,0,0.6)';
+        };
+        item.onmouseout = () => {
+            item.style.transform = 'scale(1)';
+            item.style.borderColor = 'rgba(255,255,255,0.18)';
+            item.style.boxShadow = 'none';
+        };
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '&times;';
-        removeBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
+        removeBtn.title = 'Remove this file';
+        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.85); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 13px; line-height: 1; transition: transform 0.15s;';
+        removeBtn.onmouseover = () => { removeBtn.style.transform = 'scale(1.15)'; };
+        removeBtn.onmouseout = () => { removeBtn.style.transform = 'scale(1)'; };
 
         removeBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -1278,20 +1465,32 @@ function renderEditNewGrid(catKey, sectionCard) {
 
         item.appendChild(removeBtn);
 
-        if (file.type && file.type.startsWith('video/')) {
+        const isVid = file.type && file.type.startsWith('video/');
+        const blobUrl = URL.createObjectURL(file);
+
+        if (isVid) {
             const videoEl = document.createElement('video');
-            videoEl.src = URL.createObjectURL(file);
-            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.src = blobUrl;
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             videoEl.muted = true;
             item.appendChild(videoEl);
+
+            const playBadge = document.createElement('div');
+            playBadge.style.cssText = 'position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); color: #fa9d1c; border-radius: 4px; padding: 2px 5px; font-size: 10px; display: flex; align-items: center; gap: 3px; z-index: 5; pointer-events: none;';
+            playBadge.innerHTML = '<i class="fa-solid fa-play"></i> Video';
+            item.appendChild(playBadge);
         } else {
             const imgEl = document.createElement('img');
-            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
-            const reader = new FileReader();
-            reader.onload = (e) => { imgEl.src = e.target.result; };
-            reader.readAsDataURL(file);
+            imgEl.src = blobUrl;
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none;';
             item.appendChild(imgEl);
         }
+
+        // Click to preview
+        item.addEventListener('click', (e) => {
+            if (e.target === removeBtn || removeBtn.contains(e.target)) return;
+            openAdminMediaLightbox(blobUrl, isVid ? 'video' : 'image', `${catInfo.label} - ${file.name}`);
+        });
 
         newGrid.appendChild(item);
     });
