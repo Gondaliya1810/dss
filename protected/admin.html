@@ -3100,25 +3100,11 @@
                                 <textarea class="form-control form-control-dss" id="editProjectDesc" rows="2" placeholder="Describe the client work..."></textarea>
                             </div>
                             
-                            <!-- Existing Media Files list -->
+                            <!-- Dynamic Category-Specific Media Upload & Edit Sections -->
                             <div class="col-12">
-                                <label class="form-label text-white d-block">Current Media Files (Click &times; to remove)</label>
-                                <div id="editExistingMediaGrid" class="d-grid gap-3 p-3 rounded" style="background: rgba(0,0,0,0.2); min-height: 80px; border: 1px dashed rgba(255,255,255,0.1); grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
-                                    <!-- Populated dynamically via JS -->
-                                </div>
-                            </div>
-                            
-                            <!-- Add New Media Files input -->
-                            <div class="col-12">
-                                <label for="editProjectFiles" class="form-label text-white">Add New Images / Videos</label>
-                                <div class="upload-area p-4 text-center rounded" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(255,255,255,0.02); cursor: pointer;" id="editDropzone">
-                                    <i class="fa-solid fa-cloud-arrow-up text-warning mb-2" style="font-size: 32px;"></i>
-                                    <p class="text-white mb-1">Click or drag files here to upload additional works</p>
-                                    <p class="text-white-50 small mb-0">Supported: JPG, PNG, WEBP, MP4 (Max 15 files)</p>
-                                    <input type="file" id="editProjectFiles" multiple accept="image/*,video/*" style="display: none;">
-                                </div>
-                                <div id="editNewFilesPreviewGrid" class="d-grid gap-3 mt-3" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));">
-                                    <!-- New files previews loaded here -->
+                                <label class="form-label text-white d-block mb-2">Category-Wise Work Files & Media</label>
+                                <div id="editCategoryUploadSections" class="d-flex flex-column gap-3">
+                                    <!-- Populated dynamically based on checked categories -->
                                 </div>
                             </div>
 

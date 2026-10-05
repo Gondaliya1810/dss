@@ -937,6 +937,9 @@ async function loadAdminProjects() {
     }
 }
 
+// State for edit modal category uploads
+let editCategorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
+
 // Open Edit Project Modal
 async function openEditProjectModal(id) {
     try {
@@ -986,26 +989,47 @@ async function openEditProjectModal(id) {
 
         const projCats = (proj.categories && proj.categories.length > 0) ? proj.categories : [proj.category || 'graphics'];
         
+        // Reset category upload state
+        editCategorySelectedFiles = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
+        editKeepCategoryMedia = { graphics: [], branding: [], packaging: [], 'social-media': [], video: [], marketing: [] };
+
+        // Populate existing category media
+        if (proj.categoryMedia && typeof proj.categoryMedia === 'object') {
+            Object.keys(proj.categoryMedia).forEach(cat => {
+                const items = proj.categoryMedia[cat] || [];
+                editKeepCategoryMedia[cat] = items.map(m => {
+                    if (typeof m === 'string') {
+                        const isVid = m.endsWith('.mp4') || m.endsWith('.webm') || m.includes('video');
+                        return { path: m, type: isVid ? 'video' : 'image' };
+                    }
+                    return { path: m.path, type: m.type || 'image' };
+                });
+            });
+        }
+
+        // Fallback for older projects without categoryMedia
+        let hasAnyKept = Object.values(editKeepCategoryMedia).some(arr => arr.length > 0);
+        if (!hasAnyKept) {
+            const allExisting = (proj.mediaPaths && proj.mediaPaths.length > 0) ? proj.mediaPaths : (proj.imagePath ? [proj.imagePath] : []);
+            const mainCat = projCats[0] || 'graphics';
+            if (!editKeepCategoryMedia[mainCat]) editKeepCategoryMedia[mainCat] = [];
+            allExisting.forEach((pathVal, idx) => {
+                const type = (proj.mediaTypes && proj.mediaTypes[idx]) ? proj.mediaTypes[idx] : ((pathVal.endsWith('.mp4') || pathVal.endsWith('.webm')) ? 'video' : 'image');
+                editKeepCategoryMedia[mainCat].push({ path: pathVal, type });
+            });
+        }
+
         // Set checkboxes in edit modal
         const editCheckboxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]');
         editCheckboxes.forEach(cb => {
             cb.checked = projCats.includes(cb.value);
         });
 
-        // Setup existing media state
-        editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])].filter(Boolean);
-        editKeepCategoryMedia = proj.categoryMedia ? JSON.parse(JSON.stringify(proj.categoryMedia)) : {};
-        editNewFiles = [];
-        editSelectedThumbnailFile = null;
-
-        const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
-        if (newFilesGrid) newFilesGrid.innerHTML = '';
-        const newFilesInput = document.getElementById('editProjectFiles');
-        if (newFilesInput) newFilesInput.value = '';
         const thumbInput = document.getElementById('editThumbnailFile');
         if (thumbInput) thumbInput.value = '';
 
-        renderEditExistingMedia();
+        // Render dynamic category upload dropzones & existing media
+        renderEditCategoryUploadSections();
         
         if (modalInstance) {
             modalInstance.show();
@@ -1021,43 +1045,160 @@ async function openEditProjectModal(id) {
 }
 window.openEditProjectModal = openEditProjectModal;
 
-// Render existing media files in edit modal
-function renderEditExistingMedia() {
-    const existingGrid = document.getElementById('editExistingMediaGrid');
-    if (!existingGrid) return;
+// Render dynamic category upload dropzones inside Edit Modal
+function renderEditCategoryUploadSections() {
+    const container = document.getElementById('editCategoryUploadSections');
+    if (!container) return;
 
-    if (editKeepMediaPaths.length === 0) {
-        existingGrid.innerHTML = '<div class="text-white-50 small p-2">No existing media retained. Please upload at least one new file.</div>';
+    const checkedBoxes = document.querySelectorAll('#editCategoryCheckboxes input[type="checkbox"]:checked');
+    const checkedKeys = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (checkedKeys.length === 0) {
+        container.innerHTML = `
+            <div class="p-3 text-center rounded text-warning" style="background: rgba(250, 157, 28, 0.08); border: 1px dashed rgba(250, 157, 28, 0.3);">
+                <i class="fa-solid fa-triangle-exclamation me-1"></i> Please select at least one service/category above to manage works.
+            </div>
+        `;
         return;
     }
 
+    container.innerHTML = '';
+
+    checkedKeys.forEach(catKey => {
+        const catInfo = DSS_CATEGORIES.find(c => c.key === catKey) || { key: catKey, label: catKey, icon: 'fa-solid fa-folder' };
+        if (!editKeepCategoryMedia[catKey]) editKeepCategoryMedia[catKey] = [];
+        if (!editCategorySelectedFiles[catKey]) editCategorySelectedFiles[catKey] = [];
+
+        const retainedFiles = editKeepCategoryMedia[catKey] || [];
+        const newFiles = editCategorySelectedFiles[catKey] || [];
+        const totalCount = retainedFiles.length + newFiles.length;
+
+        const sectionCard = document.createElement('div');
+        sectionCard.className = 'category-upload-card p-3 rounded';
+        sectionCard.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 12px;';
+
+        sectionCard.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-white fw-bold"><i class="${catInfo.icon} text-warning me-2"></i>${catInfo.label} Works</span>
+                <span class="badge-dss" id="editBadgeCount_${catKey}">${totalCount} file${totalCount === 1 ? '' : 's'}</span>
+            </div>
+            
+            <!-- Existing Media Files Grid for this category -->
+            <div class="mb-2" id="editExistingSection_${catKey}" style="${retainedFiles.length > 0 ? '' : 'display: none;'}">
+                <span class="text-white-50 small d-block mb-1" style="font-size: 11px;">Current Files (Click &times; to remove):</span>
+                <div id="editExistingGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));"></div>
+            </div>
+            
+            <!-- Dropzone to upload new files for this category -->
+            <div class="upload-dropzone p-3 text-center rounded" id="editCategoryDropzone_${catKey}" style="border: 2px dashed rgba(255,255,255,0.15); background: rgba(0,0,0,0.15); cursor: pointer; transition: all 0.2s;">
+                <i class="fa-solid fa-cloud-arrow-up text-warning mb-1" style="font-size: 22px;"></i>
+                <p class="text-white small mb-0">Drag & drop files for <strong>${catInfo.label}</strong> or click to browse</p>
+                <p class="text-white-50 small mb-0" style="font-size: 11px;">Supports JPG, PNG, WEBP, MP4, WEBM (Max 20MB)</p>
+                <input type="file" id="editCategoryFileInput_${catKey}" multiple accept="image/*,video/*" style="display: none;">
+            </div>
+            
+            <!-- New Files Preview Grid for this category -->
+            <div class="mt-2" id="editNewSection_${catKey}" style="${newFiles.length > 0 ? '' : 'display: none;'}">
+                <span class="text-white-50 small d-block mb-1" style="font-size: 11px;">Newly Added Files:</span>
+                <div id="editNewGrid_${catKey}" class="d-grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));"></div>
+            </div>
+        `;
+
+        container.appendChild(sectionCard);
+
+        const existingGrid = sectionCard.querySelector(`#editExistingGrid_${catKey}`);
+        const newGrid = sectionCard.querySelector(`#editNewGrid_${catKey}`);
+        const dropzone = sectionCard.querySelector(`#editCategoryDropzone_${catKey}`);
+        const fileInput = sectionCard.querySelector(`#editCategoryFileInput_${catKey}`);
+        const badgeCount = sectionCard.querySelector(`#editBadgeCount_${catKey}`);
+
+        // Render Existing Files
+        renderEditExistingGrid(catKey, sectionCard);
+
+        // Setup Dropzone & File Input
+        if (dropzone && fileInput) {
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleEditCategoryFiles(catKey, e.target.files, sectionCard);
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('dragover');
+                    dropzone.style.borderColor = 'var(--accent-color)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('dragover');
+                    dropzone.style.borderColor = 'rgba(255,255,255,0.15)';
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleEditCategoryFiles(catKey, files, sectionCard);
+                }
+            });
+        }
+
+        // Render New Files
+        renderEditNewGrid(catKey, sectionCard);
+    });
+}
+
+// Render existing files for a category inside edit modal
+function renderEditExistingGrid(catKey, sectionCard) {
+    if (!sectionCard) return;
+    const existingGrid = sectionCard.querySelector(`#editExistingGrid_${catKey}`);
+    const existingSection = sectionCard.querySelector(`#editExistingSection_${catKey}`);
+    const badgeCount = sectionCard.querySelector(`#editBadgeCount_${catKey}`);
+    if (!existingGrid) return;
+
+    const items = editKeepCategoryMedia[catKey] || [];
+    const newItems = editCategorySelectedFiles[catKey] || [];
+    if (badgeCount) badgeCount.textContent = `${items.length + newItems.length} file${(items.length + newItems.length) === 1 ? '' : 's'}`;
+
+    if (items.length === 0) {
+        existingGrid.innerHTML = '';
+        if (existingSection) existingSection.style.display = 'none';
+        return;
+    }
+
+    if (existingSection) existingSection.style.display = 'block';
     existingGrid.innerHTML = '';
 
-    editKeepMediaPaths.forEach((mediaPath, index) => {
+    items.forEach((mediaItem, index) => {
+        const mediaPath = mediaItem.path || mediaItem;
+        const mediaType = mediaItem.type || (mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm') ? 'video' : 'image');
+
         const item = document.createElement('div');
         item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.innerHTML = '&times;';
-        removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(220,53,69,0.85); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 14px; line-height: 1;';
-        
+        removeBtn.title = 'Remove this file';
+        removeBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(220,53,69,0.9); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 13px; line-height: 1;';
+
         removeBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
-            editKeepMediaPaths.splice(index, 1);
-            
-            // Also remove from editKeepCategoryMedia
-            Object.keys(editKeepCategoryMedia).forEach(cat => {
-                editKeepCategoryMedia[cat] = (editKeepCategoryMedia[cat] || []).filter(m => m.path !== mediaPath);
-            });
-
-            renderEditExistingMedia();
+            editKeepCategoryMedia[catKey].splice(index, 1);
+            renderEditExistingGrid(catKey, sectionCard);
         });
 
         item.appendChild(removeBtn);
 
-        const isVideo = mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm') || mediaPath.includes('video');
-        if (isVideo) {
+        if (mediaType === 'video' || mediaPath.endsWith('.mp4') || mediaPath.endsWith('.webm')) {
             const videoEl = document.createElement('video');
             videoEl.src = mediaPath;
             videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
@@ -1074,87 +1215,97 @@ function renderEditExistingMedia() {
     });
 }
 
-// Initialize Edit Project Form Listener
-function initEditProjectForm() {
-    const editDropzone = document.getElementById('editDropzone');
-    const editFileInput = document.getElementById('editProjectFiles');
-    const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
-    const editForm = document.getElementById('editProjectForm');
-    const submitBtn = document.getElementById('editProjectSubmitBtn');
+// Handle adding new files to a specific category inside edit modal
+function handleEditCategoryFiles(catKey, fileList, sectionCard) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    const files = Array.from(fileList);
 
-    if (editDropzone && editFileInput) {
-        editDropzone.addEventListener('click', () => editFileInput.click());
-
-        editFileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                const files = Array.from(e.target.files);
-                editNewFiles = [...editNewFiles, ...files];
-                renderEditNewFilesPreviews();
-            }
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            editDropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                editDropzone.style.borderColor = 'var(--accent-color)';
-            });
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            editDropzone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                editDropzone.style.borderColor = 'rgba(255,255,255,0.15)';
-            });
-        });
-
-        editDropzone.addEventListener('drop', (e) => {
-            const files = Array.from(e.dataTransfer.files);
-            if (files.length > 0) {
-                editNewFiles = [...editNewFiles, ...files];
-                renderEditNewFilesPreviews();
-            }
-        });
+    const validFiles = [];
+    for (let file of files) {
+        if (!allowedTypes.includes(file.type)) {
+            showToast(`Skipped "${file.name}": Unsupported format.`, false);
+            continue;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+            showToast(`Skipped "${file.name}": Exceeds 20MB limit.`, false);
+            continue;
+        }
+        validFiles.push(file);
     }
 
-    function renderEditNewFilesPreviews() {
-        if (!newFilesGrid) return;
-        newFilesGrid.innerHTML = '';
+    if (validFiles.length > 0) {
+        if (!editCategorySelectedFiles[catKey]) editCategorySelectedFiles[catKey] = [];
+        editCategorySelectedFiles[catKey] = [...editCategorySelectedFiles[catKey], ...validFiles];
+        renderEditNewGrid(catKey, sectionCard);
+    }
+}
 
-        editNewFiles.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+// Render newly added files for a category inside edit modal
+function renderEditNewGrid(catKey, sectionCard) {
+    if (!sectionCard) return;
+    const newGrid = sectionCard.querySelector(`#editNewGrid_${catKey}`);
+    const newSection = sectionCard.querySelector(`#editNewSection_${catKey}`);
+    const badgeCount = sectionCard.querySelector(`#editBadgeCount_${catKey}`);
+    if (!newGrid) return;
 
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.innerHTML = '&times;';
-            removeBtn.style.cssText = 'position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,0.8); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
-            
-            removeBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                editNewFiles.splice(index, 1);
-                renderEditNewFilesPreviews();
-            });
+    const files = editCategorySelectedFiles[catKey] || [];
+    const retainedFiles = editKeepCategoryMedia[catKey] || [];
+    if (badgeCount) badgeCount.textContent = `${retainedFiles.length + files.length} file${(retainedFiles.length + files.length) === 1 ? '' : 's'}`;
 
-            item.appendChild(removeBtn);
+    if (files.length === 0) {
+        newGrid.innerHTML = '';
+        if (newSection) newSection.style.display = 'none';
+        return;
+    }
 
-            if (file.type && file.type.startsWith('video/')) {
-                const videoEl = document.createElement('video');
-                videoEl.src = URL.createObjectURL(file);
-                videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
-                videoEl.muted = true;
-                item.appendChild(videoEl);
-            } else {
-                const imgEl = document.createElement('img');
-                imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
-                const reader = new FileReader();
-                reader.onload = (e) => { imgEl.src = e.target.result; };
-                reader.readAsDataURL(file);
-                item.appendChild(imgEl);
-            }
+    if (newSection) newSection.style.display = 'block';
+    newGrid.innerHTML = '';
 
-            newFilesGrid.appendChild(item);
+    files.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'position: relative; width: 100%; padding-top: 100%; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); background: #000;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.style.cssText = 'position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.85); color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 12px; line-height: 1;';
+
+        removeBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            editCategorySelectedFiles[catKey].splice(index, 1);
+            renderEditNewGrid(catKey, sectionCard);
+        });
+
+        item.appendChild(removeBtn);
+
+        if (file.type && file.type.startsWith('video/')) {
+            const videoEl = document.createElement('video');
+            videoEl.src = URL.createObjectURL(file);
+            videoEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            videoEl.muted = true;
+            item.appendChild(videoEl);
+        } else {
+            const imgEl = document.createElement('img');
+            imgEl.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;';
+            const reader = new FileReader();
+            reader.onload = (e) => { imgEl.src = e.target.result; };
+            reader.readAsDataURL(file);
+            item.appendChild(imgEl);
+        }
+
+        newGrid.appendChild(item);
+    });
+}
+
+// Initialize Edit Project Form Listener
+function initEditProjectForm() {
+    const editForm = document.getElementById('editProjectForm');
+    const submitBtn = document.getElementById('editProjectSubmitBtn');
+    const editCheckboxesContainer = document.getElementById('editCategoryCheckboxes');
+
+    if (editCheckboxesContainer) {
+        editCheckboxesContainer.addEventListener('change', () => {
+            renderEditCategoryUploadSections();
         });
     }
 
@@ -1179,8 +1330,22 @@ function initEditProjectForm() {
             return;
         }
 
-        if (editKeepMediaPaths.length === 0 && editNewFiles.length === 0) {
-            showToast('Please retain or upload at least one media file.', false);
+        // Count total retained + new files across checked categories
+        let totalFiles = 0;
+        const allKeepPaths = [];
+
+        selectedCats.forEach(catKey => {
+            const retained = editKeepCategoryMedia[catKey] || [];
+            const newlyAdded = editCategorySelectedFiles[catKey] || [];
+            totalFiles += retained.length + newlyAdded.length;
+
+            retained.forEach(item => {
+                allKeepPaths.push(item.path || item);
+            });
+        });
+
+        if (totalFiles === 0) {
+            showToast('Please retain or upload at least one media file under your selected categories.', false);
             return;
         }
 
@@ -1200,11 +1365,16 @@ function initEditProjectForm() {
         formData.append('category', selectedCats[0]);
         formData.append('categories', JSON.stringify(selectedCats));
         formData.append('description', description);
-        formData.append('keepMediaPaths', JSON.stringify(editKeepMediaPaths));
+        formData.append('keepMediaPaths', JSON.stringify(allKeepPaths));
         formData.append('keepCategoryMedia', JSON.stringify(editKeepCategoryMedia));
 
-        editNewFiles.forEach(file => {
-            formData.append('workFiles', file);
+        // Append category-specific files
+        selectedCats.forEach(catKey => {
+            const files = editCategorySelectedFiles[catKey] || [];
+            files.forEach(file => {
+                formData.append(`workFiles_${catKey}`, file);
+                formData.append('workFiles', file); // Fallback for backwards compatibility
+            });
         });
 
         const editThumbInput = document.getElementById('editThumbnailFile');
