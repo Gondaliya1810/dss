@@ -463,11 +463,7 @@ async function loadServiceSpecificProjects() {
             const label = categoryLabels[category] || category;
 
             // Helper to get all categories of a project
-            const getCats = (p) => {
-                if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
-                if (p.category) return [p.category];
-                return ['graphics'];
-            };
+            const getCats = (p) => getProjectCategories(p);
 
             // Filter projects matching this category
             const filteredProjects = data.projects.filter(p => getCats(p).includes(category));
@@ -484,30 +480,37 @@ async function loadServiceSpecificProjects() {
 
                 const showThumbnail = project.thumbnailPath ? true : false;
                 
+                let catMedia = project.categoryMedia;
+                if (typeof catMedia === 'string') {
+                    try { catMedia = JSON.parse(catMedia); } catch(e) { catMedia = {}; }
+                }
+
                 // If category media exists, pick first media from this specific category
                 let categoryMediaItem = null;
-                if (project.categoryMedia && project.categoryMedia[category] && project.categoryMedia[category].length > 0) {
-                    categoryMediaItem = project.categoryMedia[category][0];
+                if (catMedia && catMedia[category] && catMedia[category].length > 0) {
+                    categoryMediaItem = catMedia[category][0];
                 }
 
                 let mediaHTML = '';
-                if (showThumbnail && !categoryMediaItem) {
-                    mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
-                } else if (categoryMediaItem) {
-                    mediaHTML = categoryMediaItem.type === 'video'
+                if (categoryMediaItem) {
+                    const isVid = categoryMediaItem.type === 'video' || String(categoryMediaItem.path).endsWith('.mp4') || String(categoryMediaItem.path).endsWith('.webm');
+                    mediaHTML = isVid
                         ? `<video src="${categoryMediaItem.path}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
                         : `<img src="${categoryMediaItem.path}" alt="${project.title}">`;
+                } else if (showThumbnail) {
+                    mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
                 } else {
-                    mediaHTML = project.fileType === 'video' 
+                    const isVid = project.fileType === 'video' || (project.imagePath && (project.imagePath.endsWith('.mp4') || project.imagePath.endsWith('.webm')));
+                    mediaHTML = isVid 
                         ? `<video src="${project.imagePath}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
                         : `<img src="${project.imagePath}" alt="${project.title}">`;
                 }
 
-                const mediaUrls = project.mediaPaths ? project.mediaPaths.join(',') : project.imagePath;
-                const mediaTypes = project.mediaTypes ? project.mediaTypes.join(',') : project.fileType;
+                const mediaUrls = Array.isArray(project.mediaPaths) ? project.mediaPaths.join(',') : (project.imagePath || '');
+                const mediaTypes = Array.isArray(project.mediaTypes) ? project.mediaTypes.join(',') : (project.fileType || 'image');
 
                 colWrapper.innerHTML = `
-                    <div class="portfolio-grid-card" data-project-id="${project.id}" data-media-urls="${mediaUrls}" data-media-types="${mediaTypes}">
+                    <div class="portfolio-grid-card" data-project-id="${project.id || project._id}" data-media-urls="${mediaUrls}" data-media-types="${mediaTypes}">
                         ${mediaHTML}
                         <div class="portfolio-hover-overlay">
                             <h3 class="portfolio-hover-title cls-sep">${project.title}</h3>
@@ -622,9 +625,49 @@ async function initHomepagePortfolio() {
 }
 
 function getProjectCategories(p) {
-    if (Array.isArray(p.categories) && p.categories.length > 0) return p.categories;
-    if (p.category) return [p.category];
-    return ['graphics'];
+    if (!p) return ['graphics'];
+    let cats = [];
+    
+    // Parse categories
+    if (p.categories) {
+        if (typeof p.categories === 'string') {
+            try { cats = JSON.parse(p.categories); } catch(e) { cats = [p.categories]; }
+        } else if (Array.isArray(p.categories)) {
+            cats = [...p.categories];
+        } else {
+            cats = [p.categories];
+        }
+    }
+    
+    // Add primary category
+    if (p.category && !cats.includes(p.category)) {
+        cats.push(p.category);
+    }
+    
+    // Check categoryMedia keys
+    let catMedia = p.categoryMedia;
+    if (typeof catMedia === 'string') {
+        try { catMedia = JSON.parse(catMedia); } catch(e) { catMedia = {}; }
+    }
+    if (catMedia && typeof catMedia === 'object') {
+        Object.keys(catMedia).forEach(catKey => {
+            const list = catMedia[catKey];
+            if (Array.isArray(list) && list.length > 0 && !cats.includes(catKey)) {
+                cats.push(catKey);
+            }
+        });
+    }
+
+    // If project has video in fileType or mediaTypes, also ensure 'video' is included
+    if (p.fileType === 'video' && !cats.includes('video')) {
+        cats.push('video');
+    }
+    if (Array.isArray(p.mediaTypes) && p.mediaTypes.includes('video') && !cats.includes('video')) {
+        cats.push('video');
+    }
+    
+    cats = cats.map(c => String(c).trim()).filter(Boolean);
+    return cats.length > 0 ? cats : ['graphics'];
 }
 
 function renderPortfolioGrid() {
@@ -664,37 +707,43 @@ function renderPortfolioGrid() {
     visibleProjects.forEach(project => {
         const itemWrapper = document.createElement('div');
         itemWrapper.className = 'col-lg-3 col-md-4 col-sm-6 col-6 portfolio-item-wrapper reveal-in visible';
-        itemWrapper.setAttribute('data-category', project.category || 'graphics');
+        itemWrapper.setAttribute('data-category', filter !== 'all' ? filter : (project.category || 'graphics'));
 
         const projCats = getProjectCategories(project);
         const label = projCats.map(c => categoryLabels[c] || c).join(' • ');
         
-        const showThumbnail = project.thumbnailPath ? true : false;
-        
+        let catMedia = project.categoryMedia;
+        if (typeof catMedia === 'string') {
+            try { catMedia = JSON.parse(catMedia); } catch(e) { catMedia = {}; }
+        }
+
         // If a specific category tab is chosen, check if there's categoryMedia for it
         let categoryMediaItem = null;
-        if (filter !== 'all' && project.categoryMedia && project.categoryMedia[filter] && project.categoryMedia[filter].length > 0) {
-            categoryMediaItem = project.categoryMedia[filter][0];
+        if (filter !== 'all' && catMedia && catMedia[filter] && catMedia[filter].length > 0) {
+            categoryMediaItem = catMedia[filter][0];
         }
 
+        const showThumbnail = project.thumbnailPath ? true : false;
         let mediaHTML = '';
-        if (showThumbnail && (!categoryMediaItem || filter === 'all')) {
-            mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
-        } else if (categoryMediaItem) {
-            mediaHTML = categoryMediaItem.type === 'video' 
+
+        if (filter !== 'all' && categoryMediaItem) {
+            const isVid = categoryMediaItem.type === 'video' || String(categoryMediaItem.path).endsWith('.mp4') || String(categoryMediaItem.path).endsWith('.webm');
+            mediaHTML = isVid 
                 ? `<video src="${categoryMediaItem.path}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
                 : `<img src="${categoryMediaItem.path}" alt="${project.title}">`;
+        } else if (showThumbnail) {
+            mediaHTML = `<img src="${project.thumbnailPath}" alt="${project.title}">`;
+        } else if (project.fileType === 'video' || (project.imagePath && (project.imagePath.endsWith('.mp4') || project.imagePath.endsWith('.webm')))) {
+            mediaHTML = `<video src="${project.imagePath}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`;
         } else {
-            mediaHTML = project.fileType === 'video' 
-                ? `<video src="${project.imagePath}" autoplay loop muted playsinline class="portfolio-video-thumb"></video>`
-                : `<img src="${project.imagePath}" alt="${project.title}">`;
+            mediaHTML = `<img src="${project.imagePath}" alt="${project.title}">`;
         }
 
-        const mediaUrls = project.mediaPaths ? project.mediaPaths.join(',') : project.imagePath;
-        const mediaTypes = project.mediaTypes ? project.mediaTypes.join(',') : project.fileType;
+        const mediaUrls = Array.isArray(project.mediaPaths) ? project.mediaPaths.join(',') : (project.imagePath || '');
+        const mediaTypes = Array.isArray(project.mediaTypes) ? project.mediaTypes.join(',') : (project.fileType || 'image');
 
         itemWrapper.innerHTML = `
-            <div class="portfolio-grid-card" data-project-id="${project.id}" data-media-urls="${mediaUrls}" data-media-types="${mediaTypes}">
+            <div class="portfolio-grid-card" data-project-id="${project.id || project._id}" data-media-urls="${mediaUrls}" data-media-types="${mediaTypes}">
                 ${mediaHTML}
                 <div class="portfolio-hover-overlay">
                     <h3 class="portfolio-hover-title cls-sep">${project.title}</h3>
