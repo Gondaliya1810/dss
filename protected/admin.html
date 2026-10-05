@@ -718,27 +718,56 @@
 
         .work-footer {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .work-delete-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(230, 57, 70, 0.1);
-            border: 1px solid rgba(230, 57, 70, 0.2);
-            color: var(--error-color);
+        .work-footer-meta {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .work-edit-btn, .work-delete-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             transition: all var(--anim-fast);
             cursor: pointer;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .work-edit-btn {
+            color: #fa9d1c;
+            border-color: rgba(250, 157, 28, 0.3);
+        }
+
+        .work-edit-btn:hover {
+            background: rgba(250, 157, 28, 0.2);
+            border-color: #fa9d1c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(250, 157, 28, 0.2);
+        }
+
+        .work-delete-btn {
+            color: var(--error-color);
+            border-color: rgba(230, 57, 70, 0.3);
         }
 
         .work-delete-btn:hover {
-            background: var(--error-color);
-            color: white;
+            background: rgba(230, 57, 70, 0.2);
+            border-color: var(--error-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(230, 57, 70, 0.2);
         }
 
         /* Project Table */
@@ -849,13 +878,17 @@
         }
 
         .badge-dss {
-            background: rgba(250, 157, 28, 0.1);
+            background: rgba(250, 157, 28, 0.12);
             color: var(--accent-color);
-            border: 1px solid rgba(250, 157, 28, 0.2);
-            padding: 4px 10px;
+            border: 1px solid rgba(250, 157, 28, 0.25);
+            padding: 3px 8px;
             border-radius: 50px;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1.2;
         }
 
         /* Lead Management Styling */
@@ -3448,6 +3481,6 @@
 
     <!-- Swiper/Bootstrap/JS scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="./js/admin.js?v=2.4"></script>
+    <script src="./js/admin.js?v=2.5"></script>
 </body>
 </html>

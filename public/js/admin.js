@@ -893,20 +893,22 @@ async function loadAdminProjects() {
                         ${mediaHTML}
                     </div>
                     <div class="work-info">
-                        <div class="work-title-text" title="${proj.title}">${proj.title}</div>
-                        <div class="work-desc-text" title="${proj.description || 'No description provided.'}">${proj.description || 'No description provided.'}</div>
+                        <div class="work-title-text" title="${escapeHTML(proj.title)}">${escapeHTML(proj.title)}</div>
+                        <div class="work-desc-text" title="${escapeHTML(proj.description || 'No description provided.')}">${escapeHTML(proj.description || 'No description provided.')}</div>
                         <div class="work-footer">
                             <div class="d-flex flex-wrap gap-1 align-items-center">
                                 ${badgesHTML}
                             </div>
-                            <div class="d-flex align-items-center gap-2 ms-auto">
-                                <span class="text-muted" style="font-size: 11px;">${dateStr}</span>
-                                <button class="work-edit-btn" onclick="openEditProjectModal('${proj.id}')" title="Edit work" style="background: none; border: none; color: #ff9d1c; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button class="work-delete-btn" onclick="confirmDeleteProject('${proj.id}')" title="Delete work">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
+                            <div class="work-footer-meta">
+                                <span class="text-muted" style="font-size: 11px; white-space: nowrap;"><i class="fa-regular fa-calendar me-1"></i>${dateStr}</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="work-edit-btn" onclick="openEditProjectModal('${proj.id || proj._id}')" title="Edit project">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button type="button" class="work-delete-btn" onclick="confirmDeleteProject('${proj.id || proj._id}')" title="Delete project">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -923,11 +925,44 @@ async function loadAdminProjects() {
 }
 
 // Open Edit Project Modal
-function openEditProjectModal(id) {
-    const proj = projectsList.find(p => p.id === id);
-    if (!proj || !editProjectModal) return;
+async function openEditProjectModal(id) {
+    if (!id) return;
 
-    document.getElementById('editProjectId').value = proj.id;
+    let proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+    
+    // If not found in current list, fetch projects from server
+    if (!proj) {
+        try {
+            const resp = await fetch('/api/projects');
+            const data = await resp.json();
+            if (data.success && data.projects) {
+                projectsList = data.projects;
+                proj = projectsList.find(p => String(p.id) === String(id) || String(p._id) === String(id));
+            }
+        } catch (e) {
+            console.error('Error fetching project for edit:', e);
+        }
+    }
+
+    if (!proj) {
+        showToast('Project details not found.', false);
+        return;
+    }
+
+    // Ensure edit modal instance exists
+    const modalEl = document.getElementById('editProjectModal');
+    if (!modalEl) {
+        console.error('editProjectModal element not found');
+        return;
+    }
+
+    if (!editProjectModal && typeof bootstrap !== 'undefined') {
+        editProjectModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    } else if (typeof bootstrap !== 'undefined') {
+        editProjectModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    }
+
+    document.getElementById('editProjectId').value = proj.id || proj._id;
     document.getElementById('editProjectTitle').value = proj.title || '';
     document.getElementById('editProjectDesc').value = proj.description || '';
 
@@ -940,12 +975,11 @@ function openEditProjectModal(id) {
     });
 
     // Setup existing media state
-    editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])];
-    editKeepCategoryMedia = JSON.parse(JSON.stringify(proj.categoryMedia || {}));
+    editKeepMediaPaths = [...(proj.mediaPaths && proj.mediaPaths.length > 0 ? proj.mediaPaths : [proj.imagePath])].filter(Boolean);
+    editKeepCategoryMedia = proj.categoryMedia ? JSON.parse(JSON.stringify(proj.categoryMedia)) : {};
     editNewFiles = [];
     editSelectedThumbnailFile = null;
 
-    const existingGrid = document.getElementById('editExistingMediaGrid');
     const newFilesGrid = document.getElementById('editNewFilesPreviewGrid');
     if (newFilesGrid) newFilesGrid.innerHTML = '';
     const newFilesInput = document.getElementById('editProjectFiles');
@@ -954,7 +988,12 @@ function openEditProjectModal(id) {
     if (thumbInput) thumbInput.value = '';
 
     renderEditExistingMedia();
-    editProjectModal.show();
+    
+    if (editProjectModal) {
+        editProjectModal.show();
+    } else if (typeof bootstrap !== 'undefined') {
+        new bootstrap.Modal(modalEl).show();
+    }
 }
 window.openEditProjectModal = openEditProjectModal;
 
